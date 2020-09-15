@@ -20,7 +20,7 @@
 #include "Rte_ModMdl.h"
 #include "CmpLib.h"
 
-boolean dem_IGN_ON_5s;
+boolean dem_IGN_ON_5s = FALSE;
 static void Modmdl_dem_process(eIgnState Status);
 
 /// @brief  Instance of life-cycle state-machine
