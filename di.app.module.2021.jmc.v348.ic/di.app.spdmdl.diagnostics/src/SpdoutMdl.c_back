@@ -1,0 +1,237 @@
+//---------------------------------------------------------------------------------------------------------------------
+//
+// VISTEON CORPORATION CONFIDENTIAL
+// ________________________________
+//
+// [2015] Visteon Corporation
+// All Rights Reserved.
+//
+// NOTICE: This is an unpublished work of authorship, which contains trade secrets.
+// Visteon Corporation owns all rights to this work and intends to maintain it in confidence to preserve
+// its trade secret status. Visteon Corporation reserves the right, under the copyright laws of the United States
+// or those of any other country that may have jurisdiction, to protect this work as an unpublished work,
+// in the event of an inadvertent or deliberate unauthorized publication. Visteon Corporation also reserves its rights
+// under all copyright laws to protect this work as a published work, when appropriate.
+// Those having access to this work may not copy it, use it, modify it, or disclose the information contained in it
+// without the written authorization of Visteon Corporation.
+//
+//---------------------------------------------------------------------------------------------------------------------
+#include "Rte_SpdOutMdl.h"
+#include "CmpLib.h"
+#include "MathLib.h"
+#include "string.h"
+
+
+/// @brief  Instance of life-cycle state-machine
+CMPLIB_INSTANCE(SpdOutMdl)
+
+//=====================================================================================================================
+//  CONSTANTS & TYPES
+//=====================================================================================================================
+#define cDEFAULT_MIN_VALID_VEHICLE_SPEED (uint16)(0x0064U) /* 1 KMPH */
+#define cDEFAULT_MAX_VALID_VEHICLE_SPEED (uint16)(0x61A8U) /* 250.00 KMPH */
+
+
+//=====================================================================================================================
+//  FORWARD DECLARATIONS
+//=====================================================================================================================
+
+
+//=====================================================================================================================
+//  PRIVATE
+//=====================================================================================================================
+static uint32 PreviousSpeed;
+
+const uint16 speedinput[13]=
+{
+		0u,
+		2000u,
+		4000u,
+		6000u,
+		8000u,
+		10000u,
+		12000u,
+		14000u,
+		16000u,
+		18000u,
+		20000u,
+		22000u,
+    	25000u
+};
+
+const uint16 freqhz[13]=
+{
+		 0,
+		 1416u,
+		 2831u,
+		 4247u,
+		 5662u,
+		 7078u,
+		 8493u,
+		 9909u,
+		 11324u,
+		 12740u,
+		 14156u,
+		 15571u,
+		 17600u
+};
+
+//---------------------------------------------------------------------------------------------------------------------
+/// @brief  Transitional initialization state
+///
+/// @return E_OK:           Succeed
+///<br>     E_NOT_READY:    In progress. Keeps the component in this state.
+///<br>     E_NOT_OK:       Failed
+//---------------------------------------------------------------------------------------------------------------------
+static Std_ReturnType CmpInit ( void )
+{
+	PreviousSpeed = (uint32)0;
+	return E_OK;
+}
+
+
+//---------------------------------------------------------------------------------------------------------------------
+/// @brief  Transitional de-initialization state
+///
+/// @return E_OK:           Succeed
+///<br>     E_NOT_READY:    In progress. Keeps the component in this state.
+///<br>     E_NOT_OK:       Failed
+//---------------------------------------------------------------------------------------------------------------------
+static Std_ReturnType CmpDeInit( void )
+{
+	PreviousSpeed = (uint32)0;
+	return E_OK;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+/// @brief  Transitional activation state
+///
+/// @return E_OK:           Succeed
+///<br>     E_NOT_READY:    In progress. Keeps the component in this state.
+///<br>     E_NOT_OK:       Failed
+//---------------------------------------------------------------------------------------------------------------------
+static Std_ReturnType CmpActivation( void )
+{
+	PreviousSpeed = (uint32)0;
+	Rte_Call_rpIoHwAbSet_Impl_SetDuty(eIODutyOutId_Speed_OUT, 0);
+	Rte_Call_rpIoHwAbSet_Impl_SetPeriod(eIOPeriodOutId_Speed_OUT, 0);
+	return E_OK;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+/// @brief  Transitional de-activation state
+///
+/// @return E_OK:           Succeed
+///<br>     E_NOT_READY:    In progress
+///<br>     E_NOT_OK:       Failed
+//---------------------------------------------------------------------------------------------------------------------
+static Std_ReturnType CmpDeActivation( void )
+{
+	PreviousSpeed = (uint32)0;
+	Rte_Call_rpIoHwAbSet_Impl_SetDuty(eIODutyOutId_Speed_OUT, 0);
+	Rte_Call_rpIoHwAbSet_Impl_SetPeriod(eIOPeriodOutId_Speed_OUT, 0);
+	return E_OK;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+/// @brief  State for normal operations
+///
+/// @return The return value is disregarded. Say E_OK
+//---------------------------------------------------------------------------------------------------------------------
+static Std_ReturnType CmpActive( void )
+{
+	Std_ReturnType Ret = E_OK;
+	uint32 frequency;
+	uint32 PeriodInMicroSec;
+	uint32 raw_speed_value;
+	boolean	spdfail_status;
+	uint16 array_size;
+
+    /*Misra Warning Fix*/
+    array_size = (uint16)(sizeof(speedinput)/(uint32)2);
+		
+	/*Check speed input signal is available*/
+	(void)Rte_Read_rpSpeedData_SpeedStatus(&spdfail_status);
+	if(FALSE == spdfail_status)
+	{
+		(void)Rte_Read_rpSpeedData_RawSpeed(&raw_speed_value);	   
+
+	    /*
+	    ** Make sure we are in the valid speed range, we are not in
+	    ** High or Low voltage shutdown and the ignition is RUN
+	    */
+	    if(( raw_speed_value >= cDEFAULT_MIN_VALID_VEHICLE_SPEED ) && ( raw_speed_value <= cDEFAULT_MAX_VALID_VEHICLE_SPEED ))
+	    {			 
+		    /* If Vehicle speed has changed */
+		    if(raw_speed_value != PreviousSpeed)
+		    {
+				frequency = MathLib_InterpolateLinearU16(
+						&speedinput[0],
+			            &freqhz[0],
+						array_size,
+						raw_speed_value);
+				/* Covert the Frequency in to Period in Microsec with the CLK 60MHz and Prescalar 1024
+					Then the Actual CLK is 60000000/1024 = 58593.75HZ Multiply by 100 is for Resolution 0.01 */
+				PeriodInMicroSec = (uint32)(((uint32)58594 * 100) / frequency);
+
+				/* Duty is always 50% */
+				Rte_Call_rpIoHwAbSet_Impl_SetDuty(eIODutyOutId_Speed_OUT, (uint16)500);
+				Rte_Call_rpIoHwAbSet_Impl_SetPeriod(eIOPeriodOutId_Speed_OUT, PeriodInMicroSec);
+			    PreviousSpeed = raw_speed_value;
+		    }
+	    }
+	    else
+	    {
+		    /*
+		    ** Speed input was invalid disable the o/p
+		    */
+			Rte_Call_rpIoHwAbSet_Impl_SetDuty(eIODutyOutId_Speed_OUT, 0);
+			Rte_Call_rpIoHwAbSet_Impl_SetPeriod(eIOPeriodOutId_Speed_OUT, 0);
+			PreviousSpeed = 0u;
+	    }
+	}	   
+	/*Speed input signal is missing.Disable o/p*/
+	else
+	{
+			Rte_Call_rpIoHwAbSet_Impl_SetDuty(eIODutyOutId_Speed_OUT, 0);
+			Rte_Call_rpIoHwAbSet_Impl_SetPeriod(eIOPeriodOutId_Speed_OUT, 0);
+			PreviousSpeed = 0u;
+	}
+
+	return Ret;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+/// @brief  Diagnostic state
+///
+/// @return E_OK:           Diagnostic has completed. Go to DiagReturn state.
+///<br>     E_NOT_READY:    Keeps the component in this state.
+//---------------------------------------------------------------------------------------------------------------------
+static Std_ReturnType CmpDiag( void )
+{
+	return E_OK;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+/// @brief  Transitional state to clean up after diagnostic state. Component behaviour to be restored.
+///
+/// @return E_OK:           Diagnostic clean-up has completed. Return to the previous state (Active or Inactive).
+///<br>     E_NOT_READY:    Keeps the component in this state.
+//---------------------------------------------------------------------------------------------------------------------
+static Std_ReturnType CmpDiagReturn( void )
+{
+	return E_OK;
+}
+
+
+///=====================================================================================================================
+//  PUBLIC
+//=====================================================================================================================
+
+/*----------------------------------------------------------------------------
+Date              : 19-July-2017
+CDSID             : kvakeshk
+Traceability      : RTC ID 
+Change Description: Speed Out Intial Version
+-----------------------------------------------------------------------------*/
+

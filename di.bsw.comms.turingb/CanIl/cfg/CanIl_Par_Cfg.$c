@@ -1,0 +1,826 @@
+/* ===========================================================================
+
+                     CONFIDENTIAL VISTEON CORPORATION
+
+  This is an unpublished work of authorship, which contains trade secrets,
+  created in 2006.  Visteon Corporation owns all rights to this work and
+  intends to maintain it in confidence to preserve its trade secret status.
+  Visteon Corporation reserves the right, under the copyright laws of the
+  United States or those of any other country that may have jurisdiction, to
+  protect this work as an unpublished work, in the event of an inadvertent
+  or deliberate unauthorized publication.  Visteon Corporation also reserves
+  its rights under all copyright laws to protect this work as a published
+  work, when appropriate.  Those having access to this work may not copy it,
+  use it, modify it or disclose the information contained in it without the
+  written authorization of Visteon Corporation.
+
+ =========================================================================*/
+
+/* ===========================================================================
+
+  Name:           Can_Il_Par_Cfg.c
+
+  Description:    CAN Interaction Layer Tx and Rx Parameters Configurations
+
+                  Application Specific Tx and Rx Message and Signal
+                  Data Structure Definitions
+
+  Organization:   Multiplex Subsystems
+
+ =========================================================================*/
+
+/* ===========================================================================
+  I N C L U D E   F I L E S
+ =========================================================================*/ 
+
+//#ifdef CANIL_IFSUPPORT
+
+#include "Can_GeneralTypes.h"
+#include <CclStack_Types.h>
+
+//#endif
+
+#include "CanIl_Util.h"
+#include "CanIl.h"
+#include "CanIl_Par_Cfg.h" 
+
+CAN_UINT16 Can_Ch0_Il_Tx_Periodic_Count[ Can_Ch0_Il_Tx_Num_Periodic ];
+
+#ifdef CAN_IL_TX_BURST_MODE
+
+ #if ( Can_Ch0_Il_Tx_Num_Burst_Periodic > 0 )
+
+CAN_UINT8 Can_Ch0_Il_Tx_Burst_Count[ Can_Ch0_Il_Tx_Num_Burst_Periodic ];
+
+ #endif
+
+#endif
+
+/* ===========================================================================
+  M E M O R Y   A L L O C A T I O N
+ =========================================================================*/
+/* ===========================================================================
+  Interaction Layer Transmit Frame Status and Data Storage
+ =========================================================================*/
+CAN_UINT8 Can_Ch0_Il_Tx_Frame_Data[ Can_Ch0_Il_Tx_Num_Messages ][ CAN_MAX_DATA_LENGTH ];
+
+
+CAN_UINT8 Can_Ch0_Il_Tx_Frame_Status[ Can_Ch0_Il_Tx_Num_Messages ];
+
+
+CAN_UINT16 Can_Ch0_Il_Tx_Delay_Count[ Can_Ch0_Il_Tx_Num_Messages ]; 
+
+/* ===========================================================================
+  TRANSMIT DATA STRUCTURES
+ =========================================================================*/
+
+/* ===========================================================================
+  Interaction Layer Transmit Signal Descriptors
+
+ The Following Table Definition Assumes a Motorola (Big Endian) Byte
+ Ordering of Bytes within the CAN Frame. As an example, if a 16bit signal
+ is defined in Bytes 0 and 1 of the CAN frame, the MSByte is Byte 0 and the
+ LSByte is Byte 1.
+
+ =========================================================================*/
+CAN_IL_SIGNAL const
+Can_Ch0_Il_Tx_Signals[ Can_Ch0_Il_Tx_Num_Signals ] ={\
+/*  CAN Frame,                                              Num Bytes,    MS Byte,     MS Bit,      LS Byte,       LS Bit   */\
+{  Can_Ch0_Il_Tx_Msg_IC2_TMH,                           1,             2,             4,             2,             4  },  /*IC_Hand_Brake_Switch_288*/   /*IC2*/\
+{  Can_Ch0_Il_Tx_Msg_IC_TMH,                            3,             0,             3,             2,             0  },  /*IC_TotalOdmeter_800*/   /*IC*/\
+{  Can_Ch0_Il_Tx_Msg_IC_TMH,                            1,             0,             5,             0,             4  },  /*IC_CruiseSwitch_800*/   /*IC*/\
+{  Can_Ch0_Il_Tx_Msg_IC_TMH,                            1,             0,             6,             0,             6  },  /*IC_TPMSManuStudyCmd_800*/   /*IC*/\
+{  Can_Ch0_Il_Tx_Msg_IC_TMH,                            1,             0,             7,             0,             7  },  /*IC_DriverBeltSwitchSig_800*/   /*IC*/\
+{  Can_Ch0_Il_Tx_Msg_IC_TMH,                            2,             4,             7,             5,             0  },  /*IC_TargetCruiseVehS_800*/   /*IC*/\
+{  Can_Ch0_Il_Tx_Msg_IC_TMH,                            1,             6,             3,             6,             0  },  /*IC_RollingCount_IC1_800*/   /*IC*/\
+{  Can_Ch0_Il_Tx_Msg_IC_TMH,                            1,             6,             6,             6,             6  },  /*IC_passengerBeltSwitchSig_800*/   /*IC*/\
+{  Can_Ch0_Il_Tx_Msg_IC_TMH,                            1,             7,             7,             7,             0  },  /*IC_CheckSum_IC_800*/   /*IC*/\
+{  Can_Ch0_Il_Tx_Msg_IC1_TMH,                           1,             1,             1,             1,             0  },  /*IC_BrakeReleaseRemind_914*/   /*IC1*/\
+{  Can_Ch0_Il_Tx_Msg_IC1_TMH,                           1,             1,             3,             1,             2  },  /*IC_WaterTempHighRemind_914*/   /*IC1*/\
+{  Can_Ch0_Il_Tx_Msg_IC1_TMH,                           1,             1,             5,             1,             4  },  /*IC_LightOnRemind_914*/   /*IC1*/\
+{  Can_Ch0_Il_Tx_Msg_IC1_TMH,                           1,             1,             7,             1,             6  },  /*IC_BeltunlockRemind_914*/   /*IC1*/\
+{  Can_Ch0_Il_Tx_Msg_IC1_TMH,                           1,             2,             1,             2,             0  },  /*IC_FuelShortageRemind_914*/   /*IC1*/\
+{  Can_Ch0_Il_Tx_Msg_IC1_TMH,                           1,             2,             5,             2,             4  },  /*IC_KeyInRemind_914*/   /*IC1*/\
+{  Can_Ch0_Il_Tx_Msg_IC1_TMH,                           1,             2,             7,             2,             6  },  /*IC_PEPSPowerOnRemind_914*/   /*IC1*/\
+{  Can_Ch0_Il_Tx_Msg_IC1_TMH,                           1,             3,             7,             3,             6  },  /*IC_MaintenceRemind_914*/   /*IC1*/\
+{  Can_Ch0_Il_Tx_Msg_IC1_TMH,                           1,             4,             5,             4,             0  },  /*IC_DoorOpenRemind_914*/   /*IC1*/\
+{  Can_Ch0_Il_Tx_Msg_IC_Info_TMH,                       2,             0,             7,             1,             6  },  /*IC_AvgFuelConsumed_1200*/   /*IC_Info*/\
+{  Can_Ch0_Il_Tx_Msg_IC_Info_TMH,                       2,             1,             5,             2,             4  },  /*IC_CruisRange_1200*/   /*IC_Info*/\
+{  Can_Ch0_Il_Tx_Msg_IC_Info_TMH,                       2,             2,             3,             3,             0  },  /*IC_Trip_1200*/   /*IC_Info*/\
+{  Can_Ch0_Il_Tx_Msg_IC_Info_TMH,                       2,             4,             6,             5,             0  },  /*IC_MaintenanceMile_1200*/   /*IC_Info*/\
+{  Can_Ch0_Il_Tx_Msg_IC_Info_TMH,                       1,             4,             7,             4,             7  },  /*IC_MaintenanceLogo_1200*/   /*IC_Info*/\
+{  Can_Ch0_Il_Tx_Msg_IC_Info_TMH,                       1,             6,             6,             6,             5  },  /*IC_MaintainRemind_1200*/   /*IC_Info*/\
+{  Can_Ch0_Il_Tx_Msg_IC_Info_TMH,                       1,             6,             7,             6,             7  },  /*IC_MaintenceExpLogo_1200*/   /*IC_Info*/\
+};
+/* ===========================================================================
+  Interaction Layer Transmit Message Initialization Arrays
+
+  The following transmit message initialization arrays define the initial
+  values for all of the transmitted messages.
+
+ =========================================================================*/
+
+/*
+ Sample Message Has 7 Signals, Each 1 Byte, for Initialization
+ The order of the bytes in this array is as follows:
+ Byte 0 - Signal 0, bit 1.7 Value = 0     C_SAMPLE*/
+/*     IC2   */
+static CAN_UINT8 const Can_Ch0_Il_IC2_Message_Init[1 ] = {0x00};
+/*     IC   */
+static CAN_UINT8 const Can_Ch0_Il_IC_Message_Init[11 ] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+/*     IC1   */
+static CAN_UINT8 const Can_Ch0_Il_IC1_Message_Init[9 ] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+/*     IC_Info   */
+static CAN_UINT8 const Can_Ch0_Il_IC_Info_Message_Init[11 ] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+/* ===========================================================================
+  Interaction Layer Transmit Message Definition Table
+
+  This table (array of transmit message data structures) defines each
+  transmitted message. The data structure defines the number of signals in
+  the message, the total number of bytes in the message, a pointer to the
+  list of signal handles, and a pointer to the message initialization data
+  bytes.
+
+ =========================================================================*/
+
+CAN_IL_TX_MESSAGE const
+Can_Ch0_Il_Tx_Messages[ Can_Ch0_Il_Tx_Num_Messages ] =
+ {
+ /*IC2_TMH*/
+   {
+        1,                               /* Number of Signals in the Message             */
+        0,                               /* Total Number of Signal Bytes in the Message  */
+        Can_Ch0_Il_IC2_Message_Init                           /* Pointer to the Initialization Data Bytes     */
+    }, /*IC_TMH*/
+   {
+        8,                               /* Number of Signals in the Message             */
+        0,                               /* Total Number of Signal Bytes in the Message  */
+        Can_Ch0_Il_IC_Message_Init                            /* Pointer to the Initialization Data Bytes     */
+    }, /*IC1_TMH*/
+   {
+        9,                               /* Number of Signals in the Message             */
+        0,                               /* Total Number of Signal Bytes in the Message  */
+        Can_Ch0_Il_IC1_Message_Init                           /* Pointer to the Initialization Data Bytes     */
+    }, /*IC_Info_TMH*/
+   {
+        7,                               /* Number of Signals in the Message             */
+        0,                               /* Total Number of Signal Bytes in the Message  */
+        Can_Ch0_Il_IC_Info_Message_Init                       /* Pointer to the Initialization Data Bytes     */
+    },
+};
+
+/* ===========================================================================
+  Interaction Layer Transmit Message Data (TMD) Structures (Frame Definition)
+
+  !!! IMPORTANT NOTE !!! The transmit message handles must be specified
+  sequentially, starting with 0 (zero). These message handles serve as an
+  index to the transmit complete function pointers, so each index must map
+  to the correct transmit complete callback function pointer in the lookup
+  table (array of function pointers) for servicing transmit complete events.
+
+ =========================================================================*/
+
+/*       IC2     */
+ static CAN_IL_TMD const Can_Ch0_Il_Tx_Message_IC2_Tmd =
+{
+     CAN_GPNUM_3,                                                                    /* CAN message data length  */
+     Can_Ch0_Il_Tx_Frame_Data[ 0 ],                                             /* Pointer to Data          */
+     Can_Ch0_Il_Tx_Msg_IC2_TMH                                       /* Transmit Message Handle  */
+};
+
+/*       IC     */
+ static CAN_IL_TMD const Can_Ch0_Il_Tx_Message_IC_Tmd =
+{
+     CAN_GPNUM_8,                                                                    /* CAN message data length  */
+     Can_Ch0_Il_Tx_Frame_Data[ 1 ],                                             /* Pointer to Data          */
+     Can_Ch0_Il_Tx_Msg_IC_TMH                                       /* Transmit Message Handle  */
+};
+
+/*       IC1     */
+ static CAN_IL_TMD const Can_Ch0_Il_Tx_Message_IC1_Tmd =
+{
+     CAN_GPNUM_8,                                                                    /* CAN message data length  */
+     Can_Ch0_Il_Tx_Frame_Data[ 2 ],                                             /* Pointer to Data          */
+     Can_Ch0_Il_Tx_Msg_IC1_TMH                                       /* Transmit Message Handle  */
+};
+
+/*       IC_Info     */
+ static CAN_IL_TMD const Can_Ch0_Il_Tx_Message_IC_Info_Tmd =
+{
+     CAN_GPNUM_8,                                                                    /* CAN message data length  */
+     Can_Ch0_Il_Tx_Frame_Data[ 3 ],                                             /* Pointer to Data          */
+     Can_Ch0_Il_Tx_Msg_IC_Info_TMH                                       /* Transmit Message Handle  */
+};
+/* ===========================================================================
+  Interaction Layer Periodic Transmit Table
+
+  This table is an array of data structures that define the periodic
+  transmit characteristics for messages that are transmitted periodically.
+  Care must be taken so that the each periodic message defined in the
+  Interaction Layer Transmit Frame table map correctly to this table so
+  that the correct periodic message attributes, and the pointer to the
+  periodic timer, is correctly retrieved.
+
+ =========================================================================*/
+static CAN_IL_TX_PERIODIC const
+Can_Ch0_Il_Tx_Periodic[ Can_Ch0_Il_Tx_Num_Periodic ] =
+{
+ /* IC2  Message */
+ {
+     IL_TIME_IN_TASK_TICS( 20) ,                                   /* Primary Period in Task Tics  */
+     IL_TIME_IN_TASK_TICS( 10),                                     /* Offset Delay in Task Tics    */
+     &Can_Ch0_Il_Tx_Periodic_Count[ 0 ]                         /* Pointer to Periodic Count    */
+ },
+ /* IC  Message */
+ {
+     IL_TIME_IN_TASK_TICS( 100) ,                                   /* Primary Period in Task Tics  */
+     IL_TIME_IN_TASK_TICS( 20),                                     /* Offset Delay in Task Tics    */
+     &Can_Ch0_Il_Tx_Periodic_Count[ 1 ]                         /* Pointer to Periodic Count    */
+ },
+ /* IC1  Message */
+ {
+     IL_TIME_IN_TASK_TICS( 100) ,                                   /* Primary Period in Task Tics  */
+     IL_TIME_IN_TASK_TICS( 30),                                     /* Offset Delay in Task Tics    */
+     &Can_Ch0_Il_Tx_Periodic_Count[ 2 ]                         /* Pointer to Periodic Count    */
+ },
+ /* IC_Info  Message */
+ {
+     IL_TIME_IN_TASK_TICS( 1000) ,                                   /* Primary Period in Task Tics  */
+     IL_TIME_IN_TASK_TICS( 40),                                     /* Offset Delay in Task Tics    */
+     &Can_Ch0_Il_Tx_Periodic_Count[ 3 ]                         /* Pointer to Periodic Count    */
+ },
+};
+/* ===========================================================================
+  Interaction Layer Burst Periodic Transmit Table
+ =========================================================================*/
+
+/* ===========================================================================
+  Interaction Layer Transmit Frame Table
+
+  Each entry in this table defines the attributes for a specific transmit
+  frame transmitted by the Interaction Layer.
+
+ =========================================================================*/
+
+CAN_IL_TX_FRAME const Can_Ch0_Il_Tx_Frame_Table[ Can_Ch0_Il_Tx_Num_Messages ] = 
+{
+ {
+ /* IC2 Message (CAN periodic, data change or a request ) */
+     (IL_TX_ATTR_PERIODIC | IL_TX_ATTR_TXC_NOTIFY),   /* Frame Transmission Attributes                */
+     &Can_Ch0_Il_Tx_Frame_Status[ 0 ],       /* Pointer to the Frame Status Variable         */
+     Can_Ch0_Il_Tx_Frame_Data[ 0 ],          /* Pointer to the Transmitted Frame Data        */
+     &Can_Ch0_Il_Tx_Delay_Count[ 0 ],        /* Pointer to the Transmit Delay Count          */ 
+     IL_TIME_IN_TASK_TICS( 0 ),                   /* Minimum Transmit Delay in Timer Tics         */
+     &Can_Ch0_Il_Tx_Periodic[ 0 ],           /* Pointer to the Periodic Attributes (or NULL ) */ 
+     NULL,                                        /* Ptr to Burst Periodic Attributes (or NULL)   */
+     &Can_Ch0_Il_Tx_Message_IC2_Tmd,  /* Pointer to CAN Driver TMD Data Structure     */
+ },
+ {
+ /* IC Message (CAN periodic, data change or a request ) */
+     (IL_TX_ATTR_EVENT | IL_TX_ATTR_PERIODIC | IL_TX_ATTR_TXC_NOTIFY),   /* Frame Transmission Attributes                */
+     &Can_Ch0_Il_Tx_Frame_Status[ 1 ],       /* Pointer to the Frame Status Variable         */
+     Can_Ch0_Il_Tx_Frame_Data[ 1 ],          /* Pointer to the Transmitted Frame Data        */
+     &Can_Ch0_Il_Tx_Delay_Count[ 1 ],        /* Pointer to the Transmit Delay Count          */ 
+     IL_TIME_IN_TASK_TICS( 20 ),                   /* Minimum Transmit Delay in Timer Tics         */
+     &Can_Ch0_Il_Tx_Periodic[ 1 ],           /* Pointer to the Periodic Attributes (or NULL ) */ 
+     NULL,                                        /* Ptr to Burst Periodic Attributes (or NULL)   */
+     &Can_Ch0_Il_Tx_Message_IC_Tmd,  /* Pointer to CAN Driver TMD Data Structure     */
+ },
+ {
+ /* IC1 Message (CAN periodic, data change or a request ) */
+     (IL_TX_ATTR_EVENT | IL_TX_ATTR_PERIODIC | IL_TX_ATTR_TXC_NOTIFY),   /* Frame Transmission Attributes                */
+     &Can_Ch0_Il_Tx_Frame_Status[ 2 ],       /* Pointer to the Frame Status Variable         */
+     Can_Ch0_Il_Tx_Frame_Data[ 2 ],          /* Pointer to the Transmitted Frame Data        */
+     &Can_Ch0_Il_Tx_Delay_Count[ 2 ],        /* Pointer to the Transmit Delay Count          */ 
+     IL_TIME_IN_TASK_TICS( 20 ),                   /* Minimum Transmit Delay in Timer Tics         */
+     &Can_Ch0_Il_Tx_Periodic[ 2 ],           /* Pointer to the Periodic Attributes (or NULL ) */ 
+     NULL,                                        /* Ptr to Burst Periodic Attributes (or NULL)   */
+     &Can_Ch0_Il_Tx_Message_IC1_Tmd,  /* Pointer to CAN Driver TMD Data Structure     */
+ },
+ {
+ /* IC_Info Message (CAN periodic, data change or a request ) */
+     (IL_TX_ATTR_PERIODIC | IL_TX_ATTR_TXC_NOTIFY),   /* Frame Transmission Attributes                */
+     &Can_Ch0_Il_Tx_Frame_Status[ 3 ],       /* Pointer to the Frame Status Variable         */
+     Can_Ch0_Il_Tx_Frame_Data[ 3 ],          /* Pointer to the Transmitted Frame Data        */
+     &Can_Ch0_Il_Tx_Delay_Count[ 3 ],        /* Pointer to the Transmit Delay Count          */ 
+     IL_TIME_IN_TASK_TICS( 0 ),                   /* Minimum Transmit Delay in Timer Tics         */
+     &Can_Ch0_Il_Tx_Periodic[ 3 ],           /* Pointer to the Periodic Attributes (or NULL ) */ 
+     NULL,                                        /* Ptr to Burst Periodic Attributes (or NULL)   */
+     &Can_Ch0_Il_Tx_Message_IC_Info_Tmd,  /* Pointer to CAN Driver TMD Data Structure     */
+ },
+};
+/* ===========================================================================
+  R E C E I V E   D A T A   S T R U C T U R E S
+ =========================================================================*/
+/* ===========================================================================
+  Interaction Layer Receive Signal Descriptors
+
+  This data structure defines each received signal, include the specific
+  received CAN frame (sequentially enumerated) in which the signal resides,
+  and the specific location of the signal within the CAN frame. The
+  signal is assumed to span the bits in the frame from the MSByte.MSBit to
+  the LSByte.LSBit. As an example, a 16 bit (2 Byte) wide signal that
+  occupies the first two bytes (Byte0, Byte 1) of a CAN frame is specified
+  as having endpoints at (Byte 0, Bit 7) and (Byte 1, Bit 0). This table
+  definition assumes a Motorola (Big Endian) ordering of bytes within the
+  CAN Frame.
+
+ =========================================================================*/
+/* Receive messages */
+CAN_IL_SIGNAL const
+Can_Ch0_Il_Rx_Signals[ Can_Ch0_Il_Rx_Num_Signals ] =
+{ 
+/*  CAN Frame,                                               Num Bytes,      MS Byte,    MS Bit,     LS Byte,    LS Bit */
+{  Can_Ch0_Il_Rx_Msg_GW_CommAvailability,           1,             0,             1,             0,             0  },  /*GW_LostToEMS_80*/   /*GW_CommAvailability*/
+{  Can_Ch0_Il_Rx_Msg_GW_CommAvailability,           1,             0,             3,             0,             2  },  /*GW_LostToESC_80*/   /*GW_CommAvailability*/
+{  Can_Ch0_Il_Rx_Msg_GW_CommAvailability,           1,             0,             5,             0,             4  },  /*GW_LostToTCU_80*/   /*GW_CommAvailability*/
+{  Can_Ch0_Il_Rx_Msg_GW_CommAvailability,           1,             2,             3,             2,             2  },  /*GW_LostToEPS_80*/   /*GW_CommAvailability*/
+{  Can_Ch0_Il_Rx_Msg_GW_CommAvailability,           1,             6,             1,             6,             0  },  /*GW_LostToCamera_80*/   /*GW_CommAvailability*/
+{  Can_Ch0_Il_Rx_Msg_GW_CommAvailability,           1,             6,             3,             6,             2  },  /*GW_LostToRada_80*/   /*GW_CommAvailability*/
+{  Can_Ch0_Il_Rx_Msg_GW_CommAvailability,           1,             6,             5,             6,             4  },  /*GW_LostToACU_80*/   /*GW_CommAvailability*/
+{  Can_Ch0_Il_Rx_Msg_GW_EMS1,                       1,             0,             1,             0,             1  },  /*GW_EMS_EngSpdSignalFailure_131*/   /*GW_EMS1*/
+{  Can_Ch0_Il_Rx_Msg_GW_EMS1,                       2,             2,             7,             3,             0  },  /*GW_EMS_EngSpd_131*/   /*GW_EMS1*/
+{  Can_Ch0_Il_Rx_Msg_GW_EMS3,                       2,             3,             7,             4,             0  },  /*EMS_EngFilterSpd_133*/   /*GW_EMS3*/
+{  Can_Ch0_Il_Rx_Msg_GW_TCU1,                       1,             0,             2,             0,             1  },  /*TCU_SelectedATMode_147*/   /*GW_TCU1*/
+{  Can_Ch0_Il_Rx_Msg_GW_TCU1,                       1,             0,             3,             0,             3  },  /*TCU_TransmissionMILReq_147*/   /*GW_TCU1*/
+{  Can_Ch0_Il_Rx_Msg_GW_TCU1,                       1,             0,             6,             0,             6  },  /*GW_TCU_ATFailure_147*/   /*GW_TCU1*/
+{  Can_Ch0_Il_Rx_Msg_GW_TCU1,                       1,             0,             7,             0,             7  },  /*GW_TCU_ShiftLeverPosValidFlag_147*/   /*GW_TCU1*/
+{  Can_Ch0_Il_Rx_Msg_GW_TCU1,                       1,             1,             7,             1,             0  },  /*TCU_ActualGear_147*/   /*GW_TCU1*/
+{  Can_Ch0_Il_Rx_Msg_GW_TCU1,                       1,             6,             7,             6,             0  },  /*TCU_PRNDLStatus_147*/   /*GW_TCU1*/
+{  Can_Ch0_Il_Rx_Msg_GW_ESC2,                       1,             3,             0,             3,             0  },  /*GW_ESC_EBDAlarmSig_160*/   /*GW_ESC2*/
+{  Can_Ch0_Il_Rx_Msg_GW_ESC2,                       1,             3,             1,             3,             1  },  /*GW_ESC_VehSpdValidFlag_160*/   /*GW_ESC2*/
+{  Can_Ch0_Il_Rx_Msg_GW_ESC2,                       1,             3,             3,             3,             3  },  /*GW_ESC_ABSAlarmSig_160*/   /*GW_ESC2*/
+{  Can_Ch0_Il_Rx_Msg_GW_ESC2,                       1,             4,             3,             4,             3  },  /*GW_Brake_fluidleveAlarm_160*/   /*GW_ESC2*/
+{  Can_Ch0_Il_Rx_Msg_GW_ESC2,                       2,             6,             7,             7,             0  },  /*GW_ESC_VehSpd_160*/   /*GW_ESC2*/
+{  Can_Ch0_Il_Rx_Msg_GW_EMS5,                       1,             3,             4,             3,             2  },  /*GW_EMS_EngRunningStatus_224*/   /*GW_EMS5*/
+{  Can_Ch0_Il_Rx_Msg_GW_EMS5,                       1,             5,             7,             5,             6  },  /*GW_EMS_EngMILTelltaleSts_224*/   /*GW_EMS5*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             0,             6,             0,             6  },  /*GW_ESC_ESCOFF_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             1,             7,             1,             0  },  /*GW_EMS_EngCoolantTemp_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             2,             0,             2,             0  },  /*GW_EMS_ErrorCoolanttemperature_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             2,             1,             2,             1  },  /*GW_EMSCoolanttempHighWarning_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             2,             2,             2,             2  },  /*GW_ESC_ESCAlarmSig_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             2,             5,             2,             4  },  /*GW_EPB_EPBSystemStIndicationReq_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             2,             7,             2,             6  },  /*GW_EPS_FaultWarning_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             3,             2,             3,             0  },  /*EPB_EPBDisplayMessageReq_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             3,             4,             3,             3  },  /*EPB_EPBAudibleWarnningRequest_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             4,             7,             4,             0  },  /*GW_EMS_InsFuelConsumed_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             5,             1,             5,             0  },  /*EPB_EPBWarningIndicationReq_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             5,             2,             5,             2  },  /*EMS_ChargeIndicate_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT1,                        1,             5,             4,             5,             3  },  /*EMS_STTsystemWorkSt_320*/   /*GW_PT1*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT2,                        1,             0,             7,             0,             5  },  /*EMS_CruiseCtrlSts_321*/   /*GW_PT2*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT2,                        1,             4,             4,             4,             3  },  /*EMS_EngGPFStatus_321*/   /*GW_PT2*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT2,                        1,             5,             6,             5,             0  },  /*EMS_Fuelevel_321*/   /*GW_PT2*/
+{  Can_Ch0_Il_Rx_Msg_GW_PT2,                        1,             5,             7,             5,             7  },  /*EMS_OilEmptyAlarm_321*/   /*GW_PT2*/
+{  Can_Ch0_Il_Rx_Msg_GW_PSA_2,                      1,             0,             5,             0,             5  },  /*GW_RADA_ACC_HMI_TgtDisp_Flag_381*/   /*GW_PSA_2*/
+{  Can_Ch0_Il_Rx_Msg_GW_PSA_2,                      1,             2,             2,             2,             0  },  /*GW_RADA_TARGET_POSITION_381*/   /*GW_PSA_2*/
+{  Can_Ch0_Il_Rx_Msg_GW_PSA_2,                      1,             2,             5,             2,             4  },  /*GW_ESC_HSAStatus_381*/   /*GW_PSA_2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             0,             0,             0,             0  },  /*BCM_TrunkSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             0,             1,             0,             1  },  /*BCM_LetfligthSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             0,             3,             0,             3  },  /*BCM_RightligthSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             0,             5,             0,             5  },  /*BCM_PositionLampSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             0,             7,             0,             7  },  /*BCM_HighBeamStatus_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             1,             0,             1,             0  },  /*BCM_LowBeamStatus_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             1,             1,             1,             1  },  /*BCM_BackFogligthSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             1,             2,             1,             2  },  /*BCM_frontFogligthSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             1,             3,             1,             3  },  /*BCM_LFDoorSwitchSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             1,             4,             1,             4  },  /*BCM_RFDoorSwitchSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             1,             5,             1,             5  },  /*BCM_RRDoorSwitchSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             1,             6,             1,             6  },  /*BCM_LRDoorSwitchSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             2,             1,             2,             1  },  /*BCM_RearWindowHeatSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             2,             2,             2,             2  },  /*BCM_AutoLockFunctionSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             2,             5,             2,             4  },  /*BCM_LeftTurnSwitchSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             2,             7,             2,             6  },  /*BCM_RightTurnSwitchrSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             3,             2,             3,             2  },  /*BCM_EngHoodUnlockWarming_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_IBCM2,                         1,             5,             5,             5,             2  },  /*BCM_FollowMeHomeSt_570*/   /*IBCM2*/
+{  Can_Ch0_Il_Rx_Msg_T_boxCMD,                      1,             3,             5,             3,             4  },  /*T_box_SelfCheck_640*/   /*T_boxCMD*/
+{  Can_Ch0_Il_Rx_Msg_GW_EMS8,                       1,             5,             3,             5,             2  },  /*GW_EMS_GearshiftDownRemindSig_773*/   /*GW_EMS8*/
+{  Can_Ch0_Il_Rx_Msg_GW_EMS8,                       1,             5,             5,             5,             4  },  /*GW_EMS_GearshiftUpRemindSig_773*/   /*GW_EMS8*/
+{  Can_Ch0_Il_Rx_Msg_GW_EMS8,                       1,             6,             7,             6,             4  },  /*GW_EMS_GearshiftDesireGear_773*/   /*GW_EMS8*/
+{  Can_Ch0_Il_Rx_Msg_SCC1,                          1,             0,             7,             0,             0  },  /*SCC_LeftSteeringWheelSwitchSig_777*/   /*SCC1*/
+{  Can_Ch0_Il_Rx_Msg_SCC1,                          1,             1,             7,             1,             0  },  /*SCC_RightSteeringWheelSwitchSig_777*/   /*SCC1*/
+{  Can_Ch0_Il_Rx_Msg_GW_ACU_Crash,                  1,             0,             3,             0,             2  },  /*ACU_AirbagFailSts_780*/   /*GW_ACU_Crash*/
+{  Can_Ch0_Il_Rx_Msg_AC1,                           1,             0,             7,             0,             0  },  /*AC_AmbTemp_802*/   /*AC1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             0,             0,             0,             0  },  /*PEPS_WarningKeyNotInCar_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             0,             1,             0,             1  },  /*PEPS_WarningKeyInCar_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             0,             2,             0,             2  },  /*PEPS_IgnitionNotInOffPosition_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             0,             3,             0,             3  },  /*PEPS_WarningKeyLowBattery_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             0,             4,             0,             4  },  /*PEPS_WarningESCLUnLock_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             0,             5,             0,             5  },  /*PEPS_WarningESCLError_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             0,             6,             0,             6  },  /*PEPS_WarningStartupNotBrake_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             0,             7,             0,             7  },  /*PEPS_WarningNoValidKey_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             1,             0,             1,             0  },  /*PEPS_StartupGearLeverError_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             1,             7,             1,             7  },  /*PEPS_Nsignal_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             2,             2,             2,             2  },  /*PEPS_WarningPowerRelayError_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             2,             3,             2,             3  },  /*PEPS_KeyNearbyStartStopSwitch_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             2,             4,             2,             4  },  /*PEPS_WarningAuthFail_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,                    1,             2,             5,             2,             5  },  /*PEPS_WarningPoweroffNotPGear_806*/   /*IBCM_PEPS1*/
+{  Can_Ch0_Il_Rx_Msg_IBCM3,                         1,             0,             1,             0,             0  },  /*BCM_IgnitionSt_828*/   /*IBCM3*/
+{  Can_Ch0_Il_Rx_Msg_IBCM3,                         1,             1,             4,             1,             0  },  /*BCM_BuzzerRequest_828*/   /*IBCM3*/
+{  Can_Ch0_Il_Rx_Msg_MP5_2,                         1,             0,             2,             0,             1  },  /*MP5_GearshiftRemindEnableSwitch_870*/   /*MP5_2*/
+{  Can_Ch0_Il_Rx_Msg_MP5_2,                         1,             2,             2,             2,             0  },  /*MP5_Language_Set_870*/   /*MP5_2*/
+{  Can_Ch0_Il_Rx_Msg_MP5_2,                         1,             2,             5,             2,             3  },  /*MP5_ICStyle_Set_870*/   /*MP5_2*/
+{  Can_Ch0_Il_Rx_Msg_MP5_2,                         1,             3,             3,             3,             0  },  /*MP5_IC_PersonalizedSet_left_870*/   /*MP5_2*/
+{  Can_Ch0_Il_Rx_Msg_MP5_2,                         1,             3,             7,             3,             4  },  /*MP5_IC_PersonalizedSet_right_870*/   /*MP5_2*/
+{  Can_Ch0_Il_Rx_Msg_MP5_2,                         1,             5,             2,             5,             0  },  /*MP5_BrightnessChange_870*/   /*MP5_2*/
+{  Can_Ch0_Il_Rx_Msg_APA2,                          1,             0,             3,             0,             2  },  /*APA_RearSystemStatus_886*/   /*APA2*/
+{  Can_Ch0_Il_Rx_Msg_APA2,                          1,             3,             4,             3,             0  },  /*APA_ChimeRequest_886*/   /*APA2*/
+{  Can_Ch0_Il_Rx_Msg_APA2,                          2,             4,             1,             5,             0  },  /*APA_RearExtenedDistance_886*/   /*APA2*/
+{  Can_Ch0_Il_Rx_Msg_APA2,                          1,             4,             4,             4,             2  },  /*APA_RearRegion_2_Object_Status_886*/   /*APA2*/
+{  Can_Ch0_Il_Rx_Msg_APA2,                          1,             4,             7,             4,             5  },  /*APA_RearRegion_1_Object_Status_886*/   /*APA2*/
+{  Can_Ch0_Il_Rx_Msg_APA2,                          1,             6,             4,             6,             2  },  /*APA_RearRegion_4_Object_Status_886*/   /*APA2*/
+{  Can_Ch0_Il_Rx_Msg_APA2,                          1,             6,             7,             6,             5  },  /*APA_RearRegion_3_Object_Status_886*/   /*APA2*/
+{  Can_Ch0_Il_Rx_Msg_MP5_3,                         1,             1,             6,             1,             0  },  /*MP5_Navi_Turn_917*/   /*MP5_3*/
+{  Can_Ch0_Il_Rx_Msg_MP5_3,                         2,             6,             2,             7,             0  },  /*MP5_Navi_Distance_917*/   /*MP5_3*/
+{  Can_Ch0_Il_Rx_Msg_MP5_3,                         1,             6,             4,             6,             3  },  /*MP5_Navi_InterConnectState_917*/   /*MP5_3*/
+{  Can_Ch0_Il_Rx_Msg_GW_ESC7,                       1,             0,             1,             0,             0  },  /*GW_ESC_ITPMSRLPressureWarning_1073*/   /*GW_ESC7*/
+{  Can_Ch0_Il_Rx_Msg_GW_ESC7,                       1,             0,             3,             0,             2  },  /*GW_ESC_ITPMSRRPressureWarning_1073*/   /*GW_ESC7*/
+{  Can_Ch0_Il_Rx_Msg_GW_ESC7,                       1,             0,             5,             0,             4  },  /*GW_ESC_ITPMSFLPressureWarning_1073*/   /*GW_ESC7*/
+{  Can_Ch0_Il_Rx_Msg_GW_ESC7,                       1,             0,             7,             0,             6  },  /*GW_ESC_ITPMSFRtPressureWarning_1073*/   /*GW_ESC7*/
+{  Can_Ch0_Il_Rx_Msg_GW_ESC7,                       1,             1,             7,             1,             4  },  /*GW_ESC_DDS_SystemStatus_1073*/   /*GW_ESC7*/
+{  Can_Ch0_Il_Rx_Msg_MP5_Time,                      1,             0,             3,             0,             0  },  /*MP5_LocalTimeYear_1242*/   /*MP5_Time*/
+{  Can_Ch0_Il_Rx_Msg_MP5_Time,                      1,             0,             7,             0,             4  },  /*MP5_LocalTimeMonth_1242*/   /*MP5_Time*/
+{  Can_Ch0_Il_Rx_Msg_MP5_Time,                      1,             1,             4,             1,             0  },  /*MP5_LocalTimeDate_1242*/   /*MP5_Time*/
+{  Can_Ch0_Il_Rx_Msg_MP5_Time,                      1,             1,             6,             1,             5  },  /*MP5_LocalTimeSystem_1242*/   /*MP5_Time*/
+{  Can_Ch0_Il_Rx_Msg_MP5_Time,                      1,             1,             7,             1,             7  },  /*MP5_LocalTimeValid_1242*/   /*MP5_Time*/
+{  Can_Ch0_Il_Rx_Msg_MP5_Time,                      1,             2,             4,             2,             0  },  /*MP5_LocalTimeHour_1242*/   /*MP5_Time*/
+{  Can_Ch0_Il_Rx_Msg_MP5_Time,                      1,             3,             5,             3,             0  },  /*MP5_LocalTimeMinute_1242*/   /*MP5_Time*/
+{  Can_Ch0_Il_Rx_Msg_MP5_Time,                      1,             4,             5,             4,             0  },  /*MP5_LocalTimeSecond_1242*/   /*MP5_Time*/
+{  Can_Ch0_Il_Rx_Msg_GW_RADA_2,                     1,             0,             1,             0,             0  },  /*GW_ACC_Vehicle_IconDisplay_1271*/   /*GW_RADA_2*/
+{  Can_Ch0_Il_Rx_Msg_GW_RADA_2,                     1,             0,             3,             0,             2  },  /*GW_ACC_Set_Speed_Display_1271*/   /*GW_RADA_2*/
+{  Can_Ch0_Il_Rx_Msg_GW_RADA_2,                     1,             0,             4,             0,             4  },  /*GW_ACC_DesiredHeadway_IconBasic_1271*/   /*GW_RADA_2*/
+{  Can_Ch0_Il_Rx_Msg_GW_RADA_2,                     1,             0,             6,             0,             5  },  /*GW_ACC_Desired_Headway_Display_1271*/   /*GW_RADA_2*/
+{  Can_Ch0_Il_Rx_Msg_GW_RADA_2,                     1,             1,             3,             1,             0  },  /*GW_ACC_Pop_Up_Message_1271*/   /*GW_RADA_2*/
+{  Can_Ch0_Il_Rx_Msg_GW_RADA_2,                     1,             1,             5,             1,             4  },  /*GW_AEB_Switch_Status_1271*/   /*GW_RADA_2*/
+{  Can_Ch0_Il_Rx_Msg_GW_RADA_2,                     1,             1,             7,             1,             6  },  /*GW_AEB_Alert_Req_1271*/   /*GW_RADA_2*/
+{  Can_Ch0_Il_Rx_Msg_GW_RADA_2,                     1,             2,             7,             2,             0  },  /*GW_ACC_Desired_Set_Speed_1271*/   /*GW_RADA_2*/
+{  Can_Ch0_Il_Rx_Msg_GW_RADA_2,                     1,             3,             2,             3,             0  },  /*GW_AEB_tips_1271*/   /*GW_RADA_2*/
+{  Can_Ch0_Il_Rx_Msg_GW_RADA_2,                     1,             3,             4,             3,             3  },  /*GW_AEB_Fault_Status_1271*/   /*GW_RADA_2*/
+{  Can_Ch0_Il_Rx_Msg_GW_CAMERA_541,                 1,             0,             2,             0,             0  },  /*GW_LKA_actionindication_1345*/   /*GW_CAMERA_541*/
+{  Can_Ch0_Il_Rx_Msg_GW_CAMERA_541,                 1,             0,             4,             0,             3  },  /*GW_LDW_Status_Display_1345*/   /*GW_CAMERA_541*/
+{  Can_Ch0_Il_Rx_Msg_GW_CAMERA_541,                 1,             0,             6,             0,             5  },  /*GW_LKA_Status_Display_1345*/   /*GW_CAMERA_541*/
+{  Can_Ch0_Il_Rx_Msg_GW_CAMERA_541,                 1,             1,             3,             1,             0  },  /*GW_Vehicle_Lane_Display_1345*/   /*GW_CAMERA_541*/
+{  Can_Ch0_Il_Rx_Msg_GW_CAMERA_541,                 1,             1,             7,             1,             4  },  /*GW_HMI_Popup_Status_1345*/   /*GW_CAMERA_541*/
+{  Can_Ch0_Il_Rx_Msg_GW_CAMERA_541,                 1,             2,             1,             2,             0  },  /*GW_LDW_Flag_1345*/   /*GW_CAMERA_541*/
+{  Can_Ch0_Il_Rx_Msg_GW_CAMERA_541,                 1,             2,             2,             2,             2  },  /*GW_Hands_off_warning_1345*/   /*GW_CAMERA_541*/
+{  Can_Ch0_Il_Rx_Msg_GW_CAMERA_541,                 1,             2,             5,             2,             5  },  /*GW_LKA_SwitchState_1345*/   /*GW_CAMERA_541*/
+};
+/* ===========================================================================
+  Interaction Layer Receive Frame Data Storage and Status
+ =========================================================================*/
+CAN_UINT8 Can_Ch0_Il_Rx_Frame_Data[ Can_Ch0_Il_Rx_Num_Messages ][ CAN_MAX_DATA_LENGTH ];
+
+CAN_UINT8 Can_Ch0_Il_Rx_Frame_Status[ Can_Ch0_Il_Rx_Num_Messages ];
+
+CAN_UINT16 Can_Ch0_Il_Rx_Timeout_Count[ Can_Ch0_Il_Rx_Num_Messages ];
+
+Can_Il_Rx_Data_Pointer Can_Ch0_Il_Receive_Ptr[ Can_Ch0_Il_Rx_Num_Messages ][ CAN_MAX_DATA_LENGTH ];
+
+#if (Can_Ch0_Il_Rx_Num_Req_Frames > 0)
+
+#define CAN_CHANNEL0_IL_DATA_REQ_TX_HANDLE
+#define CAN_CHANNEL0_IL_REQ_TX_CANID
+
+static CAN_UINT8  reqCounter[ Can_Ch0_Il_Rx_Num_Req_Frames ];
+static CAN_UINT16 reqTimer[ Can_Ch0_Il_Rx_Num_Req_Frames ];
+static CAN_UINT8  reqStatus[ Can_Ch0_Il_Rx_Num_Req_Frames ];
+
+static const CAN_UINT8 Can_Ch0_Il_Data_Request[2] = {0x00,0x00};
+
+static const CAN_IL_TMD Can_Ch0_Il_Data_Request_Frame_Tmd[ Can_Ch0_Il_Rx_Num_Req_Frames ] =
+{
+};
+
+static const Can_Ch0_Il_Rx_Frame_Request Can_Ch0_Il_Rx_Request_Frame_Data[ Can_Ch0_Il_Rx_Num_Req_Frames ] =
+{
+};
+
+#endif
+
+
+/* ===========================================================================
+  Received Frame Attributes Lookup Table
+
+  This table includes the attributes for all of the received frames.
+  If a received frame is periodic, this table also includes pointers to the
+  received frame status and to the receive timeout counter for message
+  gain and loss indication. If a transmitted frame request can be issued
+  for a received frame, this table includes the pointer to the receive
+  frame request attributes.
+
+ =========================================================================*/
+CAN_IL_RX_FRAME const
+Can_Ch0_Il_Rx_Frame_Table[ Can_Ch0_Il_Rx_Num_Messages ] =
+{
+/* GW_CommAvailability */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     0,      /* Signal Start Index                   */
+     7,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 0],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 0],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[0],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(5000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_EMS1 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     7,      /* Signal Start Index                   */
+     2,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 1],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 1],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[1],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_EMS3 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     9,      /* Signal Start Index                   */
+     1,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 2],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 2],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[2],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_TCU1 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     10,      /* Signal Start Index                   */
+     6,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 3],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 3],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[3],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_ESC2 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     16,      /* Signal Start Index                   */
+     5,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 4],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 4],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[4],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_EMS5 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     21,      /* Signal Start Index                   */
+     2,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 5],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 5],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[5],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_PT1 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     23,      /* Signal Start Index                   */
+     13,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 6],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 6],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[6],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_PT2 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     36,      /* Signal Start Index                   */
+     4,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 7],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 7],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[7],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_PSA_2 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     40,      /* Signal Start Index                   */
+     3,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 8],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 8],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[8],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* IBCM2 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     43,      /* Signal Start Index                   */
+     18,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 9],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 9],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[9],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* T_boxCMD */
+ {
+     (IL_RX_ATTR_DEFAULT ),
+     61,      /* Signal Start Index                   */
+     1,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 10],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 10],         /* Pointer to Received Frame Data       */
+     NULL,        /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_EMS8 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     62,      /* Signal Start Index                   */
+     3,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 11],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 11],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[10],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* SCC1 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     65,      /* Signal Start Index                   */
+     2,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 12],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 12],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[11],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_ACU_Crash */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     67,      /* Signal Start Index                   */
+     1,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 13],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 13],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[12],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* AC1 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     68,      /* Signal Start Index                   */
+     1,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 14],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 14],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[13],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* IBCM_PEPS1 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     69,      /* Signal Start Index                   */
+     14,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 15],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 15],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[14],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* IBCM3 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     83,      /* Signal Start Index                   */
+     2,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 16],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 16],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[15],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* MP5_2 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     85,      /* Signal Start Index                   */
+     6,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 17],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 17],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[16],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(2500),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* APA2 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     91,      /* Signal Start Index                   */
+     7,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 18],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 18],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[17],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* MP5_3 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     98,      /* Signal Start Index                   */
+     3,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 19],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 19],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[18],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_ESC7 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     101,      /* Signal Start Index                   */
+     5,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 20],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 20],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[19],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(5000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* MP5_Time */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     106,      /* Signal Start Index                   */
+     8,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 21],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 21],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[20],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(5000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_RADA_2 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     114,      /* Signal Start Index                   */
+     10,      /* Number of Signals in Message         */
+     CAN_GPNUM_8,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 22],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 22],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[21],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+/* GW_CAMERA_541 */
+ {
+     ( IL_RX_ATTR_PERIODIC | IL_RX_ATTR_TIMEOUT_MONITOR),
+     124,      /* Signal Start Index                   */
+     8,      /* Number of Signals in Message         */
+     CAN_GPNUM_4,           /* Minimum Data Length Code             */
+     &Can_Ch0_Il_Rx_Frame_Status[ 23],      /* Pointer to Receive Status            */
+     Can_Ch0_Il_Rx_Frame_Data[ 23],         /* Pointer to Received Frame Data       */
+     &Can_Ch0_Il_Rx_Timeout_Count[22],         /* Pointer to the Timeout Counter       */
+     IL_TIME_IN_TASK_TICS(1000),     /* Timeout Count Value                  */
+     NULL,                                       /* &Can_Ch0_Il_Rx_Frame_Request_Table[ 0 ] */  /* Ptr to Receive Request Attributes    */ 
+},
+};
+pTxPrecopyfn const Can_Ch0_Il_Tx_Precopy_Function_Table[ Can_Ch0_Il_Tx_Num_Messages ] =
+  {
+     NULL  ,
+     NULL  ,
+     NULL  ,
+     NULL  ,
+};
+/*****************************************************************************
+    R E V I S I O N     N O T E S
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -
+For each change to this file, be sure to record:
+1.   Who made the change and when the change was made.
+2.   Why the change was made and the intended result.
+
+Date       By         Reason For Change
+------------------------------------------------------------------------------
+
+******************************************************************************/
+/*****************************************************************************
+Date          : 2018-05-03 19:23
+By              : JSISTUS
+Traceability    : [u'DFPV_D53_BDC_20180423 - Copy.dbc']
+Change Description  : Tool Generated code
+*****************************************************************************/

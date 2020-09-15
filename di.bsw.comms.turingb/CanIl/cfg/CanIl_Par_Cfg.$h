@@ -1,0 +1,418 @@
+#if !defined(CAN_IL_PAR_H)
+#define CAN_IL_PAR_H
+/* ===========================================================================
+
+                      CONFIDENTIAL VISTEON CORPORATION
+
+   This is an unpublished work of authorship, which contains trade secrets,
+   created in 2006.  Visteon Corporation owns all rights to this work and
+   intends to maintain it in confidence to preserve its trade secret status.
+   Visteon Corporation reserves the right, under the copyright laws of the
+   United States or those of any other country that may have jurisdiction, to
+   protect this work as an unpublished work, in the event of an inadvertent
+   or deliberate unauthorized publication.  Visteon Corporation also reserves
+   its rights under all copyright laws to protect this work as a published
+   work, when appropriate.  Those having access to this work may not copy it,
+   use it, modify it or disclose the information contained in it without the
+   written authorization of Visteon Corporation.
+
+  =========================================================================*/
+/* ===========================================================================
+
+    Name:           CanIl_Par_Cfg.h
+
+    Description:    CAN Interaction Layer Tx, Rx Parameters Header File
+
+    Organization:   Multiplex Core Technology
+
+   =========================================================================*/ 
+
+#include "CanIl_Defines.h" 
+
+/* ===========================================================================
+   P U B L I C   M A C R O S
+  =========================================================================*/
+
+/* ===========================================================================
+   Interaction Layer Number of Transmit Messages, Signals
+  =========================================================================*/
+
+
+#define Can_Ch0_Il_Tx_Num_Burst_Periodic   (0u)
+
+
+#define Can_Ch0_Il_Tx_Num_Periodic         (4u)
+
+
+/* ===========================================================================
+     Interaction Layer Number of Receive Messages, Signals
+    =========================================================================*/
+
+
+#define Can_Ch0_Il_Rx_Num_Periodic         (23u)
+
+#define Can_Ch0_Il_Rx_Num_Periodic_Signals (131u)
+
+#define Can_Ch0_Il_Rx_Num_Req_Frames       (0u)
+
+/* ===========================================================================
+      Interaction Layer support
+     =========================================================================*/
+
+  /* ===========================================================================
+      Interaction Layer Transmit Message Enumerations
+      NB: The below Tx message sequence should match one to one with the
+          IL Tx Message Desription table.
+          CAN_IL_CHANNEL0_TX_MESSAGE const
+          Can_Ch0_Il_Tx_Messages[ Can_Ch0_Il_Tx_Num_Messages ]
+     =========================================================================*/
+
+/* ===========================================================================
+    Interaction Layer Transmit Message (Frame) Handles
+   =========================================================================*/
+
+typedef enum
+  {
+Can_Ch0_Il_Tx_Msg_IC2_TMH=0,
+/*(0) */
+Can_Ch0_Il_Tx_Msg_IC_TMH,
+/*(1) */
+Can_Ch0_Il_Tx_Msg_IC1_TMH,
+/*(2) */
+Can_Ch0_Il_Tx_Msg_IC_Info_TMH,
+/*(3) */
+Can_Ch0_Il_Tx_Num_Messages
+/*(4) */
+}Can_Ch0_Il_Tx_Messages_Macro;
+
+
+/* ===========================================================================
+     Interaction Layer Transmit Signal Enumerations
+     NB: The below tx signal sequence should match one to one with the
+           IL Tx Signal description table.
+         CAN_IL_SIGNAL const
+         Can_Il_Tx_signals[ CAN_IL_TX_NUM_SIGNALS  ]
+
+    =========================================================================*/
+
+typedef enum
+  {
+Can_Ch0_Il_Tx_Sig_IC_Hand_Brake_Switch_288 = 0,
+/*(0) */
+Can_Ch0_Il_Tx_Sig_IC_TotalOdmeter_800,
+/*(1) */
+Can_Ch0_Il_Tx_Sig_IC_CruiseSwitch_800,
+/*(2) */
+Can_Ch0_Il_Tx_Sig_IC_TPMSManuStudyCmd_800,
+/*(3) */
+Can_Ch0_Il_Tx_Sig_IC_DriverBeltSwitchSig_800,
+/*(4) */
+Can_Ch0_Il_Tx_Sig_IC_TargetCruiseVehS_800,
+/*(5) */
+Can_Ch0_Il_Tx_Sig_IC_RollingCount_IC1_800,
+/*(6) */
+Can_Ch0_Il_Tx_Sig_IC_passengerBeltSwitchSig_800,
+/*(7) */
+Can_Ch0_Il_Tx_Sig_IC_CheckSum_IC_800,
+/*(8) */
+Can_Ch0_Il_Tx_Sig_IC_BrakeReleaseRemind_914,
+/*(9) */
+Can_Ch0_Il_Tx_Sig_IC_WaterTempHighRemind_914,
+/*(10) */
+Can_Ch0_Il_Tx_Sig_IC_LightOnRemind_914,
+/*(11) */
+Can_Ch0_Il_Tx_Sig_IC_BeltunlockRemind_914,
+/*(12) */
+Can_Ch0_Il_Tx_Sig_IC_FuelShortageRemind_914,
+/*(13) */
+Can_Ch0_Il_Tx_Sig_IC_KeyInRemind_914,
+/*(14) */
+Can_Ch0_Il_Tx_Sig_IC_PEPSPowerOnRemind_914,
+/*(15) */
+Can_Ch0_Il_Tx_Sig_IC_MaintenceRemind_914,
+/*(16) */
+Can_Ch0_Il_Tx_Sig_IC_DoorOpenRemind_914,
+/*(17) */
+Can_Ch0_Il_Tx_Sig_IC_AvgFuelConsumed_1200,
+/*(18) */
+Can_Ch0_Il_Tx_Sig_IC_CruisRange_1200,
+/*(19) */
+Can_Ch0_Il_Tx_Sig_IC_Trip_1200,
+/*(20) */
+Can_Ch0_Il_Tx_Sig_IC_MaintenanceMile_1200,
+/*(21) */
+Can_Ch0_Il_Tx_Sig_IC_MaintenanceLogo_1200,
+/*(22) */
+Can_Ch0_Il_Tx_Sig_IC_MaintainRemind_1200,
+/*(23) */
+Can_Ch0_Il_Tx_Sig_IC_MaintenceExpLogo_1200,
+/*(24) */
+ Can_Ch0_Il_Tx_Num_Signals
+/*(25) */
+}Can_Ch0_Il_Tx_Signals_Macro;
+
+
+/* ===========================================================================
+      Interaction Layer Receive Message Enumerations
+     =========================================================================*/
+typedef enum
+  {
+Can_Ch0_Il_Rx_Msg_GW_CommAvailability =0,
+/*(0) */
+Can_Ch0_Il_Rx_Msg_GW_EMS1,
+/*(1) */
+Can_Ch0_Il_Rx_Msg_GW_EMS3,
+/*(2) */
+Can_Ch0_Il_Rx_Msg_GW_TCU1,
+/*(3) */
+Can_Ch0_Il_Rx_Msg_GW_ESC2,
+/*(4) */
+Can_Ch0_Il_Rx_Msg_GW_EMS5,
+/*(5) */
+Can_Ch0_Il_Rx_Msg_GW_PT1,
+/*(6) */
+Can_Ch0_Il_Rx_Msg_GW_PT2,
+/*(7) */
+Can_Ch0_Il_Rx_Msg_GW_PSA_2,
+/*(8) */
+Can_Ch0_Il_Rx_Msg_IBCM2,
+/*(9) */
+Can_Ch0_Il_Rx_Msg_T_boxCMD,
+/*(10) */
+Can_Ch0_Il_Rx_Msg_GW_EMS8,
+/*(11) */
+Can_Ch0_Il_Rx_Msg_SCC1,
+/*(12) */
+Can_Ch0_Il_Rx_Msg_GW_ACU_Crash,
+/*(13) */
+Can_Ch0_Il_Rx_Msg_AC1,
+/*(14) */
+Can_Ch0_Il_Rx_Msg_IBCM_PEPS1,
+/*(15) */
+Can_Ch0_Il_Rx_Msg_IBCM3,
+/*(16) */
+Can_Ch0_Il_Rx_Msg_MP5_2,
+/*(17) */
+Can_Ch0_Il_Rx_Msg_APA2,
+/*(18) */
+Can_Ch0_Il_Rx_Msg_MP5_3,
+/*(19) */
+Can_Ch0_Il_Rx_Msg_GW_ESC7,
+/*(20) */
+Can_Ch0_Il_Rx_Msg_MP5_Time,
+/*(21) */
+Can_Ch0_Il_Rx_Msg_GW_RADA_2,
+/*(22) */
+Can_Ch0_Il_Rx_Msg_GW_CAMERA_541,
+/*(23) */
+Can_Ch0_Il_Rx_Num_Messages
+/*(24) */
+}Can_Ch0_Il_Rx_Messages_Macro;
+
+
+/* ===========================================================================
+     Interaction Layer Receive Signal Enumerations
+    =========================================================================*/
+  
+
+typedef enum
+  {
+Can_Ch0_Il_Rx_Sig_GW_LostToEMS_80 = 0,        /*(0) */
+Can_Ch0_Il_Rx_Sig_GW_LostToESC_80,/*(1) */
+Can_Ch0_Il_Rx_Sig_GW_LostToTCU_80,/*(2) */
+Can_Ch0_Il_Rx_Sig_GW_LostToEPS_80,/*(3) */
+Can_Ch0_Il_Rx_Sig_GW_LostToCamera_80,/*(4) */
+Can_Ch0_Il_Rx_Sig_GW_LostToRada_80,/*(5) */
+Can_Ch0_Il_Rx_Sig_GW_LostToACU_80,/*(6) */
+Can_Ch0_Il_Rx_Sig_GW_EMS_EngSpdSignalFailure_131,/*(7) */
+Can_Ch0_Il_Rx_Sig_GW_EMS_EngSpd_131,/*(8) */
+Can_Ch0_Il_Rx_Sig_EMS_EngFilterSpd_133,/*(9) */
+Can_Ch0_Il_Rx_Sig_TCU_SelectedATMode_147,/*(10) */
+Can_Ch0_Il_Rx_Sig_TCU_TransmissionMILReq_147,/*(11) */
+Can_Ch0_Il_Rx_Sig_GW_TCU_ATFailure_147,/*(12) */
+Can_Ch0_Il_Rx_Sig_GW_TCU_ShiftLeverPosValidFlag_147,/*(13) */
+Can_Ch0_Il_Rx_Sig_TCU_ActualGear_147,/*(14) */
+Can_Ch0_Il_Rx_Sig_TCU_PRNDLStatus_147,/*(15) */
+Can_Ch0_Il_Rx_Sig_GW_ESC_EBDAlarmSig_160,/*(16) */
+Can_Ch0_Il_Rx_Sig_GW_ESC_VehSpdValidFlag_160,/*(17) */
+Can_Ch0_Il_Rx_Sig_GW_ESC_ABSAlarmSig_160,/*(18) */
+Can_Ch0_Il_Rx_Sig_GW_Brake_fluidleveAlarm_160,/*(19) */
+Can_Ch0_Il_Rx_Sig_GW_ESC_VehSpd_160,/*(20) */
+Can_Ch0_Il_Rx_Sig_GW_EMS_EngRunningStatus_224,/*(21) */
+Can_Ch0_Il_Rx_Sig_GW_EMS_EngMILTelltaleSts_224,/*(22) */
+Can_Ch0_Il_Rx_Sig_GW_ESC_ESCOFF_320,/*(23) */
+Can_Ch0_Il_Rx_Sig_GW_EMS_EngCoolantTemp_320,/*(24) */
+Can_Ch0_Il_Rx_Sig_GW_EMS_ErrorCoolanttemperature_320,/*(25) */
+Can_Ch0_Il_Rx_Sig_GW_EMSCoolanttempHighWarning_320,/*(26) */
+Can_Ch0_Il_Rx_Sig_GW_ESC_ESCAlarmSig_320,/*(27) */
+Can_Ch0_Il_Rx_Sig_GW_EPB_EPBSystemStIndicationReq_320,/*(28) */
+Can_Ch0_Il_Rx_Sig_GW_EPS_FaultWarning_320,/*(29) */
+Can_Ch0_Il_Rx_Sig_EPB_EPBDisplayMessageReq_320,/*(30) */
+Can_Ch0_Il_Rx_Sig_EPB_EPBAudibleWarnningRequest_320,/*(31) */
+Can_Ch0_Il_Rx_Sig_GW_EMS_InsFuelConsumed_320,/*(32) */
+Can_Ch0_Il_Rx_Sig_EPB_EPBWarningIndicationReq_320,/*(33) */
+Can_Ch0_Il_Rx_Sig_EMS_ChargeIndicate_320,/*(34) */
+Can_Ch0_Il_Rx_Sig_EMS_STTsystemWorkSt_320,/*(35) */
+Can_Ch0_Il_Rx_Sig_EMS_CruiseCtrlSts_321,/*(36) */
+Can_Ch0_Il_Rx_Sig_EMS_EngGPFStatus_321,/*(37) */
+Can_Ch0_Il_Rx_Sig_EMS_Fuelevel_321,/*(38) */
+Can_Ch0_Il_Rx_Sig_EMS_OilEmptyAlarm_321,/*(39) */
+Can_Ch0_Il_Rx_Sig_GW_RADA_ACC_HMI_TgtDisp_Flag_381,/*(40) */
+Can_Ch0_Il_Rx_Sig_GW_RADA_TARGET_POSITION_381,/*(41) */
+Can_Ch0_Il_Rx_Sig_GW_ESC_HSAStatus_381,/*(42) */
+Can_Ch0_Il_Rx_Sig_BCM_TrunkSt_570,/*(43) */
+Can_Ch0_Il_Rx_Sig_BCM_LetfligthSt_570,/*(44) */
+Can_Ch0_Il_Rx_Sig_BCM_RightligthSt_570,/*(45) */
+Can_Ch0_Il_Rx_Sig_BCM_PositionLampSt_570,/*(46) */
+Can_Ch0_Il_Rx_Sig_BCM_HighBeamStatus_570,/*(47) */
+Can_Ch0_Il_Rx_Sig_BCM_LowBeamStatus_570,/*(48) */
+Can_Ch0_Il_Rx_Sig_BCM_BackFogligthSt_570,/*(49) */
+Can_Ch0_Il_Rx_Sig_BCM_frontFogligthSt_570,/*(50) */
+Can_Ch0_Il_Rx_Sig_BCM_LFDoorSwitchSt_570,/*(51) */
+Can_Ch0_Il_Rx_Sig_BCM_RFDoorSwitchSt_570,/*(52) */
+Can_Ch0_Il_Rx_Sig_BCM_RRDoorSwitchSt_570,/*(53) */
+Can_Ch0_Il_Rx_Sig_BCM_LRDoorSwitchSt_570,/*(54) */
+Can_Ch0_Il_Rx_Sig_BCM_RearWindowHeatSt_570,/*(55) */
+Can_Ch0_Il_Rx_Sig_BCM_AutoLockFunctionSt_570,/*(56) */
+Can_Ch0_Il_Rx_Sig_BCM_LeftTurnSwitchSt_570,/*(57) */
+Can_Ch0_Il_Rx_Sig_BCM_RightTurnSwitchrSt_570,/*(58) */
+Can_Ch0_Il_Rx_Sig_BCM_EngHoodUnlockWarming_570,/*(59) */
+Can_Ch0_Il_Rx_Sig_BCM_FollowMeHomeSt_570,/*(60) */
+Can_Ch0_Il_Rx_Sig_T_box_SelfCheck_640,/*(61) */
+Can_Ch0_Il_Rx_Sig_GW_EMS_GearshiftDownRemindSig_773,/*(62) */
+Can_Ch0_Il_Rx_Sig_GW_EMS_GearshiftUpRemindSig_773,/*(63) */
+Can_Ch0_Il_Rx_Sig_GW_EMS_GearshiftDesireGear_773,/*(64) */
+Can_Ch0_Il_Rx_Sig_SCC_LeftSteeringWheelSwitchSig_777,/*(65) */
+Can_Ch0_Il_Rx_Sig_SCC_RightSteeringWheelSwitchSig_777,/*(66) */
+Can_Ch0_Il_Rx_Sig_ACU_AirbagFailSts_780,/*(67) */
+Can_Ch0_Il_Rx_Sig_AC_AmbTemp_802,/*(68) */
+Can_Ch0_Il_Rx_Sig_PEPS_WarningKeyNotInCar_806,/*(69) */
+Can_Ch0_Il_Rx_Sig_PEPS_WarningKeyInCar_806,/*(70) */
+Can_Ch0_Il_Rx_Sig_PEPS_IgnitionNotInOffPosition_806,/*(71) */
+Can_Ch0_Il_Rx_Sig_PEPS_WarningKeyLowBattery_806,/*(72) */
+Can_Ch0_Il_Rx_Sig_PEPS_WarningESCLUnLock_806,/*(73) */
+Can_Ch0_Il_Rx_Sig_PEPS_WarningESCLError_806,/*(74) */
+Can_Ch0_Il_Rx_Sig_PEPS_WarningStartupNotBrake_806,/*(75) */
+Can_Ch0_Il_Rx_Sig_PEPS_WarningNoValidKey_806,/*(76) */
+Can_Ch0_Il_Rx_Sig_PEPS_StartupGearLeverError_806,/*(77) */
+Can_Ch0_Il_Rx_Sig_PEPS_Nsignal_806,/*(78) */
+Can_Ch0_Il_Rx_Sig_PEPS_WarningPowerRelayError_806,/*(79) */
+Can_Ch0_Il_Rx_Sig_PEPS_KeyNearbyStartStopSwitch_806,/*(80) */
+Can_Ch0_Il_Rx_Sig_PEPS_WarningAuthFail_806,/*(81) */
+Can_Ch0_Il_Rx_Sig_PEPS_WarningPoweroffNotPGear_806,/*(82) */
+Can_Ch0_Il_Rx_Sig_BCM_IgnitionSt_828,/*(83) */
+Can_Ch0_Il_Rx_Sig_BCM_BuzzerRequest_828,/*(84) */
+Can_Ch0_Il_Rx_Sig_MP5_GearshiftRemindEnableSwitch_870,/*(85) */
+Can_Ch0_Il_Rx_Sig_MP5_Language_Set_870,/*(86) */
+Can_Ch0_Il_Rx_Sig_MP5_ICStyle_Set_870,/*(87) */
+Can_Ch0_Il_Rx_Sig_MP5_IC_PersonalizedSet_left_870,/*(88) */
+Can_Ch0_Il_Rx_Sig_MP5_IC_PersonalizedSet_right_870,/*(89) */
+Can_Ch0_Il_Rx_Sig_MP5_BrightnessChange_870,/*(90) */
+Can_Ch0_Il_Rx_Sig_APA_RearSystemStatus_886,/*(91) */
+Can_Ch0_Il_Rx_Sig_APA_ChimeRequest_886,/*(92) */
+Can_Ch0_Il_Rx_Sig_APA_RearExtenedDistance_886,/*(93) */
+Can_Ch0_Il_Rx_Sig_APA_RearRegion_2_Object_Status_886,/*(94) */
+Can_Ch0_Il_Rx_Sig_APA_RearRegion_1_Object_Status_886,/*(95) */
+Can_Ch0_Il_Rx_Sig_APA_RearRegion_4_Object_Status_886,/*(96) */
+Can_Ch0_Il_Rx_Sig_APA_RearRegion_3_Object_Status_886,/*(97) */
+Can_Ch0_Il_Rx_Sig_MP5_Navi_Turn_917,/*(98) */
+Can_Ch0_Il_Rx_Sig_MP5_Navi_Distance_917,/*(99) */
+Can_Ch0_Il_Rx_Sig_MP5_Navi_InterConnectState_917,/*(100) */
+Can_Ch0_Il_Rx_Sig_GW_ESC_ITPMSRLPressureWarning_1073,/*(101) */
+Can_Ch0_Il_Rx_Sig_GW_ESC_ITPMSRRPressureWarning_1073,/*(102) */
+Can_Ch0_Il_Rx_Sig_GW_ESC_ITPMSFLPressureWarning_1073,/*(103) */
+Can_Ch0_Il_Rx_Sig_GW_ESC_ITPMSFRtPressureWarning_1073,/*(104) */
+Can_Ch0_Il_Rx_Sig_GW_ESC_DDS_SystemStatus_1073,/*(105) */
+Can_Ch0_Il_Rx_Sig_MP5_LocalTimeYear_1242,/*(106) */
+Can_Ch0_Il_Rx_Sig_MP5_LocalTimeMonth_1242,/*(107) */
+Can_Ch0_Il_Rx_Sig_MP5_LocalTimeDate_1242,/*(108) */
+Can_Ch0_Il_Rx_Sig_MP5_LocalTimeSystem_1242,/*(109) */
+Can_Ch0_Il_Rx_Sig_MP5_LocalTimeValid_1242,/*(110) */
+Can_Ch0_Il_Rx_Sig_MP5_LocalTimeHour_1242,/*(111) */
+Can_Ch0_Il_Rx_Sig_MP5_LocalTimeMinute_1242,/*(112) */
+Can_Ch0_Il_Rx_Sig_MP5_LocalTimeSecond_1242,/*(113) */
+Can_Ch0_Il_Rx_Sig_GW_ACC_Vehicle_IconDisplay_1271,/*(114) */
+Can_Ch0_Il_Rx_Sig_GW_ACC_Set_Speed_Display_1271,/*(115) */
+Can_Ch0_Il_Rx_Sig_GW_ACC_DesiredHeadway_IconBasic_1271,/*(116) */
+Can_Ch0_Il_Rx_Sig_GW_ACC_Desired_Headway_Display_1271,/*(117) */
+Can_Ch0_Il_Rx_Sig_GW_ACC_Pop_Up_Message_1271,/*(118) */
+Can_Ch0_Il_Rx_Sig_GW_AEB_Switch_Status_1271,/*(119) */
+Can_Ch0_Il_Rx_Sig_GW_AEB_Alert_Req_1271,/*(120) */
+Can_Ch0_Il_Rx_Sig_GW_ACC_Desired_Set_Speed_1271,/*(121) */
+Can_Ch0_Il_Rx_Sig_GW_AEB_tips_1271,/*(122) */
+Can_Ch0_Il_Rx_Sig_GW_AEB_Fault_Status_1271,/*(123) */
+Can_Ch0_Il_Rx_Sig_GW_LKA_actionindication_1345,/*(124) */
+Can_Ch0_Il_Rx_Sig_GW_LDW_Status_Display_1345,/*(125) */
+Can_Ch0_Il_Rx_Sig_GW_LKA_Status_Display_1345,/*(126) */
+Can_Ch0_Il_Rx_Sig_GW_Vehicle_Lane_Display_1345,/*(127) */
+Can_Ch0_Il_Rx_Sig_GW_HMI_Popup_Status_1345,/*(128) */
+Can_Ch0_Il_Rx_Sig_GW_LDW_Flag_1345,/*(129) */
+Can_Ch0_Il_Rx_Sig_GW_Hands_off_warning_1345,/*(130) */
+Can_Ch0_Il_Rx_Sig_GW_LKA_SwitchState_1345,/*(131) */
+Can_Ch0_Il_Rx_Num_Signals
+/*(132) */
+}Can_Ch0_Il_Rx_Signals_Macro;
+
+
+/* ===========================================================================
+    Interaction Layer Receive Signal (Multiple Bytes) Rx Get Macros
+   =========================================================================*/
+/* ===========================================================================
+   P U B L I C   M E M O R Y
+  =========================================================================*/
+
+extern CAN_IL_SIGNAL          const      Can_Ch0_Il_Tx_Signals[ Can_Ch0_Il_Tx_Num_Signals ];
+
+extern CAN_IL_TX_MESSAGE      const      Can_Ch0_Il_Tx_Messages[ Can_Ch0_Il_Tx_Num_Messages ];
+
+extern CAN_IL_TX_FRAME        const      Can_Ch0_Il_Tx_Frame_Table[ Can_Ch0_Il_Tx_Num_Messages ];
+
+extern CAN_IL_SIGNAL          const      Can_Ch0_Il_Rx_Signals[Can_Ch0_Il_Rx_Num_Signals  ];
+
+/*extern CAN_IL_RX_MESSAGE      const      Can_Ch0_Il_Rx_Messages[ ];*/
+
+extern CAN_IL_RX_FRAME        const      Can_Ch0_Il_Rx_Frame_Table[ Can_Ch0_Il_Rx_Num_Messages ];
+
+/*extern Can_Il_Rx_Data_Pointer const      Can_Ch0_Il_Receive_Data_Table[ ];*/
+
+extern pTxPrecopyfn           const      Can_Ch0_Il_Tx_Precopy_Function_Table[ Can_Ch0_Il_Tx_Num_Messages ];
+
+extern CAN_UINT8 Can_Ch0_Il_Rx_Frame_Data[ Can_Ch0_Il_Rx_Num_Messages ][ CAN_MAX_DATA_LENGTH ];
+
+extern CAN_UINT8 Can_Ch0_Il_Rx_Frame_Status[ Can_Ch0_Il_Rx_Num_Messages ];
+
+extern CAN_UINT16 Can_Ch0_Il_Rx_Timeout_Count[ Can_Ch0_Il_Rx_Num_Messages ];
+
+extern Can_Il_Rx_Data_Pointer Can_Ch0_Il_Receive_Ptr[ Can_Ch0_Il_Rx_Num_Messages ][ CAN_MAX_DATA_LENGTH ];
+
+#ifdef CAN_IL_TX_BURST_MODE
+
+ #if ( Can_Ch0_Il_Tx_Num_Burst_Periodic > 0 )
+
+  extern CAN_UINT8 Can_Ch0_Il_Tx_Burst_Count[ Can_Ch0_Il_Tx_Num_Burst_Periodic ];
+
+ #endif
+
+#endif
+
+extern void Can_Ch0_Il_Precopy_Function(void);
+
+
+#endif  /* CAN_IL_PAR_H */ 
+/*****************************************************************************
+    R E V I S I O N     N O T E S
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -
+For each change to this file, be sure to record:
+1.   Who made the change and when the change was made.
+2.   Why the change was made and the intended result.
+
+Date       By         Reason For Change
+------------------------------------------------------------------------------
+
+******************************************************************************/
+/*****************************************************************************
+Date          : 2018-05-03 19:23
+By              : JSISTUS
+Traceability    : [u'DFPV_D53_BDC_20180423 - Copy.dbc']
+Change Description  : Tool Generated code
+*****************************************************************************/

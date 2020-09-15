@@ -1,0 +1,385 @@
+#if !defined( CCL_APP_CFG_H )
+  #define CCL_APP_CFG_H
+
+  /* ===========================================================================
+  **
+  **                     CONFIDENTIAL VISTEON CORPORATION
+  **
+  **  This is an unpublished work of authorship, which contains trade secrets,
+  **  created in 2007.  Visteon Corporation owns all rights to this work and
+  **  intends to maintain it in confidence to preserve its trade secret status.
+  **  Visteon Corporation reserves the right, under the copyright laws of the
+  **  United States or those of any other country that may have jurisdiction, to
+  **  protect this work as an unpublished work, in the event of an inadvertent
+  **  or deliberate unauthorized publication.  Visteon Corporation also reserves
+  **  its rights under all copyright laws to protect this work as a published
+  **  work, when appropriate.  Those having access to this work may not copy it,
+  **  use it, modify it or disclose the information contained in it without the
+  **  written authorization of Visteon Corporation.
+  **
+  ** =========================================================================*/
+
+  /* ===========================================================================
+  **
+  **  Name:           CanCcl_Par_Cfg.h
+  **
+  **  Description:    CAN CCL configuration parameters for configured database
+  **
+  **  Organization:   Vehicle Communications
+  **                  Visteon Corporation
+  **
+  ** =========================================================================*/
+
+  /* ===========================================================================
+  **  I N C L U D E   F I L E S
+  ** =========================================================================*/
+
+  #include "CanCcl_Cfg.h"
+  #include "CanCcl_Defines.h"
+  #include "Com_Handles.h"
+   
+
+/* ===========================================================================
+  **  M A C R O   D E F I N I T I O N S
+  ** =========================================================================*/
+
+  /* DBC Tx & Rx CFG */
+
+  #ifndef Can_ControllerId
+  #define Can_ControllerId                        (0u)
+  #endif
+
+#define Can_Ccl_Rx_Num_Messages                 (24u)
+#define Can_Ccl_Rx_Num_Periodic_Messages        (23u)
+#define Can_Ccl_Rx_Num_Signals                  (132u)
+#define Can_Ccl_Rx_Num_Periodic_Signals         (131u)
+#define Can_Ccl_Rx_Num_RxAck_Ind                (132u)
+  #define Can_Ccl_Rx_Num_RxTOut_Ind               (132u)
+  #define Can_Ccl_Rx_Num_RxInv_Ind                (1u)
+
+#define Can_Ccl_Tx_Num_Messages                 (4u)
+#define Can_Ccl_Tx_Signal_Num_Signals           (132u)
+#define Can_Ccl_Tx_Num_Periodic                 (4u)
+#define Can_Ccl_Tx_Num_Burst_Periodic           (0u)
+
+#define Can_Ccl_Num_Of_PduGroups                (2u)
+  #define CCL_MAX_IPDUGROUPVECTOR_BYTES           (1u) 
+
+
+/*Handle IDs active in all predefined variants (the application has not to take the active variant into account) */
+  /*      Symbolic Name                                  Value   Active in predefined variant(s) */
+  #define CanCclConf_IPduGroup_TuringECU_CAN_Rx           1u
+  #define CanCclConf_IPduGroup_TuringECU_CAN_Tx           0u
+
+
+
+/* Handle IDs of handle space CclRxSig [Rx Signals] */
+  /*      Symbolic Name                                                                      Value   Active in predefined variant(s) */
+#define CanCclRxHndlCh0_GW_LostToEMS_80                                                      0u
+#define CanCclRxHndlCh0_GW_LostToESC_80                                                      1u
+#define CanCclRxHndlCh0_GW_LostToTCU_80                                                      2u
+#define CanCclRxHndlCh0_GW_LostToEPS_80                                                      3u
+#define CanCclRxHndlCh0_GW_LostToCamera_80                                                   4u
+#define CanCclRxHndlCh0_GW_LostToRada_80                                                     5u
+#define CanCclRxHndlCh0_GW_LostToACU_80                                                      6u
+#define CanCclRxHndlCh0_GW_EMS_EngSpdSignalFailure_131                                       7u
+#define CanCclRxHndlCh0_GW_EMS_EngSpd_131                                                    8u
+#define CanCclRxHndlCh0_EMS_EngFilterSpd_133                                                 9u
+#define CanCclRxHndlCh0_TCU_SelectedATMode_147                                               10u
+#define CanCclRxHndlCh0_TCU_TransmissionMILReq_147                                           11u
+#define CanCclRxHndlCh0_GW_TCU_ATFailure_147                                                 12u
+#define CanCclRxHndlCh0_GW_TCU_ShiftLeverPosValidFlag_147                                    13u
+#define CanCclRxHndlCh0_TCU_ActualGear_147                                                   14u
+#define CanCclRxHndlCh0_TCU_PRNDLStatus_147                                                  15u
+#define CanCclRxHndlCh0_GW_ESC_EBDAlarmSig_160                                               16u
+#define CanCclRxHndlCh0_GW_ESC_VehSpdValidFlag_160                                           17u
+#define CanCclRxHndlCh0_GW_ESC_ABSAlarmSig_160                                               18u
+#define CanCclRxHndlCh0_GW_Brake_fluidleveAlarm_160                                          19u
+#define CanCclRxHndlCh0_GW_ESC_VehSpd_160                                                    20u
+#define CanCclRxHndlCh0_GW_EMS_EngRunningStatus_224                                          21u
+#define CanCclRxHndlCh0_GW_EMS_EngMILTelltaleSts_224                                         22u
+#define CanCclRxHndlCh0_GW_ESC_ESCOFF_320                                                    23u
+#define CanCclRxHndlCh0_GW_EMS_EngCoolantTemp_320                                            24u
+#define CanCclRxHndlCh0_GW_EMS_ErrorCoolanttemperature_320                                   25u
+#define CanCclRxHndlCh0_GW_EMSCoolanttempHighWarning_320                                     26u
+#define CanCclRxHndlCh0_GW_ESC_ESCAlarmSig_320                                               27u
+#define CanCclRxHndlCh0_GW_EPB_EPBSystemStIndicationReq_320                                  28u
+#define CanCclRxHndlCh0_GW_EPS_FaultWarning_320                                              29u
+#define CanCclRxHndlCh0_EPB_EPBDisplayMessageReq_320                                         30u
+#define CanCclRxHndlCh0_EPB_EPBAudibleWarnningRequest_320                                    31u
+#define CanCclRxHndlCh0_GW_EMS_InsFuelConsumed_320                                           32u
+#define CanCclRxHndlCh0_EPB_EPBWarningIndicationReq_320                                      33u
+#define CanCclRxHndlCh0_EMS_ChargeIndicate_320                                               34u
+#define CanCclRxHndlCh0_EMS_STTsystemWorkSt_320                                              35u
+#define CanCclRxHndlCh0_EMS_CruiseCtrlSts_321                                                36u
+#define CanCclRxHndlCh0_EMS_EngGPFStatus_321                                                 37u
+#define CanCclRxHndlCh0_EMS_Fuelevel_321                                                     38u
+#define CanCclRxHndlCh0_EMS_OilEmptyAlarm_321                                                39u
+#define CanCclRxHndlCh0_GW_RADA_ACC_HMI_TgtDisp_Flag_381                                     40u
+#define CanCclRxHndlCh0_GW_RADA_TARGET_POSITION_381                                          41u
+#define CanCclRxHndlCh0_GW_ESC_HSAStatus_381                                                 42u
+#define CanCclRxHndlCh0_BCM_TrunkSt_570                                                      43u
+#define CanCclRxHndlCh0_BCM_LetfligthSt_570                                                  44u
+#define CanCclRxHndlCh0_BCM_RightligthSt_570                                                 45u
+#define CanCclRxHndlCh0_BCM_PositionLampSt_570                                               46u
+#define CanCclRxHndlCh0_BCM_HighBeamStatus_570                                               47u
+#define CanCclRxHndlCh0_BCM_LowBeamStatus_570                                                48u
+#define CanCclRxHndlCh0_BCM_BackFogligthSt_570                                               49u
+#define CanCclRxHndlCh0_BCM_frontFogligthSt_570                                              50u
+#define CanCclRxHndlCh0_BCM_LFDoorSwitchSt_570                                               51u
+#define CanCclRxHndlCh0_BCM_RFDoorSwitchSt_570                                               52u
+#define CanCclRxHndlCh0_BCM_RRDoorSwitchSt_570                                               53u
+#define CanCclRxHndlCh0_BCM_LRDoorSwitchSt_570                                               54u
+#define CanCclRxHndlCh0_BCM_RearWindowHeatSt_570                                             55u
+#define CanCclRxHndlCh0_BCM_AutoLockFunctionSt_570                                           56u
+#define CanCclRxHndlCh0_BCM_LeftTurnSwitchSt_570                                             57u
+#define CanCclRxHndlCh0_BCM_RightTurnSwitchrSt_570                                           58u
+#define CanCclRxHndlCh0_BCM_EngHoodUnlockWarming_570                                         59u
+#define CanCclRxHndlCh0_BCM_FollowMeHomeSt_570                                               60u
+#define CanCclRxHndlCh0_T_box_SelfCheck_640                                                  61u
+#define CanCclRxHndlCh0_GW_EMS_GearshiftDownRemindSig_773                                    62u
+#define CanCclRxHndlCh0_GW_EMS_GearshiftUpRemindSig_773                                      63u
+#define CanCclRxHndlCh0_GW_EMS_GearshiftDesireGear_773                                       64u
+#define CanCclRxHndlCh0_SCC_LeftSteeringWheelSwitchSig_777                                   65u
+#define CanCclRxHndlCh0_SCC_RightSteeringWheelSwitchSig_777                                  66u
+#define CanCclRxHndlCh0_ACU_AirbagFailSts_780                                                67u
+#define CanCclRxHndlCh0_AC_AmbTemp_802                                                       68u
+#define CanCclRxHndlCh0_PEPS_WarningKeyNotInCar_806                                          69u
+#define CanCclRxHndlCh0_PEPS_WarningKeyInCar_806                                             70u
+#define CanCclRxHndlCh0_PEPS_IgnitionNotInOffPosition_806                                    71u
+#define CanCclRxHndlCh0_PEPS_WarningKeyLowBattery_806                                        72u
+#define CanCclRxHndlCh0_PEPS_WarningESCLUnLock_806                                           73u
+#define CanCclRxHndlCh0_PEPS_WarningESCLError_806                                            74u
+#define CanCclRxHndlCh0_PEPS_WarningStartupNotBrake_806                                      75u
+#define CanCclRxHndlCh0_PEPS_WarningNoValidKey_806                                           76u
+#define CanCclRxHndlCh0_PEPS_StartupGearLeverError_806                                       77u
+#define CanCclRxHndlCh0_PEPS_Nsignal_806                                                     78u
+#define CanCclRxHndlCh0_PEPS_WarningPowerRelayError_806                                      79u
+#define CanCclRxHndlCh0_PEPS_KeyNearbyStartStopSwitch_806                                    80u
+#define CanCclRxHndlCh0_PEPS_WarningAuthFail_806                                             81u
+#define CanCclRxHndlCh0_PEPS_WarningPoweroffNotPGear_806                                     82u
+#define CanCclRxHndlCh0_BCM_IgnitionSt_828                                                   83u
+#define CanCclRxHndlCh0_BCM_BuzzerRequest_828                                                84u
+#define CanCclRxHndlCh0_MP5_GearshiftRemindEnableSwitch_870                                  85u
+#define CanCclRxHndlCh0_MP5_Language_Set_870                                                 86u
+#define CanCclRxHndlCh0_MP5_ICStyle_Set_870                                                  87u
+#define CanCclRxHndlCh0_MP5_IC_PersonalizedSet_left_870                                      88u
+#define CanCclRxHndlCh0_MP5_IC_PersonalizedSet_right_870                                     89u
+#define CanCclRxHndlCh0_MP5_BrightnessChange_870                                             90u
+#define CanCclRxHndlCh0_APA_RearSystemStatus_886                                             91u
+#define CanCclRxHndlCh0_APA_ChimeRequest_886                                                 92u
+#define CanCclRxHndlCh0_APA_RearExtenedDistance_886                                          93u
+#define CanCclRxHndlCh0_APA_RearRegion_2_Object_Status_886                                   94u
+#define CanCclRxHndlCh0_APA_RearRegion_1_Object_Status_886                                   95u
+#define CanCclRxHndlCh0_APA_RearRegion_4_Object_Status_886                                   96u
+#define CanCclRxHndlCh0_APA_RearRegion_3_Object_Status_886                                   97u
+#define CanCclRxHndlCh0_MP5_Navi_Turn_917                                                    98u
+#define CanCclRxHndlCh0_MP5_Navi_Distance_917                                                99u
+#define CanCclRxHndlCh0_MP5_Navi_InterConnectState_917                                       100u
+#define CanCclRxHndlCh0_GW_ESC_ITPMSRLPressureWarning_1073                                   101u
+#define CanCclRxHndlCh0_GW_ESC_ITPMSRRPressureWarning_1073                                   102u
+#define CanCclRxHndlCh0_GW_ESC_ITPMSFLPressureWarning_1073                                   103u
+#define CanCclRxHndlCh0_GW_ESC_ITPMSFRtPressureWarning_1073                                  104u
+#define CanCclRxHndlCh0_GW_ESC_DDS_SystemStatus_1073                                         105u
+#define CanCclRxHndlCh0_MP5_LocalTimeYear_1242                                               106u
+#define CanCclRxHndlCh0_MP5_LocalTimeMonth_1242                                              107u
+#define CanCclRxHndlCh0_MP5_LocalTimeDate_1242                                               108u
+#define CanCclRxHndlCh0_MP5_LocalTimeSystem_1242                                             109u
+#define CanCclRxHndlCh0_MP5_LocalTimeValid_1242                                              110u
+#define CanCclRxHndlCh0_MP5_LocalTimeHour_1242                                               111u
+#define CanCclRxHndlCh0_MP5_LocalTimeMinute_1242                                             112u
+#define CanCclRxHndlCh0_MP5_LocalTimeSecond_1242                                             113u
+#define CanCclRxHndlCh0_GW_ACC_Vehicle_IconDisplay_1271                                      114u
+#define CanCclRxHndlCh0_GW_ACC_Set_Speed_Display_1271                                        115u
+#define CanCclRxHndlCh0_GW_ACC_DesiredHeadway_IconBasic_1271                                 116u
+#define CanCclRxHndlCh0_GW_ACC_Desired_Headway_Display_1271                                  117u
+#define CanCclRxHndlCh0_GW_ACC_Pop_Up_Message_1271                                           118u
+#define CanCclRxHndlCh0_GW_AEB_Switch_Status_1271                                            119u
+#define CanCclRxHndlCh0_GW_AEB_Alert_Req_1271                                                120u
+#define CanCclRxHndlCh0_GW_ACC_Desired_Set_Speed_1271                                        121u
+#define CanCclRxHndlCh0_GW_AEB_tips_1271                                                     122u
+#define CanCclRxHndlCh0_GW_AEB_Fault_Status_1271                                             123u
+#define CanCclRxHndlCh0_GW_LKA_actionindication_1345                                         124u
+#define CanCclRxHndlCh0_GW_LDW_Status_Display_1345                                           125u
+#define CanCclRxHndlCh0_GW_LKA_Status_Display_1345                                           126u
+#define CanCclRxHndlCh0_GW_Vehicle_Lane_Display_1345                                         127u
+#define CanCclRxHndlCh0_GW_HMI_Popup_Status_1345                                             128u
+#define CanCclRxHndlCh0_GW_LDW_Flag_1345                                                     129u
+#define CanCclRxHndlCh0_GW_Hands_off_warning_1345                                            130u
+#define CanCclRxHndlCh0_GW_LKA_SwitchState_1345                                              131u
+
+
+/* Handle IDs of handle space CclTxSig [Tx Signals] */
+  /*      Symbolic Name                                                                      Value   Active in predefined variant(s) */
+#define CanCclTxHndlCh0_IC_Hand_Brake_Switch_288                                             0u
+#define CanCclTxHndlCh0_IC_TotalOdmeter_800                                                  1u
+#define CanCclTxHndlCh0_IC_CruiseSwitch_800                                                  2u
+#define CanCclTxHndlCh0_IC_TPMSManuStudyCmd_800                                              3u
+#define CanCclTxHndlCh0_IC_DriverBeltSwitchSig_800                                           4u
+#define CanCclTxHndlCh0_IC_TargetCruiseVehS_800                                              5u
+#define CanCclTxHndlCh0_IC_RollingCount_IC1_800                                              6u
+#define CanCclTxHndlCh0_IC_passengerBeltSwitchSig_800                                        7u
+#define CanCclTxHndlCh0_IC_CheckSum_IC_800                                                   8u
+#define CanCclTxHndlCh0_IC_BrakeReleaseRemind_914                                            9u
+#define CanCclTxHndlCh0_IC_WaterTempHighRemind_914                                           10u
+#define CanCclTxHndlCh0_IC_LightOnRemind_914                                                 11u
+#define CanCclTxHndlCh0_IC_BeltunlockRemind_914                                              12u
+#define CanCclTxHndlCh0_IC_FuelShortageRemind_914                                            13u
+#define CanCclTxHndlCh0_IC_KeyInRemind_914                                                   14u
+#define CanCclTxHndlCh0_IC_PEPSPowerOnRemind_914                                             15u
+#define CanCclTxHndlCh0_IC_MaintenceRemind_914                                               16u
+#define CanCclTxHndlCh0_IC_DoorOpenRemind_914                                                17u
+#define CanCclTxHndlCh0_IC_AvgFuelConsumed_1200                                              18u
+#define CanCclTxHndlCh0_IC_CruisRange_1200                                                   19u
+#define CanCclTxHndlCh0_IC_Trip_1200                                                         20u
+#define CanCclTxHndlCh0_IC_MaintenanceMile_1200                                              21u
+#define CanCclTxHndlCh0_IC_MaintenanceLogo_1200                                              22u
+#define CanCclTxHndlCh0_IC_MaintainRemind_1200                                               23u
+#define CanCclTxHndlCh0_IC_MaintenceExpLogo_1200                                             24u
+
+
+typedef CAN_UINT8 Ccl_IpduGroupVector[CCL_MAX_IPDUGROUPVECTOR_BYTES];
+
+
+  # include "CanCcl_Com.h"
+
+
+/* ===========================================================================
+** G L O B A L   C O N S T A N T   D E C L A R A T I O N S
+** =========================================================================*/
+
+extern CONST(Ccl_TxSigInfoType, CCL_CONST) Can_Ccl_TxSigInfo[Can_Ccl_Tx_Signal_Num_Signals];
+
+extern CONST(Ccl_RxAccessInfoType, CCL_CONST) Can_Ccl_RxAccessInfo[Can_Ccl_Rx_Num_Signals];
+
+
+/**********************************************************************************************************************
+  Ccl_CbkRxAckFuncPtr
+**********************************************************************************************************************/
+/**
+  \var    Ccl_CbkRxAckFuncPtr
+  \brief  Function pointer table containing configured Rx indication notifications for signals and signal groups.
+*/
+
+extern CONST(CclCbkRxAckType, CCL_CONST) Can_Ccl_CbkRxAckFuncPtr[Can_Ccl_Rx_Num_RxAck_Ind];
+
+/**********************************************************************************************************************
+  Ccl_CbkRxTOutFuncPtr
+**********************************************************************************************************************/
+/**
+  \var    Ccl_CbkRxTOutFuncPtr
+  \brief  Function pointer table containing configured Rx timeout notifications for signals and signal groups.}
+*/
+
+extern CONST(CclCbkRxTOutType, CCL_CONST) Can_Ccl_CbkRxTOutFuncPtr[Can_Ccl_Rx_Num_RxTOut_Ind];
+
+
+/**********************************************************************************************************************
+  Ccl_CbkRxInvFuncPtr
+**********************************************************************************************************************/
+/**
+  \var    Ccl_CbkRxInvFuncPtr
+  \brief  Function pointer table containing configured Rx invalid notifications for signals and signal groups.
+*/
+
+#if (CCL_RX_INVINDICATION_API == STD_ON)
+extern CONST(CclCbkInvType, CCL_CONST) Can_Ccl_CbkRxInvFuncPtr[Can_Ccl_Rx_Num_RxInv_Ind];
+#endif
+
+/**********************************************************************************************************************
+  Ccl_NumOfContainedRxSignals
+**********************************************************************************************************************/
+/**
+  \var    Ccl_NumOfContainedRxSignals
+  \brief  Structure describing the starting signal handle and the number of signals contaiend in Rx messages
+*/
+
+extern CONST(Ccl_MessageContentInfo, CCL_CONST) Can_Ccl_NumOfContainedRxSignals[Can_Ccl_Rx_Num_Messages];
+
+
+/**********************************************************************************************************************
+  Ccl_NumOfContainedTxSignals
+**********************************************************************************************************************/
+/**
+  \var    Ccl_NumOfContainedTxSignals
+  \brief  Structure describing the starting signal handle and the number of signals contaiend in Tx messages
+*/
+
+extern CONST(Ccl_MessageContentInfo, CCL_CONST) Can_Ccl_NumOfContainedTxSignals[Can_Ccl_Tx_Num_Messages];
+
+
+/**********************************************************************************************************************
+  Ccl_NumOfContainedTxSignals
+**********************************************************************************************************************/
+extern CONST(Ccl_RxNotifFuncInfo, CCL_CONST) Can_Ccl_RxNotifFuncPtr[Can_Ccl_Rx_Num_Signals];
+
+
+/**********************************************************************************************************************
+  Ccl_PduGrpVector
+**********************************************************************************************************************/
+/**
+  \var    Ccl_PduGrpVector
+  \brief  Contains an I-PDU-Group vector for each I-PDU, mapping the I-PDU to the corresponding I-PDU-Groups.
+  */
+extern CONST(Ccl_PduGrpVectorType, CCL_CONST) Can_Ccl_PduGrpVector[Can_Ccl_Num_Of_PduGroups];
+
+
+/**********************************************************************************************************************
+  Ccl_TxPduGrpInfo
+**********************************************************************************************************************/
+/**
+  \var    Ccl_TxPduGrpInfo
+  \brief  Contains all I-PDU-Group relevant information for Tx I-PDUs.
+  \details
+  Element                 Description
+  PduGrpVectorStartIdx    the start index of the 0:n relation pointing to Ccl_PduGrpVector
+*/
+extern CONST(Ccl_TxPduGrpInfoType, CCL_CONST) Can_Ccl_TxPduGrpInfo[Can_Ccl_Tx_Num_Messages];
+
+
+/**********************************************************************************************************************
+  Ccl_RxPduGrpInfo
+**********************************************************************************************************************/
+/**
+  \var    Ccl_RxPduGrpInfo
+  \brief  Contains all I-PDU-Group relevant information for Rx I-PDUs.
+  \details
+  Element                 Description
+  PduGrpVectorStartIdx    the start index of the 0:n relation pointing to Ccl_PduGrpVector
+*/
+extern CONST(Ccl_RxPduGrpInfoType, CCL_CONST) Can_Ccl_RxPduGrpInfo[Can_Ccl_Rx_Num_Messages];
+
+
+/**********************************************************************************************************************
+  Ccl_DefRxPduInfo
+**********************************************************************************************************************/
+/**
+  \var    Ccl_DefRxPduInfo
+  \brief  Contains all relevant information for deferred Rx I-PDUs.
+  \details
+  Element                   Description
+  RxDefPduBufferUsed        TRUE, if the 0:n relation has 1 relation pointing to ilRxBuffer
+*/
+extern CONST(Ccl_DefRxPduInfoType, CCL_CONST) Can_Ccl_DefRxPduInfo[Can_Ccl_Rx_Num_Messages];
+
+
+#endif /* CCL_APP_CFG_H */
+
+
+/*****************************************************************************
+    R E V I S I O N     N O T E S
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -
+For each change to this file, be sure to record:
+1.   Who made the change and when the change was made.
+2.   Why the change was made and the intended result.
+
+Date       By         Reason For Change
+------------------------------------------------------------------------------
+
+******************************************************************************/
+/*****************************************************************************
+Date          : 2018-05-03 19:23
+By              : JSISTUS
+Traceability    : [u'DFPV_D53_BDC_20180423 - Copy.dbc']
+Change Description  : Tool Generated code
+*****************************************************************************/

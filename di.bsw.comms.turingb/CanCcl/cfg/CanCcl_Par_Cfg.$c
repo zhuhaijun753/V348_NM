@@ -1,0 +1,798 @@
+/* ===========================================================================
+**
+**                     CONFIDENTIAL VISTEON CORPORATION
+**
+**  This is an unpublished work of authorship, which contains trade secrets,
+**  created in 2007.  Visteon Corporation owns all rights to this work and
+**  intends to maintain it in confidence to preserve its trade secret status.
+**  Visteon Corporation reserves the right, under the copyright laws of the
+**  United States or those of any other country that may have jurisdiction, to
+**  protect this work as an unpublished work, in the event of an inadvertent
+**  or deliberate unauthorized publication.  Visteon Corporation also reserves
+**  its rights under all copyright laws to protect this work as a published
+**  work, when appropriate.  Those having access to this work may not copy it,
+**  use it, modify it or disclose the information contained in it without the
+**  written authorization of Visteon Corporation.
+**
+** =========================================================================*/
+
+/* ===========================================================================
+**
+**  Name:           CanCcl_Par_Cfg.c
+**
+**  Description:    CAN CCL configuration parameter Configuration file for
+**                  configured database file
+**
+**  Organization:   Vehicle Communications
+**                  Visteon Corporation
+**
+** =========================================================================*/
+
+/* ===========================================================================
+**  I N C L U D E   F I L E S
+** =========================================================================*/
+
+# include "Rte_Cbk.h"
+# include "CanCcl_Par_Cfg.h"
+
+/* ===========================================================================
+** G L O B A L   C O N S T A N T   D E F I N I T I O N S
+** =========================================================================*/
+
+/*******************************************************/
+/* DBC Tx & Rx CFG */
+/*******************************************************/
+
+/**********************************************************************************************************************
+        Can_Ccl_TxSigInfo
+	      **********************************************************************************************************************/
+CONST(Ccl_TxSigInfoType, CCL_CONST) Can_Ccl_TxSigInfo[Can_Ccl_Tx_Signal_Num_Signals] = {
+    /* Index        CntrId    InitValue     SendType   */
+     { /*     0 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_Hand_Brake_Switch_288       */
+     { /*     1 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_TotalOdmeter_800            */
+     { /*     2 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_CruiseSwitch_800            */
+     { /*     3 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_TPMSManuStudyCmd_800        */
+     { /*     4 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_DriverBeltSwitchSig_800     */
+     { /*     5 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_TargetCruiseVehS_800        */
+     { /*     6 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_RollingCount_IC1_800        */
+     { /*     7 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_passengerBeltSwitchSig_800  */
+     { /*     8 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_CheckSum_IC_800             */
+     { /*     9 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_BrakeReleaseRemind_914      */
+     { /*     10 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_WaterTempHighRemind_914     */
+     { /*     11 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_LightOnRemind_914           */
+     { /*     12 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_BeltunlockRemind_914        */
+     { /*     13 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_FuelShortageRemind_914      */
+     { /*     14 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_KeyInRemind_914             */
+     { /*     15 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_PEPSPowerOnRemind_914       */
+     { /*     16 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_MaintenceRemind_914         */
+     { /*     17 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_DoorOpenRemind_914          */
+     { /*     18 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_AvgFuelConsumed_1200        */
+     { /*     19 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_CruisRange_1200             */
+     { /*     20 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_Trip_1200                   */
+     { /*     21 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_MaintenanceMile_1200        */
+     { /*     22 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_MaintenanceLogo_1200        */
+     { /*     23 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_MaintainRemind_1200         */
+     { /*     24 */      0 ,      0x0,     SIG_NOSENDTYPE      },          /* IC_MaintenceExpLogo_1200       */
+};
+
+
+/**********************************************************************************************************************
+        Can_Ccl_NumOfContainedTxSignals
+        **********************************************************************************************************************/
+        CONST(Ccl_MessageContentInfo, CCL_CONST) Can_Ccl_NumOfContainedTxSignals[Can_Ccl_Tx_Num_Messages] =
+        {
+      /* Index      SigStartIndex   SigCount   */
+      { /*  0  */          0 ,          1   },
+      { /*  1  */          0 ,          8   },
+      { /*  2  */          0 ,          9   },
+      { /*  3  */          0 ,          7   },
+
+};
+
+/**********************************************************************************************************************
+    Can_Ccl_RxAccessInfo
+  **********************************************************************************************************************/
+CONST(Ccl_RxAccessInfoType, CCL_CONST) Can_Ccl_RxAccessInfo[Can_Ccl_Rx_Num_Signals] = {
+       /* Index      ControllerId */
+   { /*     0  */          0       },       /* GW_LostToEMS_80                                              */
+   { /*     1  */          0       },       /* GW_LostToESC_80                                              */
+   { /*     2  */          0       },       /* GW_LostToTCU_80                                              */
+   { /*     3  */          0       },       /* GW_LostToEPS_80                                              */
+   { /*     4  */          0       },       /* GW_LostToCamera_80                                           */
+   { /*     5  */          0       },       /* GW_LostToRada_80                                             */
+   { /*     6  */          0       },       /* GW_LostToACU_80                                              */
+   { /*     7  */          0       },       /* GW_EMS_EngSpdSignalFailure_131                               */
+   { /*     8  */          0       },       /* GW_EMS_EngSpd_131                                            */
+   { /*     9  */          0       },       /* EMS_EngFilterSpd_133                                         */
+   { /*     10  */          0       },       /* TCU_SelectedATMode_147                                       */
+   { /*     11  */          0       },       /* TCU_TransmissionMILReq_147                                   */
+   { /*     12  */          0       },       /* GW_TCU_ATFailure_147                                         */
+   { /*     13  */          0       },       /* GW_TCU_ShiftLeverPosValidFlag_147                            */
+   { /*     14  */          0       },       /* TCU_ActualGear_147                                           */
+   { /*     15  */          0       },       /* TCU_PRNDLStatus_147                                          */
+   { /*     16  */          0       },       /* GW_ESC_EBDAlarmSig_160                                       */
+   { /*     17  */          0       },       /* GW_ESC_VehSpdValidFlag_160                                   */
+   { /*     18  */          0       },       /* GW_ESC_ABSAlarmSig_160                                       */
+   { /*     19  */          0       },       /* GW_Brake_fluidleveAlarm_160                                  */
+   { /*     20  */          0       },       /* GW_ESC_VehSpd_160                                            */
+   { /*     21  */          0       },       /* GW_EMS_EngRunningStatus_224                                  */
+   { /*     22  */          0       },       /* GW_EMS_EngMILTelltaleSts_224                                 */
+   { /*     23  */          0       },       /* GW_ESC_ESCOFF_320                                            */
+   { /*     24  */          0       },       /* GW_EMS_EngCoolantTemp_320                                    */
+   { /*     25  */          0       },       /* GW_EMS_ErrorCoolanttemperature_320                           */
+   { /*     26  */          0       },       /* GW_EMSCoolanttempHighWarning_320                             */
+   { /*     27  */          0       },       /* GW_ESC_ESCAlarmSig_320                                       */
+   { /*     28  */          0       },       /* GW_EPB_EPBSystemStIndicationReq_320                          */
+   { /*     29  */          0       },       /* GW_EPS_FaultWarning_320                                      */
+   { /*     30  */          0       },       /* EPB_EPBDisplayMessageReq_320                                 */
+   { /*     31  */          0       },       /* EPB_EPBAudibleWarnningRequest_320                            */
+   { /*     32  */          0       },       /* GW_EMS_InsFuelConsumed_320                                   */
+   { /*     33  */          0       },       /* EPB_EPBWarningIndicationReq_320                              */
+   { /*     34  */          0       },       /* EMS_ChargeIndicate_320                                       */
+   { /*     35  */          0       },       /* EMS_STTsystemWorkSt_320                                      */
+   { /*     36  */          0       },       /* EMS_CruiseCtrlSts_321                                        */
+   { /*     37  */          0       },       /* EMS_EngGPFStatus_321                                         */
+   { /*     38  */          0       },       /* EMS_Fuelevel_321                                             */
+   { /*     39  */          0       },       /* EMS_OilEmptyAlarm_321                                        */
+   { /*     40  */          0       },       /* GW_RADA_ACC_HMI_TgtDisp_Flag_381                             */
+   { /*     41  */          0       },       /* GW_RADA_TARGET_POSITION_381                                  */
+   { /*     42  */          0       },       /* GW_ESC_HSAStatus_381                                         */
+   { /*     43  */          0       },       /* BCM_TrunkSt_570                                              */
+   { /*     44  */          0       },       /* BCM_LetfligthSt_570                                          */
+   { /*     45  */          0       },       /* BCM_RightligthSt_570                                         */
+   { /*     46  */          0       },       /* BCM_PositionLampSt_570                                       */
+   { /*     47  */          0       },       /* BCM_HighBeamStatus_570                                       */
+   { /*     48  */          0       },       /* BCM_LowBeamStatus_570                                        */
+   { /*     49  */          0       },       /* BCM_BackFogligthSt_570                                       */
+   { /*     50  */          0       },       /* BCM_frontFogligthSt_570                                      */
+   { /*     51  */          0       },       /* BCM_LFDoorSwitchSt_570                                       */
+   { /*     52  */          0       },       /* BCM_RFDoorSwitchSt_570                                       */
+   { /*     53  */          0       },       /* BCM_RRDoorSwitchSt_570                                       */
+   { /*     54  */          0       },       /* BCM_LRDoorSwitchSt_570                                       */
+   { /*     55  */          0       },       /* BCM_RearWindowHeatSt_570                                     */
+   { /*     56  */          0       },       /* BCM_AutoLockFunctionSt_570                                   */
+   { /*     57  */          0       },       /* BCM_LeftTurnSwitchSt_570                                     */
+   { /*     58  */          0       },       /* BCM_RightTurnSwitchrSt_570                                   */
+   { /*     59  */          0       },       /* BCM_EngHoodUnlockWarming_570                                 */
+   { /*     60  */          0       },       /* BCM_FollowMeHomeSt_570                                       */
+   { /*     61  */          0       },       /* T_box_SelfCheck_640                                          */
+   { /*     62  */          0       },       /* GW_EMS_GearshiftDownRemindSig_773                            */
+   { /*     63  */          0       },       /* GW_EMS_GearshiftUpRemindSig_773                              */
+   { /*     64  */          0       },       /* GW_EMS_GearshiftDesireGear_773                               */
+   { /*     65  */          0       },       /* SCC_LeftSteeringWheelSwitchSig_777                           */
+   { /*     66  */          0       },       /* SCC_RightSteeringWheelSwitchSig_777                          */
+   { /*     67  */          0       },       /* ACU_AirbagFailSts_780                                        */
+   { /*     68  */          0       },       /* AC_AmbTemp_802                                               */
+   { /*     69  */          0       },       /* PEPS_WarningKeyNotInCar_806                                  */
+   { /*     70  */          0       },       /* PEPS_WarningKeyInCar_806                                     */
+   { /*     71  */          0       },       /* PEPS_IgnitionNotInOffPosition_806                            */
+   { /*     72  */          0       },       /* PEPS_WarningKeyLowBattery_806                                */
+   { /*     73  */          0       },       /* PEPS_WarningESCLUnLock_806                                   */
+   { /*     74  */          0       },       /* PEPS_WarningESCLError_806                                    */
+   { /*     75  */          0       },       /* PEPS_WarningStartupNotBrake_806                              */
+   { /*     76  */          0       },       /* PEPS_WarningNoValidKey_806                                   */
+   { /*     77  */          0       },       /* PEPS_StartupGearLeverError_806                               */
+   { /*     78  */          0       },       /* PEPS_Nsignal_806                                             */
+   { /*     79  */          0       },       /* PEPS_WarningPowerRelayError_806                              */
+   { /*     80  */          0       },       /* PEPS_KeyNearbyStartStopSwitch_806                            */
+   { /*     81  */          0       },       /* PEPS_WarningAuthFail_806                                     */
+   { /*     82  */          0       },       /* PEPS_WarningPoweroffNotPGear_806                             */
+   { /*     83  */          0       },       /* BCM_IgnitionSt_828                                           */
+   { /*     84  */          0       },       /* BCM_BuzzerRequest_828                                        */
+   { /*     85  */          0       },       /* MP5_GearshiftRemindEnableSwitch_870                          */
+   { /*     86  */          0       },       /* MP5_Language_Set_870                                         */
+   { /*     87  */          0       },       /* MP5_ICStyle_Set_870                                          */
+   { /*     88  */          0       },       /* MP5_IC_PersonalizedSet_left_870                              */
+   { /*     89  */          0       },       /* MP5_IC_PersonalizedSet_right_870                             */
+   { /*     90  */          0       },       /* MP5_BrightnessChange_870                                     */
+   { /*     91  */          0       },       /* APA_RearSystemStatus_886                                     */
+   { /*     92  */          0       },       /* APA_ChimeRequest_886                                         */
+   { /*     93  */          0       },       /* APA_RearExtenedDistance_886                                  */
+   { /*     94  */          0       },       /* APA_RearRegion_2_Object_Status_886                           */
+   { /*     95  */          0       },       /* APA_RearRegion_1_Object_Status_886                           */
+   { /*     96  */          0       },       /* APA_RearRegion_4_Object_Status_886                           */
+   { /*     97  */          0       },       /* APA_RearRegion_3_Object_Status_886                           */
+   { /*     98  */          0       },       /* MP5_Navi_Turn_917                                            */
+   { /*     99  */          0       },       /* MP5_Navi_Distance_917                                        */
+   { /*     100  */          0       },       /* MP5_Navi_InterConnectState_917                               */
+   { /*     101  */          0       },       /* GW_ESC_ITPMSRLPressureWarning_1073                           */
+   { /*     102  */          0       },       /* GW_ESC_ITPMSRRPressureWarning_1073                           */
+   { /*     103  */          0       },       /* GW_ESC_ITPMSFLPressureWarning_1073                           */
+   { /*     104  */          0       },       /* GW_ESC_ITPMSFRtPressureWarning_1073                          */
+   { /*     105  */          0       },       /* GW_ESC_DDS_SystemStatus_1073                                 */
+   { /*     106  */          0       },       /* MP5_LocalTimeYear_1242                                       */
+   { /*     107  */          0       },       /* MP5_LocalTimeMonth_1242                                      */
+   { /*     108  */          0       },       /* MP5_LocalTimeDate_1242                                       */
+   { /*     109  */          0       },       /* MP5_LocalTimeSystem_1242                                     */
+   { /*     110  */          0       },       /* MP5_LocalTimeValid_1242                                      */
+   { /*     111  */          0       },       /* MP5_LocalTimeHour_1242                                       */
+   { /*     112  */          0       },       /* MP5_LocalTimeMinute_1242                                     */
+   { /*     113  */          0       },       /* MP5_LocalTimeSecond_1242                                     */
+   { /*     114  */          0       },       /* GW_ACC_Vehicle_IconDisplay_1271                              */
+   { /*     115  */          0       },       /* GW_ACC_Set_Speed_Display_1271                                */
+   { /*     116  */          0       },       /* GW_ACC_DesiredHeadway_IconBasic_1271                         */
+   { /*     117  */          0       },       /* GW_ACC_Desired_Headway_Display_1271                          */
+   { /*     118  */          0       },       /* GW_ACC_Pop_Up_Message_1271                                   */
+   { /*     119  */          0       },       /* GW_AEB_Switch_Status_1271                                    */
+   { /*     120  */          0       },       /* GW_AEB_Alert_Req_1271                                        */
+   { /*     121  */          0       },       /* GW_ACC_Desired_Set_Speed_1271                                */
+   { /*     122  */          0       },       /* GW_AEB_tips_1271                                             */
+   { /*     123  */          0       },       /* GW_AEB_Fault_Status_1271                                     */
+   { /*     124  */          0       },       /* GW_LKA_actionindication_1345                                 */
+   { /*     125  */          0       },       /* GW_LDW_Status_Display_1345                                   */
+   { /*     126  */          0       },       /* GW_LKA_Status_Display_1345                                   */
+   { /*     127  */          0       },       /* GW_Vehicle_Lane_Display_1345                                 */
+   { /*     128  */          0       },       /* GW_HMI_Popup_Status_1345                                     */
+   { /*     129  */          0       },       /* GW_LDW_Flag_1345                                             */
+   { /*     130  */          0       },       /* GW_Hands_off_warning_1345                                    */
+   { /*     131  */          0       },       /* GW_LKA_SwitchState_1345                                      */
+};
+
+
+/**********************************************************************************************************************
+    Can_Ccl_NumOfContainedRxSignals
+  **********************************************************************************************************************/
+  CONST(Ccl_MessageContentInfo, CCL_CONST) Can_Ccl_NumOfContainedRxSignals[Can_Ccl_Rx_Num_Messages] =
+  {
+     /* Index      SigStartIndex   SigCount   */
+     { /*  0  */            0,       7        },
+     { /*  1  */            7,       2        },
+     { /*  2  */            9,       1        },
+     { /*  3  */            10,       6        },
+     { /*  4  */            16,       5        },
+     { /*  5  */            21,       2        },
+     { /*  6  */            23,       13        },
+     { /*  7  */            36,       4        },
+     { /*  8  */            40,       3        },
+     { /*  9  */            43,       18        },
+     { /*  10  */            61,       1        },
+     { /*  11  */            62,       3        },
+     { /*  12  */            65,       2        },
+     { /*  13  */            67,       1        },
+     { /*  14  */            68,       1        },
+     { /*  15  */            69,       14        },
+     { /*  16  */            83,       2        },
+     { /*  17  */            85,       6        },
+     { /*  18  */            91,       7        },
+     { /*  19  */            98,       3        },
+     { /*  20  */            101,       5        },
+     { /*  21  */            106,       8        },
+     { /*  22  */            114,       10        },
+     { /*  23  */            124,       8        },
+
+};
+
+
+  #if (CCL_RX_INDICATION_API == STD_ON)
+  /**********************************************************************************************************************
+    Ccl_CbkRxAckFuncPtr
+  **********************************************************************************************************************/
+  /**
+    \var    Ccl_CbkRxAckFuncPtr
+    \brief  Function pointer table containing configured Rx Indication notifications for signals and signal groups.*/
+
+  CONST(CclCbkRxAckType, CCL_CONST) Can_Ccl_CbkRxAckFuncPtr[Can_Ccl_Rx_Num_RxAck_Ind] = {
+    /* Index    CbkRxAckFuncPtr                              */
+	/*	0	*/	NULL	,
+	/*	1	*/	NULL	,
+	/*	2	*/	NULL	,
+	/*	3	*/	NULL	,
+	/*	4	*/	NULL	,
+	/*	5	*/	NULL	,
+	/*	6	*/	NULL	,
+	/*  7	*/	Rte_COMCbk_GW_EMS_EngSpdSignalFailure_28e08e8a	,
+	/*	8	*/	NULL	,
+	/*	9	*/	Rte_COMCbk_EMS_EngFilterSpd_6ac589f7	,
+	/*	10	*/	NULL	,
+	/*	11	*/	Rte_COMCbk_TCU_TransmissionMILReq_2a4bdcb8	,
+	/*	12	*/	NULL	,
+	/*	13	*/	NULL	,
+	/*	14	*/	NULL	,
+	/*	15	*/	NULL	,
+	/*	16	*/	Rte_COMCbk_GW_ESC_EBDAlarmSig_33c87a43	,
+	/*  17	*/	Rte_COMCbk_GW_ESC_VehSpdValidFlag_33c87a43	,
+	/*	18	*/	Rte_COMCbk_GW_ESC_ABSAlarmSig_33c87a43	,
+	/*	19	*/	Rte_COMCbk_GW_Brake_fluidleveAlarm_33c87a43	,
+	/*	20	*/	Rte_COMCbk_GW_ESC_VehSpd_33c87a43	,
+	/*	21	*/	NULL	,
+	/*	22	*/	Rte_COMCbk_GW_EMS_EngMILTelltaleSts_acaa8070	,
+	/*	23	*/	Rte_COMCbk_GW_ESC_ESCOFF_755d54b0	,
+	/*	24	*/	Rte_COMCbk_GW_EMS_EngCoolantTemp_755d54b0	,
+	/*	25	*/	NULL	,
+	/*	26	*/	Rte_COMCbk_GW_EMSCoolanttempHighWarning_755d54b0	,
+	/*	27	*/	Rte_COMCbk_GW_ESC_ESCAlarmSig_755d54b0	,
+	/*	28	*/	Rte_COMCbk_GW_EPB_EPBSystemStIndicationReq_755d54b0	,
+	/*	29	*/	Rte_COMCbk_GW_EPS_FaultWarning_755d54b0	,
+	/*	30	*/	NULL	,
+	/*	31	*/	NULL	,
+	/*	32	*/	NULL	,
+	/*	33	*/	Rte_COMCbk_EPB_EPBWarningIndicationReq_755d54b0	,
+	/*	34	*/	Rte_COMCbk_EMS_ChargeIndicate_755d54b0	,
+	/*	35	*/	Rte_COMCbk_EMS_STTsystemWorkSt_755d54b0	,
+	/*	36	*/	Rte_COMCbk_EMS_CruiseCtrlSts_fbd25353	,
+	/*  37	*/	NULL	,
+	/*	38	*/	Rte_COMCbk_EMS_Fuelevel_fbd25353	,
+	/*	39	*/	Rte_COMCbk_EMS_OilEmptyAlarm_fbd25353	,
+	/*	40	*/	NULL	,
+	/*	41	*/	NULL	,
+	/*	42	*/	NULL	,
+	/*	43	*/	Rte_COMCbk_BCM_TrunkSt_b3bfa3e1	,
+	/*	44	*/	Rte_COMCbk_BCM_LetfligthSt_b3bfa3e1	,
+	/*	45	*/	Rte_COMCbk_BCM_RightligthSt_b3bfa3e1	,
+	/*	46	*/	Rte_COMCbk_BCM_PositionLampSt_b3bfa3e1	,
+	/*  47	*/	Rte_COMCbk_BCM_HighBeamStatus_b3bfa3e1	,
+	/*	48	*/	Rte_COMCbk_BCM_LowBeamStatus_b3bfa3e1	,
+	/*	49	*/	Rte_COMCbk_BCM_BackFogligthSt_b3bfa3e1	,
+	/*	50	*/	Rte_COMCbk_BCM_frontFogligthSt_b3bfa3e1	,
+	/*	51	*/	Rte_COMCbk_BCM_LFDoorSwitchSt_b3bfa3e1	,
+	/*	52	*/	Rte_COMCbk_BCM_RFDoorSwitchSt_b3bfa3e1	,
+	/*	53	*/	Rte_COMCbk_BCM_RRDoorSwitchSt_b3bfa3e1	,
+	/*	54	*/	NULL	,
+	/*	55	*/	NULL	,
+	/*	56	*/	NULL	,
+	/*  57	*/	Rte_COMCbk_BCM_LeftTurnSwitchSt_b3bfa3e1	,
+	/*	58	*/	Rte_COMCbk_BCM_RightTurnSwitchrSt_b3bfa3e1	,
+	/*	59	*/	Rte_COMCbk_BCM_EngHoodUnlockWarming_b3bfa3e1	,
+	/*	60	*/	NULL	,
+	/*	61	*/	Rte_COMCbk_T_box_SelfCheck_c09f1d20	,
+	/*	62	*/	NULL	,
+	/*	63	*/	NULL	,
+	/*	64	*/	NULL	,
+	/*	65	*/	Rte_COMCbk_SCC_LeftSteeringWheelSwitchSig_7414ff03	,
+	/*	66	*/	Rte_COMCbk_SCC_RightSteeringWheelSwitchSig_7414ff03	,
+	/*  67	*/	Rte_COMCbk_ACU_AirbagFailSts_d6986d25	,
+	/*	68	*/	NULL	,
+	/*	69	*/	NULL	,
+	/*	70	*/	NULL	,
+	/*	71	*/	NULL	,
+	/*	72	*/	NULL	,
+	/*	73	*/	NULL	,
+	/*	74	*/	NULL	,
+	/*	75	*/	NULL	,
+	/*	76	*/	NULL	,
+	/*  77	*/	NULL	,
+	/*	78	*/	NULL	,
+	/*	79	*/	NULL	,
+	/*	80	*/	NULL	,
+	/*	81	*/	NULL	,
+	/*	82	*/	NULL	,
+	/*	83	*/	NULL	,
+	/*	84	*/	Rte_COMCbk_BCM_BuzzerRequest_7f15a37f	,
+	/*	85	*/	NULL	,
+	/*	86	*/	NULL	,
+	/*  87	*/	NULL	,
+	/*	88	*/	NULL	,
+	/*	89	*/	NULL	,
+	/*	90	*/	NULL	,
+	/*	91	*/	NULL	,
+	/*	92	*/	Rte_COMCbk_APA_ChimeRequest_ee6e9787	,
+	/*	93	*/	NULL	,
+	/*	94	*/	NULL	,
+	/*	95	*/	NULL	,
+	/*	96	*/	NULL	,
+	/*  97	*/	NULL	,
+	/*	98	*/	NULL	,
+	/*	99	*/	NULL	,
+	/*	100	*/	NULL	,
+	/*	101	*/	NULL	,
+	/*	102	*/	NULL	,
+	/*	103	*/	NULL	,
+	/*	104	*/	NULL	,
+	/*	105	*/	Rte_COMCbk_GW_ESC_DDS_SystemStatus_7b287427	,
+	/*	106	*/	NULL	,
+	/*  107	*/	NULL	,
+	/*	108	*/	NULL	,
+	/*	109	*/	NULL	,
+	/*	110	*/	NULL	,
+	/*	111	*/	NULL	,
+	/*	112	*/	NULL	,
+	/*	113	*/	NULL	,
+	/*	114	*/	Rte_COMCbk_GW_ACC_Vehicle_IconDisplay_e857698c	,
+	/*	115	*/	NULL	,
+	/*	116	*/	NULL	,
+	/*  117	*/	NULL	,
+	/*	118	*/	Rte_COMCbk_GW_ACC_Pop_Up_Message_e857698c	,
+	/*	119	*/	Rte_COMCbk_GW_AEB_Switch_Status_e857698c	,
+	/*	120	*/	Rte_COMCbk_GW_AEB_Alert_Req_e857698c	,
+	/*	121	*/	NULL	,
+	/*	122	*/	NULL	,
+	/*	123	*/	Rte_COMCbk_GW_AEB_Fault_Status_e857698c	,
+	/*	124	*/	Rte_COMCbk_GW_Camera_LKA_actionindication_c5a3795e	,
+	/*	125	*/	Rte_COMCbk_GW_Camera_LDW_Status_Display_c5a3795e	,
+	/*	126	*/	Rte_COMCbk_GW_Camera_LKA_Status_Display_c5a3795e	,
+	/*	127	*/	NULL	,
+	/*	128	*/	NULL	,
+	/*	129	*/	Rte_COMCbk_GW_Camera_LDW_Flag_c5a3795e	,
+	/*	130	*/	Rte_COMCbk_GW_Camera_Hands_off_warning_c5a3795e	,
+	/*	131	*/	NULL	
+  };
+  #endif
+
+
+  #if (CCL_RX_TOUTINDICATION_API == STD_ON)
+  /**********************************************************************************************************************
+    Ccl_CbkRxTOutFuncPtr
+  **********************************************************************************************************************/
+  /**
+    \var    Ccl_CbkRxTOutFuncPtr
+    \brief  Function pointer table containing configured Rx timeout notifications for signals and signal groups. ea:{71D75BEB-245A-468b-96DB-A4F1362E927C}
+  */
+  CONST(CclCbkRxTOutType, CCL_CONST) Can_Ccl_CbkRxTOutFuncPtr[Can_Ccl_Rx_Num_RxTOut_Ind] = {
+    /* Index    CbkRxTOutFuncPtr                              */
+	/*	0	*/	NULL	,
+	/*	1	*/	NULL	,
+	/*	2	*/	NULL	,
+	/*	3	*/	NULL	,
+	/*	4	*/	NULL	,
+	/*	5	*/	NULL	,
+	/*	6	*/	NULL	,
+	/*  7	*/	Rte_COMCbkRxTOut_GW_EMS_EngSpdSignalFailure_28e08e8a	,
+	/*	8	*/	NULL	,
+	/*	9	*/	Rte_COMCbkRxTOut_EMS_EngFilterSpd_6ac589f7	,
+	/*	10	*/	NULL	,
+	/*	11	*/	Rte_COMCbkRxTOut_TCU_TransmissionMILReq_2a4bdcb8	,
+	/*	12	*/	NULL	,
+	/*	13	*/	NULL	,
+	/*	14	*/	NULL	,
+	/*	15	*/	NULL	,
+	/*	16	*/	Rte_COMCbkRxTOut_GW_ESC_EBDAlarmSig_33c87a43	,
+	/*  17	*/	Rte_COMCbkRxTOut_GW_ESC_VehSpdValidFlag_33c87a43	,
+	/*	18	*/	Rte_COMCbkRxTOut_GW_ESC_ABSAlarmSig_33c87a43	,
+	/*	19	*/	Rte_COMCbkRxTOut_GW_Brake_fluidleveAlarm_33c87a43	,
+	/*	20	*/	Rte_COMCbkRxTOut_GW_ESC_VehSpd_33c87a43	,
+	/*	21	*/	NULL	,
+	/*	22	*/	Rte_COMCbkRxTOut_GW_EMS_EngMILTelltaleSts_acaa8070	,
+	/*	23	*/	Rte_COMCbkRxTOut_GW_ESC_ESCOFF_755d54b0	,
+	/*	24	*/	Rte_COMCbkRxTOut_GW_EMS_EngCoolantTemp_755d54b0	,
+	/*	25	*/	NULL	,
+	/*	26	*/	Rte_COMCbkRxTOut_GW_EMSCoolanttempHighWarning_755d54b0	,
+	/*	27	*/	Rte_COMCbkRxTOut_GW_ESC_ESCAlarmSig_755d54b0	,
+	/*	28	*/	Rte_COMCbkRxTOut_GW_EPB_EPBSystemStIndicationReq_755d54b0	,
+	/*	29	*/	Rte_COMCbkRxTOut_GW_EPS_FaultWarning_755d54b0	,
+	/*	30	*/	NULL	,
+	/*	31	*/	NULL	,
+	/*	32	*/	NULL	,
+	/*	33	*/	Rte_COMCbkRxTOut_EPB_EPBWarningIndicationReq_755d54b0	,
+	/*	34	*/	Rte_COMCbkRxTOut_EMS_ChargeIndicate_755d54b0	,
+	/*	35	*/	Rte_COMCbkRxTOut_EMS_STTsystemWorkSt_755d54b0	,
+	/*	36	*/	Rte_COMCbkRxTOut_EMS_CruiseCtrlSts_fbd25353	,
+	/*  37	*/	NULL	,
+	/*	38	*/	Rte_COMCbkRxTOut_EMS_Fuelevel_fbd25353	,
+	/*	39	*/	Rte_COMCbkRxTOut_EMS_OilEmptyAlarm_fbd25353	,
+	/*	40	*/	NULL	,
+	/*	41	*/	NULL	,
+	/*	42	*/	NULL	,
+	/*	43	*/	Rte_COMCbkRxTOut_BCM_TrunkSt_b3bfa3e1	,
+	/*	44	*/	Rte_COMCbkRxTOut_BCM_LetfligthSt_b3bfa3e1	,
+	/*	45	*/	Rte_COMCbkRxTOut_BCM_RightligthSt_b3bfa3e1	,
+	/*	46	*/	Rte_COMCbkRxTOut_BCM_PositionLampSt_b3bfa3e1	,
+	/*  47	*/	Rte_COMCbkRxTOut_BCM_HighBeamStatus_b3bfa3e1	,
+	/*	48	*/	Rte_COMCbkRxTOut_BCM_LowBeamStatus_b3bfa3e1	,
+	/*	49	*/	Rte_COMCbkRxTOut_BCM_BackFogligthSt_b3bfa3e1	,
+	/*	50	*/	Rte_COMCbkRxTOut_BCM_frontFogligthSt_b3bfa3e1	,
+	/*	51	*/	Rte_COMCbkRxTOut_BCM_LFDoorSwitchSt_b3bfa3e1	,
+	/*	52	*/	Rte_COMCbkRxTOut_BCM_RFDoorSwitchSt_b3bfa3e1	,
+	/*	53	*/	Rte_COMCbkRxTOut_BCM_RRDoorSwitchSt_b3bfa3e1	,
+	/*	54	*/	NULL	,
+	/*	55	*/	NULL	,
+	/*	56	*/	NULL	,
+	/*  57	*/	Rte_COMCbkRxTOut_BCM_LeftTurnSwitchSt_b3bfa3e1	,
+	/*	58	*/	Rte_COMCbkRxTOut_BCM_RightTurnSwitchrSt_b3bfa3e1	,
+	/*	59	*/	NULL	,
+	/*	60	*/	Rte_COMCbkRxTOut_BCM_EngHoodUnlockWarming_b3bfa3e1	,
+	/*	61	*/	Rte_COMCbkRxTOut_T_box_SelfCheck_c09f1d20	,
+	/*	62	*/	NULL	,
+	/*	63	*/	NULL	,
+	/*	64	*/	NULL	,
+	/*	65	*/	Rte_COMCbkRxTOut_SCC_LeftSteeringWheelSwitchSig_7414ff03	,
+	/*	66	*/	Rte_COMCbkRxTOut_SCC_RightSteeringWheelSwitchSig_7414ff03	,
+	/*  67	*/	Rte_COMCbkRxTOut_ACU_AirbagFailSts_d6986d25	,
+	/*	68	*/	NULL	,
+	/*	69	*/	NULL	,
+	/*	70	*/	NULL	,
+	/*	71	*/	NULL	,
+	/*	72	*/	NULL	,
+	/*	73	*/	NULL	,
+	/*	74	*/	NULL	,
+	/*	75	*/	NULL	,
+	/*	76	*/	NULL	,
+	/*  77	*/	NULL	,
+	/*	78	*/	NULL	,
+	/*	79	*/	NULL	,
+	/*	80	*/	NULL	,
+	/*	81	*/	NULL	,
+	/*	82	*/	NULL	,
+	/*	83	*/	NULL	,
+	/*	84	*/	Rte_COMCbkRxTOut_BCM_BuzzerRequest_7f15a37f	,
+	/*	85	*/	NULL	,
+	/*	86	*/	NULL	,
+	/*  87	*/	NULL	,
+	/*	88	*/	NULL	,
+	/*	89	*/	NULL	,
+	/*	90	*/	NULL	,
+	/*	91	*/	NULL	,
+	/*	92	*/	Rte_COMCbkRxTOut_APA_ChimeRequest_ee6e9787	,
+	/*	93	*/	NULL	,
+	/*	94	*/	NULL	,
+	/*	95	*/	NULL	,
+	/*	96	*/	NULL	,
+	/*  97	*/	NULL	,
+	/*	98	*/	NULL	,
+	/*	99	*/	NULL	,
+	/*	100	*/	NULL	,
+	/*	101	*/	NULL	,
+	/*	102	*/	NULL	,
+	/*	103	*/	NULL	,
+	/*	104	*/	NULL	,
+	/*	105	*/	Rte_COMCbkRxTOut_GW_ESC_DDS_SystemStatus_7b287427	,
+	/*	106	*/	NULL	,
+	/*  107	*/	NULL	,
+	/*	108	*/	NULL	,
+	/*	109	*/	NULL	,
+	/*	110	*/	NULL	,
+	/*	111	*/	NULL	,
+	/*	112	*/	NULL	,
+	/*	113	*/	NULL	,
+	/*	114	*/	Rte_COMCbkRxTOut_GW_ACC_Vehicle_IconDisplay_e857698c	,
+	/*	115	*/	NULL	,
+	/*	116	*/	NULL	,
+	/*  117	*/	NULL	,
+	/*	118	*/	Rte_COMCbkRxTOut_GW_ACC_Pop_Up_Message_e857698c	,
+	/*	119	*/	Rte_COMCbkRxTOut_GW_AEB_Switch_Status_e857698c	,
+	/*	120	*/	Rte_COMCbkRxTOut_GW_AEB_Alert_Req_e857698c	,
+	/*	121	*/	NULL	,
+	/*	122	*/	NULL	,
+	/*	123	*/	Rte_COMCbkRxTOut_GW_AEB_Fault_Status_e857698c	,
+	/*	124	*/	Rte_COMCbkRxTOut_GW_Camera_LKA_actionindication_c5a3795e	,
+	/*	125	*/	Rte_COMCbkRxTOut_GW_Camera_LDW_Status_Display_c5a3795e	,
+	/*	126	*/	Rte_COMCbkRxTOut_GW_Camera_LKA_Status_Display_c5a3795e	,
+	/*	127	*/	NULL	,
+	/*	128	*/	NULL	,
+	/*	129	*/	Rte_COMCbkRxTOut_GW_Camera_LDW_Flag_c5a3795e	,
+	/*	130	*/	Rte_COMCbkRxTOut_GW_Camera_Hands_off_warning_c5a3795e	,
+	/*	131	*/	NULL	
+  };
+  #endif
+
+
+  #if (CCL_RX_INVINDICATION_API == STD_ON)
+  /**********************************************************************************************************************
+    Ccl_CbkRxInvFuncPtr
+  **********************************************************************************************************************/
+  /**
+    \var    Ccl_CbkRxInvFuncPtr
+    \brief  Function pointer table containing configured Rx Indication notifications for signals and signal groups.*/
+
+  CONST(CclCbkInvType, CCL_CONST) Can_Ccl_CbkRxInvFuncPtr[Can_Ccl_Rx_Num_RxInv_Ind] = {
+    /* Index    CbkRxAckFuncPtr                        */
+    /*     0 */ NULL
+  };
+  #endif
+
+
+  /**********************************************************************************************************************
+    Can_Ccl_Channel0_RxNotifFuncPtr
+  **********************************************************************************************************************/
+  CONST(Ccl_RxNotifFuncInfo, CCL_CONST) Can_Ccl_RxNotifFuncPtr[Can_Ccl_Rx_Num_Signals] = {
+        /* Index      RxAckIndex          RxToutIndex         RxInvIndex       */
+  { /*  0  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  1  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  2  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  3  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  4  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  5  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  6  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  7  */    CanCclRxHndlCh0_GW_EMS_EngSpdSignalFailure_131,  CanCclRxHndlCh0_GW_EMS_EngSpdSignalFailure_131, CCL_NO_CBKRXINV   },
+  { /*  8  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  9  */    CanCclRxHndlCh0_EMS_EngFilterSpd_133,  CanCclRxHndlCh0_EMS_EngFilterSpd_133, CCL_NO_CBKRXINV   },
+  { /*  10  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  11  */    CanCclRxHndlCh0_TCU_TransmissionMILReq_147,  CanCclRxHndlCh0_TCU_TransmissionMILReq_147, CCL_NO_CBKRXINV   },
+  { /*  12  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  13  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  14  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  15  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  16  */    CanCclRxHndlCh0_GW_ESC_EBDAlarmSig_160,  CanCclRxHndlCh0_GW_ESC_EBDAlarmSig_160, CCL_NO_CBKRXINV   },
+  { /*  17  */    CanCclRxHndlCh0_GW_ESC_VehSpdValidFlag_160,  CanCclRxHndlCh0_GW_ESC_VehSpdValidFlag_160, CCL_NO_CBKRXINV   },
+  { /*  18  */    CanCclRxHndlCh0_GW_ESC_ABSAlarmSig_160,  CanCclRxHndlCh0_GW_ESC_ABSAlarmSig_160, CCL_NO_CBKRXINV   },
+  { /*  19  */    CanCclRxHndlCh0_GW_Brake_fluidleveAlarm_160,  CanCclRxHndlCh0_GW_Brake_fluidleveAlarm_160, CCL_NO_CBKRXINV   },
+  { /*  20  */    CanCclRxHndlCh0_GW_ESC_VehSpd_160,  CanCclRxHndlCh0_GW_ESC_VehSpd_160, CCL_NO_CBKRXINV   },
+  { /*  21  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  22  */    CanCclRxHndlCh0_GW_EMS_EngMILTelltaleSts_224,  CanCclRxHndlCh0_GW_EMS_EngMILTelltaleSts_224, CCL_NO_CBKRXINV   },
+  { /*  23  */    CanCclRxHndlCh0_GW_ESC_ESCOFF_320,  CanCclRxHndlCh0_GW_ESC_ESCOFF_320, CCL_NO_CBKRXINV   },
+  { /*  24  */    CanCclRxHndlCh0_GW_EMS_EngCoolantTemp_320,  CanCclRxHndlCh0_GW_EMS_EngCoolantTemp_320, CCL_NO_CBKRXINV   },
+  { /*  25  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  26  */    CanCclRxHndlCh0_GW_EMSCoolanttempHighWarning_320,  CanCclRxHndlCh0_GW_EMSCoolanttempHighWarning_320, CCL_NO_CBKRXINV   },
+  { /*  27  */    CanCclRxHndlCh0_GW_ESC_ESCAlarmSig_320,  CanCclRxHndlCh0_GW_ESC_ESCAlarmSig_320, CCL_NO_CBKRXINV   },
+  { /*  28  */    CanCclRxHndlCh0_GW_EPB_EPBSystemStIndicationReq_320,  CanCclRxHndlCh0_GW_EPB_EPBSystemStIndicationReq_320, CCL_NO_CBKRXINV   },
+  { /*  29  */    CanCclRxHndlCh0_GW_EPS_FaultWarning_320,  CanCclRxHndlCh0_GW_EPS_FaultWarning_320, CCL_NO_CBKRXINV   },
+  { /*  30  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  31  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  32  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  33  */    CanCclRxHndlCh0_EPB_EPBWarningIndicationReq_320,  CanCclRxHndlCh0_EPB_EPBWarningIndicationReq_320, CCL_NO_CBKRXINV   },
+  { /*  34  */    CanCclRxHndlCh0_EMS_ChargeIndicate_320,  CanCclRxHndlCh0_EMS_ChargeIndicate_320, CCL_NO_CBKRXINV   },
+  { /*  35  */    CanCclRxHndlCh0_EMS_STTsystemWorkSt_320,  CanCclRxHndlCh0_EMS_STTsystemWorkSt_320, CCL_NO_CBKRXINV   },
+  { /*  36  */    CanCclRxHndlCh0_EMS_CruiseCtrlSts_321,  CanCclRxHndlCh0_EMS_CruiseCtrlSts_321, CCL_NO_CBKRXINV   },
+  { /*  37  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  38  */    CanCclRxHndlCh0_EMS_Fuelevel_321,  CanCclRxHndlCh0_EMS_Fuelevel_321, CCL_NO_CBKRXINV   },
+  { /*  39  */    CanCclRxHndlCh0_EMS_OilEmptyAlarm_321,  CanCclRxHndlCh0_EMS_OilEmptyAlarm_321, CCL_NO_CBKRXINV   },
+  { /*  40  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  41  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  42  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  43  */    CanCclRxHndlCh0_BCM_TrunkSt_570,  CanCclRxHndlCh0_BCM_TrunkSt_570, CCL_NO_CBKRXINV   },
+  { /*  44  */    CanCclRxHndlCh0_BCM_LetfligthSt_570,  CanCclRxHndlCh0_BCM_LetfligthSt_570, CCL_NO_CBKRXINV   },
+  { /*  45  */    CanCclRxHndlCh0_BCM_RightligthSt_570,  CanCclRxHndlCh0_BCM_RightligthSt_570, CCL_NO_CBKRXINV   },
+  { /*  46  */    CanCclRxHndlCh0_BCM_PositionLampSt_570,  CanCclRxHndlCh0_BCM_PositionLampSt_570, CCL_NO_CBKRXINV   },
+  { /*  47  */    CanCclRxHndlCh0_BCM_HighBeamStatus_570,  CanCclRxHndlCh0_BCM_HighBeamStatus_570, CCL_NO_CBKRXINV   },
+  { /*  48  */    CanCclRxHndlCh0_BCM_LowBeamStatus_570,  CanCclRxHndlCh0_BCM_LowBeamStatus_570, CCL_NO_CBKRXINV   },
+  { /*  49  */    CanCclRxHndlCh0_BCM_BackFogligthSt_570,  CanCclRxHndlCh0_BCM_BackFogligthSt_570, CCL_NO_CBKRXINV   },
+  { /*  50  */    CanCclRxHndlCh0_BCM_frontFogligthSt_570,  CanCclRxHndlCh0_BCM_frontFogligthSt_570, CCL_NO_CBKRXINV   },
+  { /*  51  */    CanCclRxHndlCh0_BCM_LFDoorSwitchSt_570,  CanCclRxHndlCh0_BCM_LFDoorSwitchSt_570, CCL_NO_CBKRXINV   },
+  { /*  52  */    CanCclRxHndlCh0_BCM_RFDoorSwitchSt_570,  CanCclRxHndlCh0_BCM_RFDoorSwitchSt_570, CCL_NO_CBKRXINV   },
+  { /*  53  */    CanCclRxHndlCh0_BCM_RRDoorSwitchSt_570,  CanCclRxHndlCh0_BCM_RRDoorSwitchSt_570, CCL_NO_CBKRXINV   },
+  { /*  54  */    CanCclRxHndlCh0_BCM_LRDoorSwitchSt_570,  CanCclRxHndlCh0_BCM_LRDoorSwitchSt_570, CCL_NO_CBKRXINV   },
+  { /*  55  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  56  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  57  */    CanCclRxHndlCh0_BCM_LeftTurnSwitchSt_570,  CanCclRxHndlCh0_BCM_LeftTurnSwitchSt_570, CCL_NO_CBKRXINV   },
+  { /*  58  */    CanCclRxHndlCh0_BCM_RightTurnSwitchrSt_570,  CanCclRxHndlCh0_BCM_RightTurnSwitchrSt_570, CCL_NO_CBKRXINV   },
+  { /*  59  */    CanCclRxHndlCh0_BCM_EngHoodUnlockWarming_570,  CanCclRxHndlCh0_BCM_EngHoodUnlockWarming_570, CCL_NO_CBKRXINV   },
+  { /*  60  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  61  */    CanCclRxHndlCh0_T_box_SelfCheck_640,  CanCclRxHndlCh0_T_box_SelfCheck_640, CCL_NO_CBKRXINV   },
+  { /*  62  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  63  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  64  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  65  */    CanCclRxHndlCh0_SCC_LeftSteeringWheelSwitchSig_777,  CanCclRxHndlCh0_SCC_LeftSteeringWheelSwitchSig_777, CCL_NO_CBKRXINV   },
+  { /*  66  */    CanCclRxHndlCh0_SCC_RightSteeringWheelSwitchSig_777,  CanCclRxHndlCh0_SCC_RightSteeringWheelSwitchSig_777, CCL_NO_CBKRXINV   },
+  { /*  67  */    CanCclRxHndlCh0_ACU_AirbagFailSts_780,  CanCclRxHndlCh0_ACU_AirbagFailSts_780, CCL_NO_CBKRXINV   },
+  { /*  68  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  69  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  70  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  71  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  72  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  73  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  74  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  75  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  76  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  77  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  78  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  79  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  80  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  81  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  82  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  83  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  84  */    CanCclRxHndlCh0_BCM_BuzzerRequest_828,  CanCclRxHndlCh0_BCM_BuzzerRequest_828, CCL_NO_CBKRXINV   },
+  { /*  85  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  86  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  87  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  88  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  89  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  90  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  91  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  92  */    CanCclRxHndlCh0_APA_ChimeRequest_886,  CanCclRxHndlCh0_APA_ChimeRequest_886, CCL_NO_CBKRXINV   },
+  { /*  93  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  94  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  95  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  96  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  97  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  98  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  99  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  100  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  101  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  102  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  103  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  104  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  105  */    CanCclRxHndlCh0_GW_ESC_DDS_SystemStatus_1073,  CanCclRxHndlCh0_GW_ESC_DDS_SystemStatus_1073, CCL_NO_CBKRXINV   },
+  { /*  106  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  107  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  108  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  109  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  110  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  111  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  112  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  113  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  114  */    CanCclRxHndlCh0_GW_ACC_Vehicle_IconDisplay_1271,  CanCclRxHndlCh0_GW_ACC_Vehicle_IconDisplay_1271, CCL_NO_CBKRXINV   },
+  { /*  115  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  116  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  117  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  118  */    CanCclRxHndlCh0_GW_ACC_Pop_Up_Message_1271,  CanCclRxHndlCh0_GW_ACC_Pop_Up_Message_1271, CCL_NO_CBKRXINV   },
+  { /*  119  */    CanCclRxHndlCh0_GW_AEB_Switch_Status_1271,  CanCclRxHndlCh0_GW_AEB_Switch_Status_1271, CCL_NO_CBKRXINV   },
+  { /*  120  */    CanCclRxHndlCh0_GW_AEB_Alert_Req_1271,  CanCclRxHndlCh0_GW_AEB_Alert_Req_1271, CCL_NO_CBKRXINV   },
+  { /*  121  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  122  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  123  */    CanCclRxHndlCh0_GW_AEB_Fault_Status_1271,  CanCclRxHndlCh0_GW_AEB_Fault_Status_1271, CCL_NO_CBKRXINV   },
+  { /*  124  */    CanCclRxHndlCh0_GW_LKA_actionindication_1345,  CanCclRxHndlCh0_GW_LKA_actionindication_1345, CCL_NO_CBKRXINV   },
+  { /*  125  */    CanCclRxHndlCh0_GW_LDW_Status_Display_1345,  CanCclRxHndlCh0_GW_LDW_Status_Display_1345, CCL_NO_CBKRXINV   },
+  { /*  126  */    CanCclRxHndlCh0_GW_LKA_Status_Display_1345,  CanCclRxHndlCh0_GW_LKA_Status_Display_1345, CCL_NO_CBKRXINV   },
+  { /*  127  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+  { /*  128  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXACK, CCL_NO_CBKRXINV   },
+  { /*  129  */    CanCclRxHndlCh0_GW_LDW_Flag_1345,  CanCclRxHndlCh0_GW_LDW_Flag_1345, CCL_NO_CBKRXINV   },
+  { /*  130  */    CanCclRxHndlCh0_GW_Hands_off_warning_1345,  CanCclRxHndlCh0_GW_Hands_off_warning_1345, CCL_NO_CBKRXINV   },
+  { /*  131  */    CCL_NO_CBKRXACK,  CCL_NO_CBKRXTOUT, CCL_NO_CBKRXINV   },
+};
+
+
+  /**********************************************************************************************************************
+    Ccl_PduGrpVector
+  **********************************************************************************************************************/
+  /**
+    \var    Ccl_PduGrpVector
+    \brief  Contains an I-PDU-Group vector for each I-PDU, mapping the I-PDU to the corresponding I-PDU-Groups.
+    */
+  CONST(Ccl_PduGrpVectorType, CCL_CONST) Can_Ccl_PduGrpVector[Can_Ccl_Num_Of_PduGroups] = {
+    /* Index    PduGrpVector   */
+    /*     0 */        0x02,
+    /*     1 */        0x01
+  };
+
+/**********************************************************************************************************************
+    Ccl_TxPduGrpInfo
+  **********************************************************************************************************************/
+  /**
+    \var    Ccl_TxPduGrpInfo
+    \brief  Contains all I-PDU-Group relevant information for Tx I-PDUs.
+    \details
+    Element                 Description
+    PduGrpVectorStartIdx    the start index of the 0:n relation pointing to Ccl_PduGrpVector
+  */
+  CONST(Ccl_TxPduGrpInfoType, CCL_CONST) Can_Ccl_TxPduGrpInfo[Can_Ccl_Tx_Num_Messages] = {
+    /* Index     PduGrpVectorStartIdx */ 
+  { /*  0  */           0U  },
+  { /*  1  */           0U  },
+  { /*  2  */           0U  },
+  { /*  3  */           0U  },
+};
+
+/**********************************************************************************************************************
+    Ccl_RxPduGrpInfo
+  **********************************************************************************************************************/
+  /**
+    \var    Ccl_RxPduGrpInfo
+    \brief  Contains all I-PDU-Group relevant information for Rx I-PDUs.
+    \details
+    Element                 Description
+    PduGrpVectorStartIdx    the start index of the 0:n relation pointing to Ccl_PduGrpVector
+  */
+  CONST(Ccl_RxPduGrpInfoType, CCL_CONST) Can_Ccl_RxPduGrpInfo[Can_Ccl_Rx_Num_Messages] = {
+    /* Index     PduGrpVectorStartIdx */ 
+  { /*     0 */           1U  },
+  { /*     1 */           1U  },
+  { /*     2 */           1U  },
+  { /*     3 */           1U  },
+  { /*     4 */           1U  },
+  { /*     5 */           1U  },
+  { /*     6 */           1U  },
+  { /*     7 */           1U  },
+  { /*     8 */           1U  },
+  { /*     9 */           1U  },
+  { /*     10 */           1U  },
+  { /*     11 */           1U  },
+  { /*     12 */           1U  },
+  { /*     13 */           1U  },
+  { /*     14 */           1U  },
+  { /*     15 */           1U  },
+  { /*     16 */           1U  },
+  { /*     17 */           1U  },
+  { /*     18 */           1U  },
+  { /*     19 */           1U  },
+  { /*     20 */           1U  },
+  { /*     21 */           1U  },
+  { /*     22 */           1U  },
+  { /*     23 */           1U  },
+};
+
+/*****************************************************************************
+    R E V I S I O N     N O T E S
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -
+For each change to this file, be sure to record:
+1.   Who made the change and when the change was made.
+2.   Why the change was made and the intended result.
+
+Date       By         Reason For Change
+------------------------------------------------------------------------------
+
+******************************************************************************/
+/*****************************************************************************
+Date          : 2018-05-03 19:23
+By              : JSISTUS
+Traceability    : [u'DFPV_D53_BDC_20180423 - Copy.dbc']
+Change Description  : Tool Generated code
+*****************************************************************************/

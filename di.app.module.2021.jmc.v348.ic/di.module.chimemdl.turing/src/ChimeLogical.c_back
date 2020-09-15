@@ -1,0 +1,3241 @@
+/*************************************************************************************************************************
+**  File Name:  buzzer.c
+**  Summary:    Manage the chime
+**  Create:     2016-11-22
+**  Author:     Luo Yajun
+**  Update history:
+**  NO.     Author         Date              Content
+**  1.      Luo Yajun      2016-11-22        New
+*************************************************************************************************************************/
+
+/* ============================ Version =============================================================================== */
+
+/* ============================ Include Files ========================================================================= */
+#include "ChimeLogical.h"
+#include "Rte_ChimeMdl.h"
+#include "Rte_ChimeMdl_Type.h"
+
+#define CHIME_CONFIG  (0)                                                      /* 0 for read NVM, 1 for Test */
+
+#define Chime_Read_Middle_Request       Rte_Read_rpSR_TIWrnLogical_Output_Middle_Chime_Request
+#define Chime_Read_Middle_Chime_Id      Rte_Read_rpSR_TIWrnLogical_Output_Middle_Chime_Id
+#define Chime_Write_Main_Chime_State    Rte_Write_ppSR_TIChime_Output_Chime_State
+#define Chime_Write_Middle_Chime_State  Rte_Write_ppSR_TIChime_Output_Middle_Chime_State
+#define Chime_Read_Welcome_Animation    Rte_Read_rpSR_TIGdt_Animation_welcome_animation_runing
+#define Chime_Read_Close_Animation      Rte_Read_rpSR_TIGdt_Animation_close_animation_runing
+
+
+/* ============================ Global Variables ====================================================================== */
+static CHIME_STATUS_e   gs_eChimeState;                                        /* domain state */
+static UINT8            gs_u8CurChimeSort;                                     /* current Chime ID */
+static UINT8            gs_u8ChimeWarnSts;                                     /* judge if chime is idle for warning to change */
+static UINT8            gs_u8ChimeWarnSts_Middle;                              /* for middle pop up warning area */
+static UINT8            gs_u8ChimeMenuSts;                                     /* judge if chime is idle for HMI menu to change */
+static UINT8            gs_u8ChimeDrvSts;                                      /* sound driver state for current sound */
+static UINT8            gs_u8CurChimeResID;                                    /* sound resource ID */
+static UINT8            gs_u8ChimeFuncState;                                   /* state to judge if chime enabled */
+static UINT8            gs_u8ChimeFuncState_Last;                              /* last state */
+
+static EKeyPos   gs_eChime_KeySts;                                             /* current power mode */
+static EKeyPos   gs_eChime_KeySts_Last;                                        /* last power mode */
+static UINT8     gs_u8ChimeVolume;                                             /* volume setting from HMI menu */
+static UINT8     gs_u8ChimeVolume_Last;                                        /* volume setting from HMI menu */
+static UINT8     gs_u8Chime_VolCursor;                                         /* volume setting cursor from HMI menu */
+static UINT8     gs_u8Chime_VolCursor_Last;                                    /* last HMI menu volume setting cursor */
+
+static UINT8     gs_u8Chime_WarnInput[CHIME_REQ_TOTAL_NUM];                    /* current input signal */
+static UINT8     gs_u8Chime_WarnInput_Last[CHIME_REQ_TOTAL_NUM];               /* last input signal */
+static UINT8     gs_u8Chime_WarnInput_Req[CHIME_REQ_TOTAL_NUM];                /* request for sound play */
+
+static UINT8 gs_u8Chime_TurnLeft;                                              /* input LED status for turn left/right */
+static UINT8 gs_u8Chime_TurnRight;
+static UINT8 gs_u8Chime_TurnLeft_Last;
+static UINT8 gs_u8Chime_TurnRight_Last;
+
+static UINT8 gs_u8Ems_Actual_Gear;
+static UINT8 gs_u8Valid_Actual_Gear;
+
+static UINT8 gs_u8Rvs_Mt_RawInput;                                             /* input state for Reverse Chime */
+static UINT8 gs_u8Rvs_Mt_RawCount;                                             /* debounce timer counter for MT */
+static UINT8 gs_u8Rvs_Warn;                                                    /* process result for Reverse Chime */
+static UINT8 gs_u8Rvs_WarnLast;                                                /* defect #801382, last status for Reverse Chime */
+
+static UINT8 gs_u8Pas_SysSts;                                                  /* input CAN signal for Parking Aid Zone */
+static UINT8 gs_u8Rear_Distance;
+static UINT8 gs_u8Chime_CanOut;                                                /* output CAN siganl about current sound type */
+static UINT8 gs_u8Chime_CanOut_Tmp;                                            /* temp output signal for can output debounce */
+static UINT16 gs_u16Chime_CanOut_Count;                                        /* timer counter for can output debounce */
+
+static UINT8 gs_u8Chime_DoorOpen;                                              /* input signal for door open */
+static UINT8 gs_u8Chime_SeatBelt;                                              /* input signal for seat belt */
+static UINT8 gs_u8Chime_OverSpeed;                                             /* input signal for over speed */
+static UINT8 gs_u8Chime_DoorOpen_Last;                                         /* keep last input */
+ static UINT16 gs_u16Chime_DoorOpenCount;                                       /* timer count for door open */
+static UINT8 gs_u8Chime_DoorWarn;                                              /* warning for door open */
+static UINT8 gs_u8Chime_ParkBrake;                                             /* input signal for park brake */
+
+static CHIME_PROC_STATUS_e gs_eChimeProcSts;                                   /* state for process pop up warning */
+static UINT8 gs_u8Chime_MenuFlag;                                              /* synchronize with HMI menu */
+static UINT8 gs_u8Chime_TurnCount;                                             /* timer counter for turn left/right */
+static UINT8 gs_u8Chime_RvsCount;                                              /* timer counter for Reverse Warning */
+
+static UINT8 gs_u8Chime_CurMode;                                               /* record last mode, normal/ETM */
+static UINT8 gs_u8Chime_LastMode;                                              /* record last mode, normal/ETM */
+static UINT8 gs_u8Chime_EtmLastStep;                                           /* record last step */
+static UINT8 gs_u8Chime_EtmReq;                                                /* request for ETM chime test */
+static UINT8 gs_u8Chime_IocLastState;                                          /* record last state */
+static UINT8 gs_u8Chime_IocReq;                                                /* request for IODID chime control */
+static UINT8 gs_u8Chime_EolLastState;                                          /* record last state */
+static UINT8 gs_u8Chime_EolReq;                                                /* request for EOL chime control */
+
+static UINT8 gs_u8Chime_ParkBrakeFlag;                                         /* synchronize with parking brake warning */
+static UINT8 gs_u8Chime_OverSpeedFlag;                                         /* synchronize with over speed warning */
+static UINT8 gs_u8Chime_SeatBeltFlag;                                          /* synchronize with seat belt warning */
+static UINT8 gs_u8Chime_PCW;                                                   /* Add ACC chime, input for PCW chime */
+
+//static DCM_DID_Read gs_Chime_DID_50A2;                                         /* data for IODID 2F 00 */
+static UINT8 gs_u8Chime_SplReq_Tbl[CHIME_SPLREQ_NUM];                          /* special priority chime request */
+static UINT8 gs_u8ChimeDrvSts_Last;                                            /* last sound driver state */
+
+static UINT8 gs_u8Chime_PopLast;                                               /* defect #856609, last pop up ID */
+static UINT8 gs_u8Chime_PopLast_Mid;                                           /* last pop up ID for Middle pop up area */
+static UINT8 gs_u8Chime_TmpPopLast;
+static UINT8 gs_u8Chime_TmpPopMid;
+static UINT8 gs_u8Chime_PopLast_Flag;
+static UINT8 gs_u8Chime_PopMid_Flag;
+
+static UINT8 gs_u8Chime_Respond;
+static CHIME_RESP_DATA_t_ gs_tChimeRespData[CHIME_RESP_NUM];
+
+static UINT8 gs_u8Chime_TurnDis;
+static UINT8 gs_u8Chime_TurnEnCount;
+static UINT8 gs_u8Chime_TurnOpenClose;
+
+static UINT8 gs_u8Chime_CurWrnArea;
+
+
+/* ============================ Const Variables ======================================================================= */
+#if 0
+static const CHIME_DATA_t_ gs_tChime_D1Data_Tbl[CHIME_IGON_NUM] =              /* look-up table for chime config information for IGN_ON*/
+{
+    /* Chime ID */     /* Request Type */       /* Priority */   /* Sound Res */   /* Cycle Type */   /* Request Input Type */
+    /* 0~10 */
+    {CHIME_NULL                 , CHIME_REQID_POPUP1           ,   0,     eSnd_NoChimeID       ,  CHIME_CYCLE_3  ,  CHIME_SET_CHIME},
+	{CHIME_TURN_TICK 			, CHIME_REQID_TURN_TICK	    ,   1,	   eSnd_A1_Turn  		,  CHIME_CYCLE_1	,  CHIME_SET_WARN},
+	{CHIME_TURN_TOC			 	, CHIME_REQID_TURN_TOC	,	2,	   eSnd_A2_Turn 		,  CHIME_CYCLE_1  ,	CHIME_SET_CHIME},
+	{CHIME_LIGHT_ON				, CHIME_REQID_POPUP1		,	3,	   eSnd_F_Ding_0_6s  ,  CHIME_CYCLE_0  ,	CHIME_SET_WARN},
+	{CHIME_POWER_ON_SELFCHECK 	, CHIME_REQID_POPUP1		,	4,     eSnd_B_Parking125ms_1HZ ,  CHIME_CYCLE_0  ,	CHIME_SET_WARN},
+	{CHIME_BSD_WARN 		 	, CHIME_REQID_POPUP1		,	5,     eSnd_NoChimeID  		,  CHIME_CYCLE_0  ,	CHIME_SET_WARN},
+	{CHIME_FRONT_UPA_WARN1 		, CHIME_REQID_POPUP1		,	6,	   eSnd_NoChimeID   		,  CHIME_CYCLE_0  ,	CHIME_SET_CHIME},
+	{CHIME_FRONT_UPA_WARN2 		, CHIME_REQID_POPUP1		,	6,	   eSnd_NoChimeID   		,  CHIME_CYCLE_0  ,	CHIME_SET_CHIME},
+	{CHIME_FORNT_UPA_WARN3 		, CHIME_REQID_POPUP1		,	6,	   eSnd_NoChimeID  		,  CHIME_CYCLE_0  ,	CHIME_SET_CHIME},
+	{CHIME_FORNT_UPA_WARNLONG	, CHIME_REQID_POPUP1		,	7,	   eSnd_NoChimeID   		,  CHIME_CYCLE_3  ,	CHIME_SET_WARN},
+	{CHIME_REAR_UPA_WARN1		, CHIME_REAR_UPA_WARN1		,	7,	   eSnd_B_Parking500ms   		,  CHIME_CYCLE_3  ,	CHIME_SET_WARN},
+	/* 11~20 */
+	{CHIME_REAR_UPA_WARN2		, CHIME_REAR_UPA_WARN2	,	7,	   eSnd_B_Parking125ms_1HZ   		,  CHIME_CYCLE_0  ,	CHIME_SET_CHIME},
+	{CHIME_REAR_UPA_WARN3		, CHIME_REAR_UPA_WARN3	,	7,	   eSnd_B_Parking125ms_2HZ   		,  CHIME_CYCLE_0  ,	CHIME_SET_CHIME},
+	{CHIME_REAR_UPA_WARNLONG	, CHIME_REAR_UPA_WARNLONG	,	7,	   eSnd_B_Parking125ms_4HZ   		,  CHIME_CYCLE_0  ,	CHIME_SET_CHIME},
+	{CHIME_TPMS_WARN			, CHIME_TPMS_WARN	,	8,	   eSnd_C_Dang2_1s   		,  CHIME_CYCLE_0  ,	CHIME_SET_CHIME},
+	{CHIME_DOOR_OPEN			, CHIME_REQID_BSD_WARN 		,	10,    eSnd_C_Dang2_1s   		,  CHIME_CYCLE_0  ,	CHIME_SET_CHIME},
+	{CHIME_SEATBELT 		 	, CHIME_REQID_POPUP1		,	2,  eSnd_D_Dong_0_9s  		,  CHIME_CYCLE_0  ,	CHIME_SET_WARN},
+	{CHIME_EPB_0 		 		, CHIME_REQID_POPUP1		,	3,  eSnd_B_Parking125ms_1HZ  		,  CHIME_CYCLE_0  ,	CHIME_SET_WARN},
+	{CHIME_EPB_1 		 		, CHIME_REQID_POPUP1		,	3,  eSnd_B_Parking125ms_2HZ  		,  CHIME_CYCLE_0  ,	CHIME_SET_WARN},
+	{CHIME_EPB_2 		 		, CHIME_REQID_POPUP1		,	3,  eSnd_B_Parking125ms_4HZ  		,  CHIME_CYCLE_0  ,	CHIME_SET_WARN},
+	{CHIME_LOW_FUEL 		 	, CHIME_REQID_POPUP1		,	2,  eSnd_B_Parking500ms_loop  		,  CHIME_CYCLE_3  ,	CHIME_SET_WARN},
+	{CHIME_AEB_WARN 		 	, CHIME_REQID_POPUP1		,	3,  eSnd_B_Parking125ms_1HZ  		,  CHIME_CYCLE_0  ,	CHIME_SET_WARN},
+	{CHIME_GPF_WARN 		 	, CHIME_REQID_POPUP1		,	3,  eSnd_B_Parking500ms_loop  		,  CHIME_CYCLE_3  ,	CHIME_SET_WARN}
+};
+#endif
+
+
+static const CHIME_DATA_t_ gs_tChime_D1Data_Tbl[CHIME_IGON_NUM] =              /* look-up table for chime config information */
+{
+	/* Chime ID */     /* Request Type */       /* Priority */   /* Sound Res */   /* Cycle Type */   /* Request Input Type */
+/*1*/	{CHIME_NULL	,CHIME_REQID_NULL	,100	,eSnd_NoChimeID	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*2*/	{CHIME_TURN_TICK	,CHIME_REQID_TURN_TICK	,7	,eSnd_A1_Turn	,CHIME_CYCLE_0	,CHIME_SET_CHIME},
+/*3*/	{CHIME_TURN_TOC	,CHIME_REQID_TURN_TOC	,7	,eSnd_A2_Turn	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*4*/	{CHIME_LIGHT_ON	,CHIME_REQID_LIGHT_ON	,2	,eSnd_B_Parking125ms_1HZ	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*5*/	{CHIME_POWER_ON_SELFCHECK	,CHIME_REQID_POWER_ON_SELFCHECK	,99	,eSnd_B_Parking125ms_2HZ	,CHIME_CYCLE_3	,CHIME_SET_CHIME},
+/*6*/	{CHIME_BSD_WARN	,CHIME_REQID_BSD_WARN	,99	,eSnd_B_Parking125ms_4HZ	,CHIME_CYCLE_3	,CHIME_SET_CHIME},
+/*7*/	{CHIME_FRONT_UPA_WARN1	,CHIME_REQID_FRONT_UPA_WARN1	,99	,eSnd_B_Parking500ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*8*/	{CHIME_FRONT_UPA_WARN2	,CHIME_REQID_FRONT_UPA_WARN2	,99	,eSnd_B_Parking500ms_loop	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*9*/	{CHIME_FORNT_UPA_WARN3	,CHIME_REQID_FORNT_UPA_WARN3	,99	,eSnd_C_Dang2_1s	,CHIME_CYCLE_3	,CHIME_SET_CHIME},
+/*10*/	{CHIME_FORNT_UPA_WARNLONG	,CHIME_REQID_FORNT_UPA_WARNLONG	,99	,eSnd_D_Dong_0_9s	,CHIME_CYCLE_3	,CHIME_SET_CHIME},
+/*11*/	{CHIME_REAR_UPA_WARN1	,CHIME_REQID_REAR_UPA_WARN1	,99	,eSnd_E_Ding_0_5s	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*12*/	{CHIME_REAR_UPA_WARN2	,CHIME_REQID_REAR_UPA_WARN2	,99	,eSnd_F_Ding_0_6s	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*13*/	{CHIME_REAR_UPA_WARN3	,CHIME_REQID_REAR_UPA_WARN3	,99	,eSnd_A1_Turn	,CHIME_CYCLE_3	,CHIME_SET_CHIME},
+/*14*/	{CHIME_REAR_UPA_WARNLONG	,CHIME_REQID_REAR_UPA_WARNLONG	,99	,eSnd_A2_Turn	,CHIME_CYCLE_0	,CHIME_SET_CHIME},
+/*15*/	{CHIME_DOOR_OPEN	,CHIME_REQID_DOOR_OPEN	,6	,eSnd_B_Parking125ms_1HZ	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*16*/	{CHIME_SEATBELT	,CHIME_REQID_SEATBELT	,8	,eSnd_B_Parking125ms_2HZ	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*17*/	{CHIME_TPMS_WARN	,CHIME_REQID_TPMS_WARN	,4	,eSnd_B_Parking125ms_4HZ	,CHIME_CYCLE_3	,CHIME_SET_CHIME},
+/*18*/	{CHIME_EPB_0	,CHIME_REQID_EPB_0	,9	,eSnd_B_Parking500ms	,CHIME_CYCLE_3	,CHIME_SET_CHIME},
+/*19*/	{CHIME_EPB_1	,CHIME_REQID_EPB_1	,9	,eSnd_B_Parking500ms_loop	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*20*/	{CHIME_EPB_2	,CHIME_REQID_EPB_2	,9	,eSnd_C_Dang2_1s	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*21*/	{CHIME_LOW_FUEL	,CHIME_REQID_LOW_FUEL	,10	,eSnd_A1_Turn	,CHIME_CYCLE_3	,CHIME_SET_CHIME},
+/*22*/	{CHIME_AEB_WARN	,CHIME_REQID_AEB_WARN	,99	,eSnd_A2_Turn	,CHIME_CYCLE_3	,CHIME_SET_CHIME},
+/*23*/	{CHIME_GPF_WARN	,CHIME_REQID_GPF_WARN	,5	,eSnd_B_Parking125ms_1HZ	,CHIME_CYCLE_1	,CHIME_SET_CHIME}
+};
+
+
+static const CHIME_DATA_t_ gs_tChime_D2Data_Tbl[CHIME_IGOFF_NUM] =                /* look-up table for chime config information for IGN_OFF*/
+{
+	/* Chime ID */     /* Request Type */       /* Priority */   /* Sound Res */   /* Cycle Type */   /* Request Input Type */
+/*1*/	{CHIME_D2_TURN_TICK	,CHIME_REQID_D2_TICK	,1	,eSnd_B_Parking125ms_4HZ	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*2*/	{CHIME_D2_TURN_TOC	,CHIME_REQID_D2_TOC	,1	,eSnd_B_Parking500ms	,CHIME_CYCLE_0	,CHIME_SET_CHIME},
+/*3*/	{CHIME_D2_LIGHT	,CHIME_REQID_POPUP1	,2	,eSnd_B_Parking500ms_loop	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*4*/	{CHIME_D2_KEY_OUT	,CHIME_REQID_POPUP2	,99	,eSnd_C_Dang2_1s	,CHIME_CYCLE_0	,CHIME_SET_CHIME},
+/*5*/	{CHIME_D2_PARK_LIGHT	,CHIME_D2_PARK_LIGHT	,99	,eSnd_A1_Turn	,CHIME_CYCLE_0	,CHIME_SET_CHIME}
+};
+
+
+static const UINT8 gs_u8Chime_NotPopUp_Tbl[CHIME_REQ_NOT_POPUP_NUM] =          /* chime request which not related to pop up */
+{
+	CHIME_NULL,			
+	CHIME_TURN_TICK, 		
+	CHIME_TURN_TOC,			
+	CHIME_LIGHT_ON,		
+	CHIME_POWER_ON_SELFCHECK,
+	CHIME_BSD_WARN,			
+	CHIME_FRONT_UPA_WARN1,	
+	CHIME_FRONT_UPA_WARN2,	
+	CHIME_FORNT_UPA_WARN3,	
+	CHIME_FORNT_UPA_WARNLONG,
+	CHIME_REAR_UPA_WARN1,	
+	CHIME_REAR_UPA_WARN2,	
+	CHIME_REAR_UPA_WARN3,	
+	CHIME_REAR_UPA_WARNLONG, 
+	CHIME_DOOR_OPEN, 		
+	CHIME_SEATBELT,			
+	CHIME_TPMS_WARN, 		
+	CHIME_EPB_0, 			
+	CHIME_EPB_1, 			
+	CHIME_EPB_2, 			
+	CHIME_LOW_FUEL,			
+	CHIME_AEB_WARN,			
+	CHIME_GPF_WARN,			
+	CHIME_D2_TURN_TICK,			
+	CHIME_D2_TURN_TOC
+};
+
+#if 0
+static const CHIME_IOC_DATA_t_ gs_tChime_IOC_Tbl[CHIME_IOC_MAXSTATE + 1] =     /* look-up table for IODID */
+{
+    {CHIME_SORT_NULL      , (UINT8)eIGN_RUN},
+    {CHIME_SORT_NULL      , (UINT8)eIGN_RUN},
+    {CHIME_SORT_NULL      , (UINT8)eIGN_RUN}
+};
+
+static const UINT8 gs_u8Chime_EOL_Tbl[CHIME_EOL_MAXSTATE + 1] =                /* look-up table for EOL */
+{
+    eSnd_NoChimeID,
+    CHIME_RES_EOL_01,
+    CHIME_RES_EOL_02,
+    CHIME_RES_EOL_03,
+    CHIME_RES_EOL_04,
+    CHIME_RES_EOL_05,
+    CHIME_RES_EOL_06,
+    CHIME_RES_EOL_07,
+    CHIME_RES_EOL_08,
+    CHIME_RES_EOL_09,
+    CHIME_RES_EOL_0A
+};
+
+static const CHIME_CANOUT_DATA_t_ gs_u8Chime_CanOut_Tbl[CHIME_RES_NUM] =       /* look-up table for CAN output */
+{
+    {CHIME_CANOUT_0, 0x0},
+
+    {CHIME_CANOUT_1, 0x0},
+    {CHIME_CANOUT_1, 0xA},
+    {CHIME_CANOUT_1, 0x9},
+    {CHIME_CANOUT_1, 0x8},
+    {CHIME_CANOUT_1, 0xB},
+
+    {CHIME_CANOUT_2, 0x3},
+    {CHIME_CANOUT_2, 0x0},
+    {CHIME_CANOUT_2, 0x0},
+    {CHIME_CANOUT_2, 0x0},
+    {CHIME_CANOUT_2, 0x0},
+    {CHIME_CANOUT_2, 0x0},
+
+    {CHIME_CANOUT_3, 0x4},
+    {CHIME_CANOUT_3, 0x0},
+
+    {CHIME_CANOUT_4, 0x7},
+    {CHIME_CANOUT_5, 0x5},
+    {CHIME_CANOUT_5, 0x6},
+    {CHIME_CANOUT_6, 0xD},
+    {CHIME_CANOUT_7, 0xC},
+
+    {CHIME_CANOUT_0, 0x1},
+    {CHIME_CANOUT_0, 0x2},
+
+    {CHIME_CANOUT_1, 0x0},
+    {CHIME_CANOUT_2, 0x0},
+    {CHIME_CANOUT_3, 0x0},
+    {CHIME_CANOUT_4, 0x0},
+    {CHIME_CANOUT_5, 0x0},
+    {CHIME_CANOUT_5, 0x0},
+    {CHIME_CANOUT_6, 0x0},
+    {CHIME_CANOUT_7, 0x0},
+    {CHIME_CANOUT_0, 0x0},
+    {CHIME_CANOUT_0, 0x0}
+};
+#endif
+
+static const CHIME_REQ_DATA_t_ gs_tChime_ReqType[CHIME_REQ_TOTAL_NUM] =
+{
+    {CHIME_REQID_NULL         , CHIME_REQ_RESP_ONCE},
+    {CHIME_REQID_TURN_TICK          , CHIME_REQ_RESP_ONCE},
+    {CHIME_REQID_TURN_TOC   , CHIME_REQ_RESP_ONCE},
+    {CHIME_REQID_LIGHT_ON   , CHIME_REQ_RESP_ONCE},
+    {CHIME_REQID_POWER_ON_SELFCHECK   , CHIME_REQ_RESP_ONCE},
+    {CHIME_REQID_BSD_WARN         , CHIME_REQ_RESP_RECOVER},
+
+    {CHIME_REQID_FRONT_UPA_WARN1         , CHIME_REQ_RESP_RECOVER},
+    {CHIME_REQID_FRONT_UPA_WARN2   , CHIME_REQ_RESP_RECOVER},
+    {CHIME_REQID_FORNT_UPA_WARN3   , CHIME_REQ_RESP_RECOVER},
+    {CHIME_REQID_FORNT_UPA_WARNLONG   , CHIME_REQ_RESP_RECOVER},
+    {CHIME_REQID_REAR_UPA_WARN1   , CHIME_REQ_RESP_RECOVER},
+
+    {CHIME_REQID_REAR_UPA_WARN2     , CHIME_REQ_RESP_RECOVER},
+    {CHIME_REQID_REAR_UPA_WARN3  , CHIME_REQ_RESP_RECOVER},
+    {CHIME_REQID_REAR_UPA_WARNLONG    , CHIME_REQ_RESP_RECOVER},
+    {CHIME_REQID_TPMS_WARN   , CHIME_REQ_RESP_RECOVER},
+    {CHIME_REQID_DOOR_OPEN     , CHIME_REQ_RESP_RECOVER},
+
+    {CHIME_REQID_SEATBELT    , CHIME_REQ_RESP_RECOVER},
+    {CHIME_REQID_EPB_0    , CHIME_REQ_RESP_ONCE},
+    {CHIME_REQID_EPB_1     , CHIME_REQ_RESP_ONCE},
+    {CHIME_REQID_EPB_2      , CHIME_REQ_RESP_ONCE},
+    {CHIME_REQID_LOW_FUEL      , CHIME_REQ_RESP_ONCE},
+
+    {CHIME_REQID_AEB_WARN       , CHIME_REQ_RESP_ONCE},
+    {CHIME_REQID_GPF_WARN       , CHIME_REQ_RESP_ONCE},
+    {CHIME_REQID_D2_TICK       , CHIME_REQ_RESP_ONCE},
+    {CHIME_REQID_D2_TICK       , CHIME_REQ_RESP_ONCE},        
+    
+    {CHIME_REQID_D2_TOC       , CHIME_REQ_RESP_RECOVER},                       /* pop up warning is special */
+    {CHIME_REQID_POPUP2       , CHIME_REQ_RESP_RECOVER}                        /* pop up warning is special */
+};
+
+static const UINT8 gs_u8Chime_Vol_Tbl[4] =
+{
+    0,
+    93,
+    96,
+    99
+};
+
+static const CHIME_WARNID_TRANS_t_ gs_tChime_D1_Warn2Chime[CHIME_WARN_D1_NUM] =
+{
+    {ALARM_D1_Engineering_Test_Mode,                    CHIME_NULL},
+    {ALARM_D1_BSD_Warning,                              CHIME_BSD_WARN},
+    {ALARM_D1_DOOR_OPEN,                                CHIME_DOOR_OPEN},
+    {ALARM_D1_Seatbelt_Reminder,                        CHIME_SEATBELT}
+};
+
+static const CHIME_WARNID_TRANS_t_ gs_tChime_D2_Warn2Chime[CHIME_WARN_D2_NUM] =
+{
+
+};
+
+
+
+/* ============================ Function Declare ====================================================================== */
+static BOOL Chime_Mgr_CheckConfig__(void);
+static BOOL Chime_Mgr_CheckLVSD__(void);
+static BOOL Chime_Mgr_CheckHVSD__(void);
+static void Chime_Mgr_CheckMode__(void);
+
+static void Chime_Mgr_VarInit__(void);
+static void Chime_Mgr_EtmRoutine__(void);
+static void Chime_Mgr_DiagRoutine__(void);
+static void Chime_Mgr_EolRoutine__(void);
+
+static void Chime_Mgr_StopAll__(void);
+static void Chime_Mgr_ClearInputSts__(void);
+static void Chime_Mgr_ClearInputLast__(void);
+static void Chime_Mgr_ClearInputReq__(void);
+static void Chime_Mgr_ClearCounter__(void);
+static void Chime_Mgr_ClearTempSts__(void);
+
+static void Chime_Mgr_Arbitrate__(void);
+static void Chime_Mgr_Input2Req__(void);
+static void Chime_Mgr_Special_In2Req__(void);
+static void Chime_Mgr_Special_Priority__
+(
+    UINT8 u8SplReqID
+);
+static UINT8 Chime_Mgr_Special_CheckReq__(void);
+
+static UINT8 Chime_Mgr_FindHighPrio__(void);
+static void Chime_Mgr_ComparePrio__(void);
+static void Chime_Mgr_CheckCplt__(void);
+static void Chime_Mgr_CheckDrvSts__(void);
+
+static void Chime_Out_StartSound__
+(
+    UINT8 a_u8ChimeCtlSort
+);
+
+static void Chime_Out_StartSnd_IOC__
+(
+    UINT8 a_u8ChimeCtlSort,
+    EKeyPos eChime_Keysts
+);
+
+static void Chime_Out_StartSnd_EOL__
+(
+    UINT8 a_u8ChimeResID
+);
+
+static void Chime_Mgr_RunRoutine__(void);
+static void Chime_Mgr_ProcRoutine__(void);
+
+static void Chime_Mgr_GetChimeInput__(void);
+static void Chime_Mgr_ChimeLogicProc__(void);
+static void Chime_Mgr_SetOutput__(void);
+
+static void Chime_Mgr_TurnProc__(void);
+static void Chime_Mgr_PasProc__(void);
+static void Chime_Mgr_ReverseProc__(void);
+static void Chime_Mgr_DoorOpenProc__(void);
+static void Chime_Mgr_VolumeProc__(void);
+static void Chime_Mgr_PcwProc__(void);                                         /* Add function for ACC chime */
+
+static void Chime_Mgr_RvsAtProc__(void);
+static void Chime_Mgr_RvsMtProc__(void);
+static BOOL Chime_Mgr_RvsMtCount__(void);
+static void Chime_Mgr_Func_Shutdown__(void);
+
+static void Chime_Mgr_GetWarnPreReq__(UINT8 *a_u8PreReq);
+static void Chime_Mgr_GetWarnRealReq__(UINT8 *a_u8RealReq);
+static void Chime_Mgr_GetWarnPreReq_Mid__(UINT8 *a_u8PreReq);
+static void Chime_Mgr_GetWarnRealReq_Mid__(UINT8 *a_u8RealReq);
+static void Chime_Mgr_Proc_PreReq__(void);
+static void Chime_Mgr_Proc_RealReq__(void);
+
+static void Chime_Mgr_BsdChime__(void);
+static void Chime_Mgr_LDWS_Active__(void);
+
+static BOOL Chime_Mgr_CheckPopUp__                                             /* Check chime request from Pop Up warning */
+(
+    UINT8 u8Chime_WarnID,
+    UINT8 u8ChimePopUpArea
+);
+static BOOL Chime_Mgr_CheckNotPopUp__(UINT8 u8ChimeSort);                      /* Check chime request Not from Pop Up warning */
+
+static BOOL Chime_Mgr_CheckTurnLed__
+(
+    UINT8 u8PopUp1_Flag,
+    UINT8 u8PopUp2_Flag,
+    UINT8 u8NotPopUp_Flag,
+    UINT8 u8NotPopUp_ChimeSort
+);
+
+static void Chime_Mgr_ClearTempStsVol__(void);                                 /* Add function for voltage abnormal */
+
+
+/* ============================ Function Defines ====================================================================== */
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_VarInit__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_VarInit__(void)
+{
+    gs_u8Chime_TurnDis = FALSE;
+	gs_u8Chime_TurnEnCount = 0;
+	gs_u8Chime_TurnOpenClose = FALSE;
+
+    gs_u8CurChimeSort = (UINT8)CHIME_SORT_NULL;
+    gs_eChimeState = CHIME_STATE_INIT;
+    gs_u8ChimeDrvSts = (UINT8)CHIME_CLEAR;
+    gs_u8CurChimeResID = (UINT8)eSnd_NoChimeID;
+    gs_u8ChimeFuncState = (UINT8)TRUE;
+    gs_u8ChimeFuncState_Last = (UINT8)TRUE;
+
+    gs_eChime_KeySts = eIGN_OFF;
+    gs_eChime_KeySts_Last = eIGN_OFF;
+    gs_u8ChimeVolume = (UINT8)VOL_LEVEL_MIDDLE;
+    gs_u8ChimeVolume_Last = (UINT8)VOL_LEVEL_MIDDLE;
+    gs_u8Chime_VolCursor = (UINT8)VOL_LEVEL_MIDDLE;
+    gs_u8Chime_VolCursor_Last = (UINT8)VOL_LEVEL_MIDDLE;
+    gs_u8Chime_CanOut = (UINT8)CHIME_CANOUT_0;
+    gs_u8Chime_CanOut_Tmp = (UINT8)CHIME_CANOUT_0;
+    gs_u16Chime_CanOut_Count = 0;
+
+    gs_u8Chime_TurnLeft = 0;
+    gs_u8Chime_TurnRight = 0;
+    gs_u8Chime_TurnLeft_Last = 0;
+    gs_u8Chime_TurnRight_Last = 0;
+
+    gs_u8ChimeWarnSts = (UINT8)CHIME_BUSY;
+    gs_u8ChimeWarnSts_Middle = (UINT8)CHIME_BUSY;
+    gs_u8ChimeMenuSts = (UINT8)CHIME_IDLE;
+    gs_eChimeProcSts = CHIME_PROC_PREREQ;
+    gs_u8Chime_TurnCount = 0;
+
+    gs_u8Chime_CurMode = (UINT8)CHIME_MODE_NORMAL;
+    gs_u8Chime_LastMode = (UINT8)CHIME_MODE_NORMAL;
+    gs_u8Chime_EtmLastStep = 0;
+    gs_u8Chime_EtmReq = (UINT8)FALSE;
+    gs_u8Chime_IocLastState = 0;
+    gs_u8Chime_IocReq = (UINT8)FALSE;
+    gs_u8Chime_EolLastState = 0;
+    gs_u8Chime_EolReq = (UINT8)FALSE;
+
+    //gs_Chime_DID_50A2.DID_Length = 1;                                          /* IODID 2F 00, data length */
+    //gs_Chime_DID_50A2.DID_Data[0] = 0x0;                                       /* IODID 2F 00 */
+    gs_u8ChimeDrvSts_Last = 0;
+
+    gs_u8Chime_Respond = (UINT8)CHIME_RESP_NONE;
+    gs_u8Chime_PopLast = (UINT8)CHIME_SORT_NULL;
+    gs_u8Chime_PopLast_Mid = (UINT8)CHIME_SORT_NULL;
+    gs_u8Chime_TmpPopLast = (UINT8)CHIME_SORT_NULL;
+    gs_u8Chime_TmpPopMid = (UINT8)CHIME_SORT_NULL;
+    gs_u8Chime_PopLast_Flag = (UINT8)FALSE;
+    gs_u8Chime_PopMid_Flag = (UINT8)FALSE;
+
+    Chime_Mgr_ClearInputSts__();
+    Chime_Mgr_ClearInputLast__();
+    Chime_Mgr_ClearInputReq__();
+    Chime_Mgr_ClearCounter__();
+    Chime_Mgr_ClearTempSts__();
+
+	#if 0
+    /* initialize sound volume */
+    (void)Rte_Call_rpCS_TISndCdd_SetUserPersonalizationVolume(gs_u8Chime_Vol_Tbl[gs_u8ChimeVolume]);
+    /* set chime status to warning */
+    (void)Chime_Write_Main_Chime_State(gs_u8ChimeWarnSts);
+    (void)Chime_Write_Middle_Chime_State(gs_u8ChimeWarnSts_Middle);
+    /* set chime status to HMI menu */
+    (void)Rte_Write_ppSR_TIChime_Output_Menu_Chime_State(gs_u8ChimeMenuSts);
+    /* send 0x0 */
+    //(void)Rte_Write_ppSR_ICM_GENERAL_STATUS_2_ComOut_VeCAN_FAULT_BUZZING_IND_LAMP(gs_u8Chime_CanOut);
+    /* disable sleep */
+    (void)Rte_Write_ChimeMdl_ppSR_pChimeMdl_TIEcuMext_Sleep_Condition_Chimes_Status((UINT8)FALSE);
+                                                                               /* IODID 2F 00 */
+    //(void)Rte_Write_ChimeMdl_ppSR_TIDcm_DID_Read_DCM_DID50A2_Read_CurentValue(&gs_Chime_DID_50A2);
+
+	#endif																			   
+    gs_u8Chime_CurWrnArea = 0;
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_InitHW()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+void  Chime_Mgr_InitHW(void)
+{
+    gs_eChimeState = CHIME_STATE_IDLE;
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_InitSW()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+void  Chime_Mgr_InitSW(void)
+{
+    Chime_Mgr_VarInit__();
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_ExitHW()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+void  Chime_Mgr_ExitHW(void)
+{
+    gs_eChimeState = CHIME_STATE_IDLE;
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_ExitSW()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+void Chime_Mgr_ExitSW(void)
+{
+
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_Notify_Shutdown()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+void Chime_Mgr_Notify_Shutdown(void)
+{
+    Chime_Mgr_StopAll__();
+    Chime_Mgr_VarInit__();
+    gs_eChimeState = CHIME_STATE_STOP;
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_Notify_Restore()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+void Chime_Mgr_Notify_Restore(void)
+{
+    Chime_Mgr_VarInit__();
+    gs_eChimeState = CHIME_STATE_INIT;
+}
+
+/* ====================================================================================================================
+**  Function Name    :    OnTask10ms_Chime_Routine()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+void OnTask10ms_Chime_Routine(void)
+{
+    switch (gs_eChimeState)
+    {
+        case CHIME_STATE_IDLE:
+            break;
+
+        case CHIME_STATE_INIT:
+        case CHIME_STATE_IGON:
+        case CHIME_STATE_IGOFF:
+        case CHIME_STATE_DIAG:
+            Chime_Mgr_RunRoutine__();
+            break;
+
+        case CHIME_STATE_STOP:
+            break;
+
+        default:
+            break;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_RunRoutine__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_RunRoutine__(void)
+{
+    BOOL bConfig_Check = FALSE;
+    BOOL bLVSD_Check = FALSE;
+    BOOL bHVSD_Check = FALSE;
+
+    Chime_Mgr_GetChimeInput__();                                               /* get input signal, not include input from warning */
+    //Chime_Mgr_ChimeLogicProc__();                                              /* process input signal */
+
+    bConfig_Check = Chime_Mgr_CheckConfig__();                                 /* get check flag for chime function */
+    bLVSD_Check = Chime_Mgr_CheckLVSD__();
+    bHVSD_Check = Chime_Mgr_CheckHVSD__();
+    Chime_Mgr_CheckMode__();/*Always set Normal currently20180522*/
+
+    if ((FALSE != bConfig_Check)                                               /* check if chime function enabled */
+        && (FALSE != bLVSD_Check)
+        && (FALSE != bHVSD_Check))
+    {
+        gs_u8ChimeFuncState = (UINT8)TRUE;                                     /* chime enabled */
+
+        switch (gs_u8Chime_CurMode)                                            /* check current mode */
+        {
+            case CHIME_MODE_ETM:                                               /* ETM mode */
+                //Chime_Mgr_EtmRoutine__();
+                break;
+
+            case CHIME_MODE_IOC:                                               /* IODID mode */
+                //Chime_Mgr_DiagRoutine__();
+                break;
+
+            case CHIME_MODE_EOL:                                               /* EOL mode */
+                //Chime_Mgr_EolRoutine__();
+                break;
+
+            case CHIME_MODE_NORMAL:                                            /* normal process mode */
+            default:
+                Chime_Mgr_ProcRoutine__();
+                break;
+        }
+    }
+    else
+    {
+        gs_u8ChimeFuncState = (UINT8)FALSE;                                    /* chime disabled */
+
+        if (((UINT8)TRUE == gs_u8ChimeFuncState_Last)                          /* enable -> disable, stop sound, clear input status */
+            && ((UINT8)FALSE == gs_u8ChimeFuncState))
+        {
+            Chime_Mgr_Func_Shutdown__();
+        }
+    }
+
+    gs_u8ChimeFuncState_Last = gs_u8ChimeFuncState;                            /* keep last chime function state */
+    Chime_Mgr_SetOutput__();                                                   /* output process */
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_Func_Shutdown__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_Func_Shutdown__(void)
+{
+    Chime_Mgr_StopAll__();                                                     /* stop sound */
+
+    Chime_Mgr_ClearInputSts__();
+    Chime_Mgr_ClearInputLast__();
+    Chime_Mgr_ClearInputReq__();
+    Chime_Mgr_ClearCounter__();
+    Chime_Mgr_ClearTempStsVol__();
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_GetChimeInput__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_GetChimeInput__(void)
+{
+#if 0
+    UINT8 u8ChimeVolCursor = (UINT8)VOL_LEVEL_MIDDLE;
+    UINT8 u8ChimeVolume = (UINT8)VOL_LEVEL_MIDDLE;
+#endif
+
+    (void)Rte_Read_rpIgnState_IGNState(&gs_eChime_KeySts);
+#if 0
+    //(void)Rte_Read_rpSR_TIGdtCtrl_Out_HMI_VOLUME(&u8ChimeVolume);
+    //(void)Rte_Read_rpSR_TIGdtCtrl_Out_HMI_VOLUME_Cursor(&u8ChimeVolCursor);
+
+    if ((UINT8)VOL_LEVEL_INVALID != u8ChimeVolume)
+    {
+        gs_u8ChimeVolume = u8ChimeVolume;
+    }
+
+    if ((UINT8)VOL_LEVEL_INVALID != u8ChimeVolCursor)
+    {
+        gs_u8Chime_VolCursor = u8ChimeVolCursor;
+    }
+    (void)Rte_Read_rpSR_ICM_TT_Chime_VeIPC_TurnLeft_Telltale_Status(&gs_u8Chime_TurnLeft);
+    (void)Rte_Read_rpSR_ICM_TT_Chime_VeIPC_TurnRight_Telltale_Status(&gs_u8Chime_TurnRight);
+    //(void)Rte_Read_rpSR_CANMSG_PAS_GENERAL_STATUS_ComIn_VeCAN_PAS_SYS_STATUS(&gs_u8Pas_SysSts);
+    //(void)Rte_Read_rpSR_CANMSG_PAS_GENERAL_STATUS_ComIn_VeCAN_REAR_MINI_PAS_DISTANCE(&gs_u8Rear_Distance);
+
+    (void)Rte_Read_rpSR_CANMSG_EMS_GENERAL_STATUS_ComIn_VeCAN_EMS_ACTUAL_GEAR(&gs_u8Ems_Actual_Gear);
+    (void)Rte_Read_rpSR_CANMSG_EMS_GENERAL_STATUS_ComIn_VeCAN_VALID_ACTUAL_GEAR_EMS(&gs_u8Valid_Actual_Gear);
+
+    (void)Rte_Read_rpSR_TIDoorOpen_DoorOpen(&gs_u8Chime_DoorOpen);
+    (void)Rte_Read_rpSR_ICM_TT_Chime_VeIPC_OverSpeed_Telltale_Status(&gs_u8Chime_OverSpeed);
+    (void)Rte_Read_rpSR_ICM_TT_Chime_VeIPC_Seatbelt_Status(&gs_u8Chime_SeatBelt);
+    (void)Rte_Read_rpSR_ICM_TT_Warning_Chime_VeIPC_Parkbrake_Warning(&gs_u8Chime_ParkBrake);
+
+#endif
+
+    //(void)Rte_Read_rpSR_TIACCMdl_Output_VeIPC_PCW_Chime_Functional_Input(&gs_u8Chime_PCW);    /* Add ACC chime */
+    (void)Rte_Call_tiCS_TISndCdd_CheckStatus(gs_u8CurChimeResID, &gs_u8ChimeDrvSts);          /* check sound driver status */
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_ChimeLogicProc__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_ChimeLogicProc__(void)
+{
+    //Chime_Mgr_VolumeProc__();                                                  /* process volume setting from HMI menu */
+    Chime_Mgr_TurnProc__();                                                    /* process turn left/right */
+    //Chime_Mgr_PasProc__();                                                     /* process Parking Aid Zone */
+    //Chime_Mgr_ReverseProc__();                                                 /* process Reverse */
+    Chime_Mgr_DoorOpenProc__();                                                /* process door open */
+    //Chime_Mgr_BsdChime__();
+    //Chime_Mgr_LDWS_Active__();
+    //Chime_Mgr_PcwProc__();                                                     /* Add ACC chime */
+
+	#if 0
+    if ((UINT8)FALSE == gs_u8Chime_OverSpeedFlag)                              /* over speed warning haven't started to display */
+    {
+        gs_u8Chime_OverSpeed = (UINT8)FALSE;                                   /* ignore over speed input */
+    }
+
+    if ((UINT8)FALSE == gs_u8Chime_SeatBeltFlag)                               /* seat belt warning haven't started to display */
+    {
+        gs_u8Chime_SeatBelt = (UINT8)FALSE;                                    /* ignore seat belt input */
+    }
+
+    if ((UINT8)FALSE == gs_u8Chime_ParkBrakeFlag)                              /* park brake warning haven't started to display */
+    {
+        gs_u8Chime_ParkBrake = (UINT8)FALSE;                                   /* ignore park brake input */
+    }
+	#endif
+}
+
+#if 0
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_VolumeProc__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+
+static void Chime_Mgr_VolumeProc__(void)
+{
+    UINT8 u8VolumeMenuFlag = (UINT8)0;
+
+    (void)Rte_Read_rpSR_TIGdtCtrl_Out_GetIntoVolumeMenu(&u8VolumeMenuFlag);
+
+    if ((UINT8)0 == u8VolumeMenuFlag)                                                   /* Not first time get into Menu */
+    {
+        if (gs_u8Chime_VolCursor_Last != gs_u8Chime_VolCursor)
+        {
+            switch (gs_u8Chime_VolCursor)                                               /* judge current volume setting */
+            {
+                case VOL_LEVEL_LOW:
+                    gs_u8Chime_WarnInput_Req[CHIME_REQID_USER_MENU1] = (UINT8)TRUE;     /* set chime ID offset for current volume */
+                    gs_u8Chime_WarnInput_Req[CHIME_REQID_USER_MENU2] = (UINT8)FALSE;
+                    gs_u8Chime_WarnInput_Req[CHIME_REQID_USER_MENU3] = (UINT8)FALSE;
+                    break;
+
+                case VOL_LEVEL_MIDDLE:
+                    gs_u8Chime_WarnInput_Req[CHIME_REQID_USER_MENU2] = (UINT8)TRUE;     /* set chime ID offset for current volume */
+                    gs_u8Chime_WarnInput_Req[CHIME_REQID_USER_MENU1] = (UINT8)FALSE;
+                    gs_u8Chime_WarnInput_Req[CHIME_REQID_USER_MENU3] = (UINT8)FALSE;
+                    break;
+
+                case VOL_LEVEL_HIGH:
+                    gs_u8Chime_WarnInput_Req[CHIME_REQID_USER_MENU3] = (UINT8)TRUE;     /* set chime ID offset for current volume */
+                    gs_u8Chime_WarnInput_Req[CHIME_REQID_USER_MENU1] = (UINT8)FALSE;
+                    gs_u8Chime_WarnInput_Req[CHIME_REQID_USER_MENU2] = (UINT8)FALSE;
+                    break;
+
+                default:                                                                /* abnormal volume setting, don't responce */
+                    break;
+            }
+
+        }
+    }
+    else                                                                                /* first time get into Menu */
+    {
+        (void)Rte_Write_rpSR_TIGdtCtrl_Out_GetIntoVolumeMenu((UINT8)0);                 /* clear flag */
+        gs_u8Chime_WarnInput_Req[CHIME_REQID_USER_MENU1] = (UINT8)FALSE;
+        gs_u8Chime_WarnInput_Req[CHIME_REQID_USER_MENU2] = (UINT8)FALSE;
+        gs_u8Chime_WarnInput_Req[CHIME_REQID_USER_MENU3] = (UINT8)FALSE;
+    }
+
+
+    if (gs_u8ChimeVolume_Last != gs_u8ChimeVolume)
+    {
+        (void)Rte_Call_rpCS_TISndCdd_SetUserPersonalizationVolume(gs_u8Chime_Vol_Tbl[gs_u8ChimeVolume]);
+    }
+
+    gs_u8Chime_VolCursor_Last = gs_u8Chime_VolCursor;
+    gs_u8ChimeVolume_Last = gs_u8ChimeVolume;
+}
+
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_PcwProc__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_PcwProc__(void)              /* Add ACC chime */
+{
+    switch (gs_u8Chime_PCW)
+    {
+        case PCW_Active3:
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_PCW3] = (UINT8)TRUE;
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_PCW2] = (UINT8)FALSE;
+            break;
+
+        case PCW_Active2:
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_PCW2] = (UINT8)TRUE;
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_PCW3] = (UINT8)FALSE;
+            break;
+
+        default:
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_PCW2] = (UINT8)FALSE;
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_PCW3] = (UINT8)FALSE;
+            break;
+    }
+}
+#endif 
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_TurnProc__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_TurnProc__(void)
+{
+#if 0
+    if (eIGN_RUN == gs_eChime_KeySts)                                       /* D1 mode request */
+    {
+        /* check if LED OFF -> ON, or LED ON -> OFF */
+        if ((((UINT8)CHIME_LED_OFF == gs_u8Chime_TurnLeft_Last) && ((UINT8)CHIME_LED_ON == gs_u8Chime_TurnLeft))
+            || (((UINT8)CHIME_LED_OFF == gs_u8Chime_TurnRight_Last) && ((UINT8)CHIME_LED_ON == gs_u8Chime_TurnRight)))
+        {
+            gs_u8Chime_WarnInput[CHIME_REQID_TURN_TICK] = (UINT8)TRUE;         /* OFF -> ON, tick */
+            gs_u8Chime_WarnInput[CHIME_REQID_TURN_TOC] = (UINT8)FALSE;
+            gs_u8Chime_TurnCount = (UINT8)0;
+        }
+        else if ((((UINT8)CHIME_LED_ON == gs_u8Chime_TurnLeft_Last) && ((UINT8)CHIME_LED_OFF == gs_u8Chime_TurnLeft))
+            || (((UINT8)CHIME_LED_ON == gs_u8Chime_TurnRight_Last) && ((UINT8)CHIME_LED_OFF == gs_u8Chime_TurnRight)))
+        {
+            gs_u8Chime_WarnInput[CHIME_REQID_TURN_TICK] = (UINT8)FALSE;        /* ON -> OFF, toc */
+            gs_u8Chime_WarnInput[CHIME_REQID_TURN_TOC] = (UINT8)TRUE;
+            gs_u8Chime_TurnCount = (UINT8)0;
+        }
+        else
+        {
+            ;
+        }
+    }
+    else                                                                       /* D2 mode request */
+    {
+        /* check if LED OFF -> ON, or LED ON -> OFF */
+        if ((((UINT8)CHIME_LED_OFF == gs_u8Chime_TurnLeft_Last) && ((UINT8)CHIME_LED_ON == gs_u8Chime_TurnLeft))
+            || (((UINT8)CHIME_LED_OFF == gs_u8Chime_TurnRight_Last) && ((UINT8)CHIME_LED_ON == gs_u8Chime_TurnRight)))
+        {
+            gs_u8Chime_WarnInput[CHIME_REQID_D2_TICK] = (UINT8)TRUE;           /* OFF -> ON, tick */
+            gs_u8Chime_WarnInput[CHIME_REQID_D2_TOC] = (UINT8)FALSE;
+            gs_u8Chime_TurnCount = (UINT8)0;
+        }
+        else if ((((UINT8)CHIME_LED_ON == gs_u8Chime_TurnLeft_Last) && ((UINT8)CHIME_LED_OFF == gs_u8Chime_TurnLeft))
+            || (((UINT8)CHIME_LED_ON == gs_u8Chime_TurnRight_Last) && ((UINT8)CHIME_LED_OFF == gs_u8Chime_TurnRight)))
+        {
+            gs_u8Chime_WarnInput[CHIME_REQID_D2_TICK] = (UINT8)FALSE;          /* ON -> OFF, toc */
+            gs_u8Chime_WarnInput[CHIME_REQID_D2_TOC] = (UINT8)TRUE;
+            gs_u8Chime_TurnCount = (UINT8)0;
+        }
+        else
+        {
+            ;
+        }
+    }
+
+    if (gs_u8Chime_TurnCount > (UINT8)1)                                       /* if can't request immediately, clear request */
+    {
+        gs_u8Chime_WarnInput[CHIME_REQID_TURN_TICK] = (UINT8)FALSE;
+        gs_u8Chime_WarnInput[CHIME_REQID_TURN_TOC] = (UINT8)FALSE;
+        gs_u8Chime_WarnInput[CHIME_REQID_D2_TICK] = (UINT8)FALSE;
+        gs_u8Chime_WarnInput[CHIME_REQID_D2_TOC] = (UINT8)FALSE;
+    }
+    else
+    {
+        gs_u8Chime_TurnCount++;
+    }
+
+    gs_u8Chime_TurnLeft_Last = gs_u8Chime_TurnLeft;                            /* keep last LED status */
+    gs_u8Chime_TurnRight_Last = gs_u8Chime_TurnRight;
+#endif
+}
+
+#if 0
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_PasProc__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_PasProc__(void) /*Radar*/
+{
+    UINT8 u8ConfigPas = (UINT8)PAS_SET_CAN_PAS_MODE;
+    UINT8 u8TimeOut = (UINT8)0;
+    UINT8 u8NotReceive = (UINT8)0;
+
+    /* get CAN signal status */
+    (void)Rte_Read_rpSR_CANMSG_PAS_GENERAL_STATUS_ComIn_VeCAN_PAS_GENERAL_STATUS_NR(&u8NotReceive);
+    (void)Rte_Read_rpSR_CANMSG_PAS_GENERAL_STATUS_ComIn_VeCAN_PAS_GENERAL_STATUS_TOUT(&u8TimeOut);
+
+    /* get NVM configuration information */
+    (void)Rte_Read_rpSR_TINVMExtMdl_Cluster_Optional_Configure_PAS_VARIETY(&u8ConfigPas);
+
+    gs_u8Chime_WarnInput_Req[CHIME_REQID_PARK_ZONE1] = (UINT8)FALSE;
+    gs_u8Chime_WarnInput_Req[CHIME_REQID_PARK_ZONE2] = (UINT8)FALSE;
+    gs_u8Chime_WarnInput_Req[CHIME_REQID_PARK_ZONE3] = (UINT8)FALSE;
+    gs_u8Chime_WarnInput_Req[CHIME_REQID_PARK_ZONE4] = (UINT8)FALSE;
+
+#if (CHIME_CONFIG == 1)
+    u8ConfigPas = PAS_SET_CAN_PAS_MODE;
+#endif
+
+    if (((UINT8)PAS_SET_CAN_PAS_MODE == u8ConfigPas)                           /* process input information */
+        && (eIGN_RUN == gs_eChime_KeySts)
+        && ((u8NotReceive & RTE_E_NEVER_RECEIVED) != RTE_E_NEVER_RECEIVED)
+        && ((u8TimeOut & RTE_E_TIMEOUT) != RTE_E_TIMEOUT)
+        && ((UINT8)1 == gs_u8Pas_SysSts))
+    {
+        if (gs_u8Rear_Distance <= (UINT8)30)                                   /* check radar distance */
+        {
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_PARK_ZONE4] = (UINT8)TRUE;
+        }
+        else if (gs_u8Rear_Distance <= (UINT8)60)
+        {
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_PARK_ZONE3] = (UINT8)TRUE;
+        }
+        else if (gs_u8Rear_Distance <= (UINT8)90)
+        {
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_PARK_ZONE2] = (UINT8)TRUE;
+        }
+        else if (gs_u8Rear_Distance <= (UINT8)150)
+        {
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_PARK_ZONE1] = (UINT8)TRUE;
+        }
+        else
+        {
+            ;
+        }
+    }
+}
+
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_ReverseProc__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_ReverseProc__(void)
+{
+    UINT8 u8ConfigRvsWarn = (UINT8)REVERSE_WARNING_SET_ENABLE;
+    UINT8 u8ConfigGearBox = (UINT8)GEARBOX_SET_AT_MODE;
+
+    /* get NVM configuration information */
+    (void)Rte_Read_rpSR_TINVMExtMdl_Cluster_Optional_Configure_GEAR_BOX_VARIETY(&u8ConfigGearBox);
+    (void)Rte_Read_rpSR_TINVMExtMdl_Cluster_Optional_Configure_REVERSE_WARNING_ENABLE(&u8ConfigRvsWarn);
+
+#if (CHIME_CONFIG == 1)
+    u8ConfigRvsWarn = REVERSE_WARNING_SET_ENABLE;
+    u8ConfigGearBox = GEARBOX_SET_AT_MODE;
+#endif
+
+    if ((UINT8)REVERSE_WARNING_SET_ENABLE == u8ConfigRvsWarn)                  /* check if Reverse Warning Enabled */
+    {
+        switch (u8ConfigGearBox)                                               /* judge current Gear Type */
+        {
+            case GEARBOX_SET_AT_MODE:                                          /* AT/CVT */
+            case GEARBOX_SET_CVT_MODE:
+                Chime_Mgr_RvsAtProc__();
+                break;
+
+            case GEARBOX_SET_MT_MODE:                                          /* MT */
+                Chime_Mgr_RvsMtProc__();
+                break;
+
+            default:                                                           /* Invalid Gear Type */
+                gs_u8Rvs_Warn = FALSE;
+                break;
+        }
+    }
+    else                                                                       /* Reverse Warning Disabled */
+    {
+        gs_u8Rvs_Warn = FALSE;
+    }
+                                                                               /* defect #801382 */
+    if ((FALSE == gs_u8Rvs_WarnLast) && (TRUE == gs_u8Rvs_Warn))               /* request ON, reset timer */
+    {
+        gs_u8Chime_RvsCount = (UINT8)0;
+    }
+
+    if (gs_u8Chime_RvsCount > (UINT8)CHIME_TIME_OUT_COUNT)                     /* respond time timeout, clear request */
+    {
+        gs_u8Chime_WarnInput[CHIME_REQID_REVERSE] = FALSE;
+    }
+    else
+    {
+        gs_u8Chime_RvsCount++;
+        gs_u8Chime_WarnInput[CHIME_REQID_REVERSE] = gs_u8Rvs_Warn;
+    }
+
+    gs_u8Rvs_WarnLast = gs_u8Rvs_Warn;
+}
+#endif
+
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_RvsAtProc__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_RvsAtProc__(void)
+{
+#if 0
+    UINT8 u8GearInput = (UINT8)0;
+
+    /* get gear position */
+    //(void)Rte_Read_rpSR_GearMdl_Pos_Disp_Gear_Pos_Disp_Value(&u8GearInput);
+
+    if ((UINT8)GEAR_R == u8GearInput)                                      /* Gear Position R */
+    {
+        gs_u8Rvs_Warn = TRUE;
+    }
+    else                                                                   /* Gear Position Not R */
+    {
+        gs_u8Rvs_Warn = FALSE;
+    }
+#endif
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_RvsMtProc__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_RvsMtProc__(void)
+{
+#if 0
+    BOOL bCheckFlag = FALSE;
+    UINT8 u8TimeOut = (UINT8)0;
+    UINT8 u8NotReceive = (UINT8)0;
+
+    /* get CAN signal status */
+    (void)Rte_Read_rpSR_CANMSG_EMS_GENERAL_STATUS_ComIn_VeCAN_EMS_GENERAL_STATUS_NR(&u8NotReceive);
+    (void)Rte_Read_rpSR_CANMSG_EMS_GENERAL_STATUS_ComIn_VeCAN_EMS_GENERAL_STATUS_TOUT(&u8TimeOut);
+
+    /* process input information */
+    if ((eIGN_RUN == gs_eChime_KeySts)
+        && ((u8NotReceive & RTE_E_NEVER_RECEIVED) != RTE_E_NEVER_RECEIVED)
+        && ((u8TimeOut & RTE_E_TIMEOUT) != RTE_E_TIMEOUT)
+        && ((UINT8)0 == gs_u8Valid_Actual_Gear)
+        && ((UINT8)2 == gs_u8Ems_Actual_Gear))
+    {
+        gs_u8Rvs_Mt_RawInput = TRUE;
+    }
+    else
+    {
+        gs_u8Rvs_Mt_RawInput = FALSE;
+    }
+
+    bCheckFlag = Chime_Mgr_RvsMtCount__();                                     /* debounce timer counter */
+    gs_u8Rvs_Warn = (UINT8)bCheckFlag;                                         /* judge warning state */
+#endif
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_RvsMtCount__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static BOOL Chime_Mgr_RvsMtCount__(void)
+{
+    BOOL bRet = FALSE;
+
+    if (FALSE == gs_u8Rvs_Mt_RawInput)                                         /* warning OFF no need to debounce */
+    {
+        gs_u8Rvs_Mt_RawCount = (UINT8)0;
+    }
+    else                                                                       /* warning ON, debounce counting */
+    {
+        gs_u8Rvs_Mt_RawCount++;
+
+        if (gs_u8Rvs_Mt_RawCount >= (UINT8)CHIME_RVS_DEBOUNCE)
+        {
+            gs_u8Rvs_Mt_RawCount = (UINT8)CHIME_RVS_DEBOUNCE;
+            bRet = TRUE;
+        }
+    }
+
+    return (bRet);                                                             /* return warning state */
+}
+
+#if 0
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_BsdChime__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_BsdChime__(void) /*Blind spot monitoring*/
+{
+    UINT8 u8TimeOut = (UINT8)0;
+    UINT8 u8NotReceive = (UINT8)0;
+    UINT8 u8ConfigCameraDisp = (UINT8)CAMERA_DISPLAY_SET_AVM_MODE;
+
+    UINT8 u8Bsd_OpSts = (UINT8)0;
+    UINT8 u8Bsd_LeftWarn = (UINT8)0;
+    UINT8 u8Bsd_RightWarn = (UINT8)0;
+
+    /* get input can signal infomation */
+    (void)Rte_Read_rpSR_CANMSG_AVM_GENERAL_STATUS_ComIn_VeCAN_AVM_GENERAL_STATUS_NR(&u8NotReceive);
+    (void)Rte_Read_rpSR_CANMSG_AVM_GENERAL_STATUS_ComIn_VeCAN_AVM_GENERAL_STATUS_TOUT(&u8TimeOut);
+
+    (void)Rte_Read_rpSR_CANMSG_AVM_GENERAL_STATUS_ComIn_VeCAN_BSD_OP_STATUS(&u8Bsd_OpSts);
+    (void)Rte_Read_rpSR_CANMSG_AVM_GENERAL_STATUS_ComIn_VeCAN_BSD_LEFT_WARNING_STATUS(&u8Bsd_LeftWarn);
+    (void)Rte_Read_rpSR_CANMSG_AVM_GENERAL_STATUS_ComIn_VeCAN_BSD_RIGHT_WARNING_STATUS(&u8Bsd_RightWarn);
+
+    /* get NVM configuration infomation */
+    //(void)Rte_Read_rpSR_TINVMExtMdl_Cluster_Optional_Configure_CAMERA_DISPLAY_VARIETY(&u8ConfigCameraDisp);
+
+#if (CHIME_CONFIG == 1)
+    u8ConfigCameraDisp = (UINT8)CAMERA_DISPLAY_SET_AVM_MODE;
+#endif
+
+    /* process input information */
+    if ((eIGN_RUN == gs_eChime_KeySts)
+        && ((UINT8)CAMERA_DISPLAY_SET_AVM_MODE == u8ConfigCameraDisp)
+        && ((u8NotReceive & RTE_E_NEVER_RECEIVED) != RTE_E_NEVER_RECEIVED)
+        && ((u8TimeOut & RTE_E_TIMEOUT) != RTE_E_TIMEOUT)
+        && ((UINT8)3 == u8Bsd_OpSts)
+        && (((UINT8)2 == u8Bsd_LeftWarn)
+            || ((UINT8)2 == u8Bsd_RightWarn)))
+    {
+        gs_u8Chime_WarnInput_Req[CHIME_REQID_BSD_WARN] = (UINT8)TRUE;
+    }
+    else
+    {
+        gs_u8Chime_WarnInput_Req[CHIME_REQID_BSD_WARN] = (UINT8)FALSE;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_LDWS_Active__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_LDWS_Active__(void)
+{
+    UINT8 u8TimeOut = (UINT8)0;
+    UINT8 u8NotReceive = (UINT8)0;
+    UINT8 u8ConfigCameraDisp = (UINT8)CAMERA_DISPLAY_SET_AVM_MODE;
+
+    UINT8 u8LDW_OpSts = (UINT8)0;
+    UINT8 u8LDW_Switch = (UINT8)2;
+    UINT8 u8LDW_LeftTrack = (UINT8)0;
+    UINT8 u8LDW_RightTrack = (UINT8)0;
+
+    /* get input can signal infomation */
+    (void)Rte_Read_rpSR_CANMSG_AVM_GENERAL_STATUS_ComIn_VeCAN_AVM_GENERAL_STATUS_NR(&u8NotReceive);
+    (void)Rte_Read_rpSR_CANMSG_AVM_GENERAL_STATUS_ComIn_VeCAN_AVM_GENERAL_STATUS_TOUT(&u8TimeOut);
+
+    (void)Rte_Read_rpSR_CANMSG_AVM_GENERAL_STATUS_ComIn_VeCAN_LDW_OP_STATUS(&u8LDW_OpSts);
+    (void)Rte_Read_rpSR_CANMSG_AVM_GENERAL_STATUS_ComIn_VeCAN_LDW_LEFT_TRACKING_STATUS(&u8LDW_LeftTrack);
+    (void)Rte_Read_rpSR_CANMSG_AVM_GENERAL_STATUS_ComIn_VeCAN_LDW_RIGHT_TRACKING_STATUS(&u8LDW_RightTrack);
+    (void)Rte_Read_rpSR_LDWSMdl_Chime_VeIPC_LDW_SWITCH(&u8LDW_Switch);
+
+    /* get NVM configuration infomation */
+    Rte_Read_rpSR_TINVMExtMdl_Cluster_Optional_Configure_CAMERA_DISPLAY_VARIETY(&u8ConfigCameraDisp);
+
+#if (CHIME_CONFIG == 1)
+    u8ConfigCameraDisp = (UINT8)CAMERA_DISPLAY_SET_AVM_MODE;
+#endif
+
+    /* process input information */
+    if ((eIGN_RUN == gs_eChime_KeySts)
+        && ((UINT8)CAMERA_DISPLAY_SET_AVM_MODE == u8ConfigCameraDisp)
+        && ((u8NotReceive & RTE_E_NEVER_RECEIVED) != RTE_E_NEVER_RECEIVED)
+        && ((u8TimeOut & RTE_E_TIMEOUT) != RTE_E_TIMEOUT)
+        && ((UINT8)3 == u8LDW_OpSts))
+    {
+        if (((UINT8)2 == u8LDW_Switch)
+            && (((UINT8)3 == u8LDW_LeftTrack)
+                || ((UINT8)3 == u8LDW_RightTrack)))
+        {
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_LWDS_ACTIVE] = (UINT8)TRUE;
+            gs_u8Chime_WarnInput[CHIME_REQID_LWDS_ACTIVE] = (UINT8)TRUE;
+        }
+        else if ((UINT8)1 == u8LDW_Switch)
+        {
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_LWDS_ACTIVE] = (UINT8)FALSE;
+            gs_u8Chime_WarnInput[CHIME_REQID_LWDS_ACTIVE] = (UINT8)FALSE;
+        }
+        else if (((UINT8)2 == u8LDW_Switch)
+            && ((UINT8)3 != u8LDW_LeftTrack)
+            && ((UINT8)3 != u8LDW_RightTrack))
+        {
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_LWDS_ACTIVE] = (UINT8)FALSE;
+            gs_u8Chime_WarnInput[CHIME_REQID_LWDS_ACTIVE] = (UINT8)FALSE;
+        }
+        else
+        {
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_LWDS_ACTIVE] = gs_u8Chime_WarnInput_Last[CHIME_REQID_LWDS_ACTIVE];
+        }
+    }
+    else
+    {
+        gs_u8Chime_WarnInput_Req[CHIME_REQID_LWDS_ACTIVE] = (UINT8)FALSE;
+        gs_u8Chime_WarnInput[CHIME_REQID_LWDS_ACTIVE] = (UINT8)FALSE;
+    }
+
+    gs_u8Chime_WarnInput_Last[CHIME_REQID_LWDS_ACTIVE] = gs_u8Chime_WarnInput[CHIME_REQID_LWDS_ACTIVE];
+}
+#endif
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_DoorOpenProc__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_DoorOpenProc__(void)
+{
+#if 0
+    UINT8 u8TimeOut = (UINT8)0;
+    UINT8 u8NotReceive = (UINT8)0;
+    UINT8 u8ValidSpeed = (UINT8)0;
+    UINT16 u16VehicleSpeed = (UINT16)0;
+
+    (void)Rte_Read_rpSR_CANMSG_EMS_ENGINE_IDLE_AND_VSPEED_ComIn_VeCAN_EMS_ENGINE_IDLE_AND_VSPEED_NR(&u8NotReceive);
+    (void)Rte_Read_rpSR_CANMSG_EMS_ENGINE_IDLE_AND_VSPEED_ComIn_VeCAN_EMS_ENGINE_IDLE_AND_VSPEED_TOUT(&u8TimeOut);
+    (void)Rte_Read_rpSR_CANMSG_EMS_ENGINE_IDLE_AND_VSPEED_ComIn_VeCAN_VALID_VEHICLE_SPEED(&u8ValidSpeed);
+    (void)Rte_Read_rpSR_CANMSG_EMS_ENGINE_IDLE_AND_VSPEED_ComIn_VeCAN_VEHICLE_SPEED(&u16VehicleSpeed);
+
+    gs_u8Chime_DoorOpen = gs_u8Chime_DoorOpen & (~0x40);                       /* mask seatbelt not fasten */
+
+    if ((gs_u8Chime_DoorOpen != (UINT8)0)                                      /* process input information */
+        && (eIGN_RUN == gs_eChime_KeySts)
+        && ((u8NotReceive & RTE_E_NEVER_RECEIVED) != RTE_E_NEVER_RECEIVED)
+        && ((u8TimeOut & RTE_E_TIMEOUT) != RTE_E_TIMEOUT)
+        && ((UINT8)0 == u8ValidSpeed))
+    {
+        if (u16VehicleSpeed >= (UINT16)CHIME_DOOR_UPPER_SPEED)                 /* speed >= 5 km/h, chime ON */
+        {
+            gs_u8Chime_DoorWarn = (UINT8)TRUE;                                 /* set chime warning status */
+            if ((gs_u16Chime_DoorOpenCount < (UINT16)CHIME_DOOROPEN_COUNT)
+                && ((UINT8)FALSE == gs_u8Chime_WarnInput[CHIME_REQID_DOOR_OPEN]))
+            {
+				gs_u16Chime_DoorOpenCount = 0;
+            }
+        }
+        else if (u16VehicleSpeed < (UINT16)CHIME_DOOR_LOWER_SPEED)             /* speed < 2.5 km/h, chime OFF */
+        {
+            gs_u8Chime_DoorWarn = (UINT8)FALSE;                                /* set chime warning status */
+            if ((gs_u16Chime_DoorOpenCount < (UINT16)CHIME_DOOROPEN_COUNT)
+                && ((UINT8)TRUE == gs_u8Chime_WarnInput[CHIME_REQID_DOOR_OPEN]))           
+            {
+				gs_u16Chime_DoorOpenCount = 0;
+            }
+        }
+        else                                                                   /* keep last status */
+        {
+            ;
+        }
+    }
+    else                                                                       /* input OFF, clear timer counter */
+    {
+        gs_u16Chime_DoorOpenCount = 0;    
+        gs_u8Chime_DoorWarn = (UINT8)FALSE;                                    /* set chime warning status */
+    }
+
+    if ((UINT8)TRUE == gs_u8Chime_DoorWarn)
+    {
+        if (gs_u8Chime_DoorOpen_Last != gs_u8Chime_DoorOpen)                   /* door changed, reset 60S */
+        {
+            gs_u16Chime_DoorOpenCount = 0;
+        }
+
+        if (gs_u16Chime_DoorOpenCount < (UINT16)CHIME_DOOROPEN_COUNT)          /* not get to 60S */
+        {
+            gs_u8Chime_WarnInput[CHIME_REQID_DOOR_OPEN] = (UINT8)TRUE;         /* set chime warning status */
+            gs_u16Chime_DoorOpenCount++;                                       /* input ON, start timer counter for 60S */            
+        }
+        else                                                                   /* get to 60S */
+        {
+            gs_u16Chime_DoorOpenCount = (UINT16)CHIME_DOOROPEN_COUNT;
+            gs_u8Chime_WarnInput[CHIME_REQID_DOOR_OPEN] = (UINT8)FALSE;        /* set chime warning status */
+        }
+    }
+    else
+    {
+        gs_u8Chime_WarnInput[CHIME_REQID_DOOR_OPEN] = (UINT8)FALSE;            /* set chime warning status */
+    }
+
+    gs_u8Chime_DoorOpen_Last = gs_u8Chime_DoorOpen;                            /* keep last door open status */
+#endif
+}
+
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_CheckConfig__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static BOOL Chime_Mgr_CheckConfig__(void)
+{
+    BOOL bCheckFlag = TRUE;
+
+    return (bCheckFlag);
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_CheckLVSD__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static BOOL Chime_Mgr_CheckLVSD__(void)
+{
+    BOOL bCheckFlag = TRUE;
+    UINT8 u8BatSts = (UINT8)eBatteryState_Normal;
+
+    (void)Rte_Read_rpBattState_BatteryState(&u8BatSts);
+
+    if ((UINT8)eBatteryState_UnderVoltage == u8BatSts)
+    {
+        bCheckFlag = FALSE;
+    }
+
+    return (bCheckFlag);
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_CheckHVSD__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static BOOL Chime_Mgr_CheckHVSD__(void)
+{
+    BOOL bCheckFlag = TRUE;
+    UINT8 u8BatSts = (UINT8)eBatteryState_Normal;
+
+    (void)Rte_Read_rpBattState_BatteryState(&u8BatSts);
+
+    if ((UINT8)eBatteryState_OverVoltage == u8BatSts)
+    {
+        bCheckFlag = FALSE;
+    }
+
+    return (bCheckFlag);
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_CheckMode__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_CheckMode__(void)
+{
+#if 0
+
+	ETM_Model stEtmInfo;
+    DCM_IOC_Type stIocInfo;
+    DCM_IOC_Type stEolInfo;
+
+
+    (void)Rte_Read_rpSR_TIETMModel_ETMModel(&stEtmInfo);                       /* get ETM information from di.module.hmictrlmdl.c40c53.diagnostics\src\HmiCtrl.c CmpActive*/
+    (void)Rte_Read_rpSR_TIDcm_DID_IOC_DCM_IOC_Value(&stIocInfo);               /* get IODID infomation */
+    (void)Rte_Read_rpSR_TICanEOLMDL_FE0C_DID_IOC_DCM_IOC_Value(&stEolInfo);    /* get EOL information */
+//    (void)Rte_Call_tiCS_TISndCdd_CheckStatus(gs_u8CurChimeResID, &gs_u8ChimeDrvSts);
+
+    if ((CHIME_IOC_ID == stIocInfo.DID_IOC_Number)                             /* IODID mode */
+        && (CHIME_IOC_ON == stIocInfo.DID_IOC_Parament))
+    {
+        gs_u8Chime_CurMode = (UINT8)CHIME_MODE_IOC;
+    }
+    else if ((CHIME_EOL_ID == stEolInfo.DID_IOC_Number)                        /* EOL mode */
+        && (CHIME_EOL_ON == stEolInfo.DID_IOC_Parament))
+    {
+        gs_u8Chime_CurMode = (UINT8)CHIME_MODE_EOL;
+    }
+    else if (ETM_MODEL == stEtmInfo.Status)                                    /* ETM mode */
+    {
+        gs_u8Chime_CurMode = (UINT8)CHIME_MODE_ETM;
+    }
+    else                                                                       /* normal process mode */
+    {
+        gs_u8Chime_CurMode = (UINT8)CHIME_MODE_NORMAL;
+    }
+#endif
+
+	gs_u8Chime_CurMode = CHIME_MODE_NORMAL;
+    //if (gs_u8Chime_LastMode != gs_u8Chime_CurMode)                             /* check mode change */
+    {
+        switch (gs_u8Chime_CurMode)
+        {
+            case CHIME_MODE_ETM:                                               /* change to ETM mode */
+            case CHIME_MODE_IOC:                                               /* change to IODID mode */
+            case CHIME_MODE_EOL:                                               /* change to EOL mode */
+                gs_u8ChimeWarnSts = (UINT8)CHIME_IDLE;
+                gs_u8ChimeWarnSts_Middle = (UINT8)CHIME_IDLE;
+                gs_u8ChimeMenuSts = (UINT8)CHIME_IDLE;
+                break;
+
+            case CHIME_MODE_NORMAL:                                            /* change to normal process mode */
+            default:
+                gs_u8ChimeWarnSts = (UINT8)CHIME_BUSY;
+                gs_u8ChimeWarnSts_Middle = (UINT8)CHIME_BUSY;
+                gs_u8ChimeMenuSts = (UINT8)CHIME_IDLE;
+                break;
+        }
+
+        if (CHIME_CLEAR != gs_u8ChimeDrvSts)                                   /* check if need to stop current sound */
+        {
+            (void)Rte_Call_tiCS_TISndCdd_RequestToStop(gs_u8CurChimeResID, (UINT8)CHIME_STOP_SU);
+        }
+
+        gs_u8Chime_EtmLastStep = 0;
+        gs_u8Chime_EtmReq = (UINT8)FALSE;
+        gs_u8Chime_IocLastState = 0;
+        gs_u8Chime_IocReq = (UINT8)FALSE;
+        gs_u8Chime_EolLastState = 0;
+        gs_u8Chime_EolReq = (UINT8)FALSE;
+    }
+
+    gs_u8Chime_LastMode = gs_u8Chime_CurMode;                                  /* record current mode */
+}
+
+#if 0
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_EtmRoutine__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_EtmRoutine__(void)
+{
+    ETM_Model stEtmInfo;
+
+    (void)Rte_Read_rpSR_TIETMModel_ETMModel(&stEtmInfo);                       /* check mode and sound driver */
+//    (void)Rte_Call_tiCS_TISndCdd_CheckStatus(gs_u8CurChimeResID, &gs_u8ChimeDrvSts);
+
+    if ((CHIME_ETM_STEP != gs_u8Chime_EtmLastStep)                             /* get into ETM chime test */
+        && (CHIME_ETM_STEP == stEtmInfo.Step))
+    {
+        gs_u8Chime_EtmReq = TRUE;
+    }
+    else if ((CHIME_ETM_STEP == gs_u8Chime_EtmLastStep)                        /* get out of ETM chime test */
+        && (CHIME_ETM_STEP != stEtmInfo.Step))
+    {
+        (void)Rte_Call_tiCS_TISndCdd_RequestToStop(gs_u8CurChimeResID, (UINT8)CHIME_STOP_SU);
+        gs_u8Chime_EtmReq = FALSE;
+    }
+    else
+    {
+        ;
+    }
+
+    if ((TRUE == gs_u8Chime_EtmReq)                                            /* check if ready for start sound */
+        && (CHIME_CLEAR == gs_u8ChimeDrvSts))
+    {
+        Chime_Out_StartSound__(CHIME_ETM);                                     /* start ETM sound */
+        gs_u8Chime_EtmReq = FALSE;                                             /* clear request, only start once */
+    }
+
+    gs_u8Chime_EtmLastStep = stEtmInfo.Step;                                   /* record current ETM step */
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_DiagRoutine__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_DiagRoutine__(void)
+{
+    DCM_IOC_Type stIocInfo;
+    UINT8 u8IocCtlState = (UINT8)0;
+    UINT8 u8IocChimeID = (UINT8)0;
+    EKeyPos eIocKeySts;
+
+    (void)Rte_Read_rpSR_TIDcm_DID_IOC_DCM_IOC_Value(&stIocInfo);               /* check mode and sound driver */
+//    (void)Rte_Call_tiCS_TISndCdd_CheckStatus(gs_u8CurChimeResID, &gs_u8ChimeDrvSts);
+    u8IocCtlState = stIocInfo.DID_IOC_State[0];                                /* get IODID command */
+
+    if (u8IocCtlState <= CHIME_IOC_MAXSTATE)                                   /* check if command is valid */
+    {
+        u8IocChimeID = gs_tChime_IOC_Tbl[u8IocCtlState].u8ChimeIocID;          /* get chime ID */
+        eIocKeySts = (EKeyPos)gs_tChime_IOC_Tbl[u8IocCtlState].u8ChimeKeySts;  /* get power mode for select data table */
+
+        if (u8IocCtlState != gs_u8Chime_IocLastState)                          /* command changed, stop current sound */
+        {
+            (void)Rte_Call_tiCS_TISndCdd_RequestToStop(gs_u8CurChimeResID, (UINT8)CHIME_STOP_SU);
+            gs_u8Chime_IocReq = TRUE;
+        }
+        else if ((TRUE == gs_u8Chime_IocReq)                                   /* check if ready to start sound */
+            && (CHIME_CLEAR == gs_u8ChimeDrvSts))
+        {
+            Chime_Out_StartSnd_IOC__(u8IocChimeID, eIocKeySts);                /* start sound for IODID control */
+            gs_u8Chime_IocReq = FALSE;                                         /* clear request, only respond once */
+        }
+        else
+        {
+            ;
+        }
+    }
+    else                                                                       /* command is reserved */
+    {
+        (void)Rte_Call_tiCS_TISndCdd_RequestToStop(gs_u8CurChimeResID, (UINT8)CHIME_STOP_SU);  /* stop sound */
+        gs_u8Chime_IocReq = FALSE;
+    }
+
+    gs_u8Chime_IocLastState = u8IocCtlState;                                   /* record current IODID command */
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_EolRoutine__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_EolRoutine__(void)
+{
+    DCM_IOC_Type stEolInfo;
+    UINT8 u8EolCtlState = (UINT8)0;
+    UINT8 u8EolChimeID = (UINT8)0;
+
+    (void)Rte_Read_rpSR_TICanEOLMDL_FE0C_DID_IOC_DCM_IOC_Value(&stEolInfo);    /* check mode and sound driver */
+//    (void)Rte_Call_tiCS_TISndCdd_CheckStatus(gs_u8CurChimeResID, &gs_u8ChimeDrvSts);
+    u8EolCtlState = stEolInfo.DID_IOC_State[0];                                /* get EOL command */
+
+    if (u8EolCtlState <= CHIME_EOL_MAXSTATE)                                   /* check if command is valid */
+    {
+        u8EolChimeID = gs_u8Chime_EOL_Tbl[u8EolCtlState];                      /* get chime ID */
+
+        if (u8EolCtlState != gs_u8Chime_EolLastState)                          /* command changed, stop current sound */
+        {
+            (void)Rte_Call_tiCS_TISndCdd_RequestToStop(gs_u8CurChimeResID, (UINT8)CHIME_STOP_SU);
+            gs_u8Chime_EolReq = TRUE;
+        }
+        else if ((TRUE == gs_u8Chime_EolReq)                                   /* check if ready to start sound */
+            && (CHIME_CLEAR == gs_u8ChimeDrvSts))
+        {
+            Chime_Out_StartSnd_EOL__(u8EolChimeID);                            /* start sound for IODID control */
+            gs_u8Chime_EolReq = FALSE;                                         /* clear request, only respond once */
+        }
+        else
+        {
+            ;
+        }
+    }
+    else                                                                       /* command is reserved */
+    {
+        (void)Rte_Call_tiCS_TISndCdd_RequestToStop(gs_u8CurChimeResID, (UINT8)CHIME_STOP_SU);  /* stop sound */
+        gs_u8Chime_EolReq = FALSE;
+    }
+
+    gs_u8Chime_EolLastState = u8EolCtlState;                                   /* record current EOL command */
+}
+#endif
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_StopAll__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_StopAll__(void)
+{
+    UINT8 u8ChimeIndex = (UINT8)0;
+
+    /* stop all chime ID */
+    for (u8ChimeIndex = (UINT8)0; u8ChimeIndex < (UINT8)CHIME_RES_NUM; u8ChimeIndex++)
+    {
+        (void)Rte_Call_tiCS_TISndCdd_RequestToStop(u8ChimeIndex, (UINT8)CHIME_STOP_SU);
+    }
+
+    /* multi-cycle sound witch can recover form voltage abnormal */
+    if ((eIGN_RUN == gs_eChime_KeySts)
+        && (gs_u8CurChimeSort <= (UINT8)CHIME_IGON_MAXID)
+        && (CHIME_CYCLE_0 == gs_tChime_D1Data_Tbl[gs_u8CurChimeSort].u8ChimeCycleType))
+    {
+        gs_u8CurChimeSort = (UINT8)CHIME_SORT_NULL;
+    }
+    else if ((eIGN_OFF == gs_eChime_KeySts)
+        && (gs_u8CurChimeSort <= (UINT8)CHIME_IGOFF_MAXID)
+        && (CHIME_CYCLE_0 == gs_tChime_D2Data_Tbl[gs_u8CurChimeSort].u8ChimeCycleType))
+    {
+        gs_u8CurChimeSort = (UINT8)CHIME_SORT_NULL;
+    }
+    else
+    {
+        ;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_FindHighPrio__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static UINT8 Chime_Mgr_FindHighPrio__(void)
+{
+    UINT8 u8LoopCount = (UINT8)STD_INT_ZERO;
+    UINT8 u8LoopChimeID = (UINT8)STD_INT_ZERO;
+    UINT8 u8TempChimeSort = (UINT8)CHIME_SORT_NULL;
+    UINT8 u8TempPriority = (UINT8)CHIME_SORT_NULL;
+    UINT8 u8Chime_MaxID = (UINT8)0;
+
+    switch (gs_eChime_KeySts)
+    {
+        case eIGN_RUN:                                                      /* D1 mode, check the highest priority request */
+            u8Chime_MaxID = (UINT8)CHIME_IGON_MAXID;
+
+            for (u8LoopCount = (UINT8)CHIME_REQ_D1_MINID; u8LoopCount <= (UINT8)CHIME_REQ_D1_MAXID; u8LoopCount++)
+            {
+                if ((UINT8)FALSE != gs_u8Chime_WarnInput_Req[u8LoopCount])
+                {
+                    u8LoopChimeID = gs_u8Chime_NotPopUp_Tbl[u8LoopCount];
+
+                    if ((u8LoopChimeID <= u8Chime_MaxID)
+                        && (gs_tChime_D1Data_Tbl[u8LoopChimeID].u8Priority < u8TempPriority))
+                    {
+                        u8TempChimeSort = u8LoopChimeID;
+                        u8TempPriority = gs_tChime_D1Data_Tbl[u8LoopChimeID].u8Priority;
+                    }
+                }
+            }
+            break;
+
+        case eIGN_OFF:                                                      /* D2 mode, check the highest priority request */
+            u8Chime_MaxID = (UINT8)CHIME_IGOFF_MAXID;
+
+            for (u8LoopCount = (UINT8)CHIME_REQ_D2_MINID; u8LoopCount <= (UINT8)CHIME_REQ_D2_MAXID; u8LoopCount++)
+            {
+                if ((UINT8)FALSE != gs_u8Chime_WarnInput_Req[u8LoopCount])
+                {
+                    u8LoopChimeID = gs_u8Chime_NotPopUp_Tbl[u8LoopCount];
+
+                    if ((u8LoopChimeID <= u8Chime_MaxID)
+                        && (gs_tChime_D2Data_Tbl[u8LoopChimeID].u8Priority < u8TempPriority))
+                    {
+                        u8TempChimeSort = u8LoopChimeID;
+                        u8TempPriority = gs_tChime_D2Data_Tbl[u8LoopChimeID].u8Priority;
+                    }
+                }
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    return (u8TempChimeSort);                                                  /* return the highest priority request */
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_ComparePrio__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_ComparePrio__(void)
+{
+    UINT8 u8LoopCount = (UINT8)STD_INT_ZERO;
+    UINT8 u8LoopChimeID = (UINT8)STD_INT_ZERO;
+    UINT8 u8TempChimeRespType = (UINT8)CHIME_RESP_NONE;
+    UINT8 u8TempPriority = (UINT8)CHIME_SORT_NULL;
+    UINT8 u8Chime_MaxID = (UINT8)0;
+
+    switch (gs_eChime_KeySts)
+    {
+        case eIGN_RUN:                                                      /* D1 mode, check the highest priority request */
+            u8Chime_MaxID = (UINT8)CHIME_IGON_MAXID;
+
+            for (u8LoopCount = (UINT8)STD_INT_ZERO; u8LoopCount < (UINT8)CHIME_RESP_NUM; u8LoopCount++)
+            {
+                if ((UINT8)FALSE != gs_tChimeRespData[u8LoopCount].bChime_RespCheck)
+                {
+                    u8LoopChimeID = gs_tChimeRespData[u8LoopCount].u8Chime_RespID;
+
+                    if ((u8LoopChimeID <= u8Chime_MaxID)
+                        && (gs_tChime_D1Data_Tbl[u8LoopChimeID].u8Priority < u8TempPriority))
+                    {
+                        u8TempChimeRespType = u8LoopCount;
+                        u8TempPriority = gs_tChime_D1Data_Tbl[u8LoopChimeID].u8Priority;
+                    }
+                }
+            }
+            break;
+
+        case eIGN_OFF:                                                      /* D2 mode, check the highest priority request */
+            u8Chime_MaxID = (UINT8)CHIME_IGOFF_MAXID;
+
+            for (u8LoopCount = (UINT8)STD_INT_ZERO; u8LoopCount < (UINT8)CHIME_RESP_NUM; u8LoopCount++)
+            {
+                if ((UINT8)FALSE != gs_tChimeRespData[u8LoopCount].bChime_RespCheck)
+                {
+                    u8LoopChimeID = gs_tChimeRespData[u8LoopCount].u8Chime_RespID;
+
+                    if ((u8LoopChimeID <= u8Chime_MaxID)
+                        && (gs_tChime_D2Data_Tbl[u8LoopChimeID].u8Priority < u8TempPriority))
+                    {
+                        u8TempChimeRespType = u8LoopCount;
+                        u8TempPriority = gs_tChime_D2Data_Tbl[u8LoopChimeID].u8Priority;
+                    }
+                }
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    gs_u8Chime_Respond = u8TempChimeRespType;
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_ClearInputSts__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_ClearInputSts__(void)
+{
+    UINT8 u8LoopCount = (UINT8)STD_INT_ZERO;
+
+    for (u8LoopCount = (UINT8)STD_INT_ZERO; u8LoopCount < (UINT8)CHIME_REQ_TOTAL_NUM; u8LoopCount++)
+    {
+        gs_u8Chime_WarnInput[u8LoopCount] = (UINT8)FALSE;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_ClearInputLast__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_ClearInputLast__(void)
+{
+    UINT8 u8LoopCount = (UINT8)STD_INT_ZERO;
+
+    for (u8LoopCount = (UINT8)STD_INT_ZERO; u8LoopCount < (UINT8)CHIME_REQ_TOTAL_NUM; u8LoopCount++)
+    {
+        gs_u8Chime_WarnInput_Last[u8LoopCount] = (UINT8)FALSE;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_ClearInputReq__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_ClearInputReq__(void)
+{
+    UINT8 u8LoopCount = (UINT8)STD_INT_ZERO;
+
+    for (u8LoopCount = (UINT8)STD_INT_ZERO; u8LoopCount < (UINT8)CHIME_REQ_TOTAL_NUM; u8LoopCount++)
+    {
+        gs_u8Chime_WarnInput_Req[u8LoopCount] = (UINT8)FALSE;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_ClearCounter__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_ClearCounter__(void)
+{
+    gs_u8Rvs_Mt_RawCount = (UINT8)0;                                           /* counter for MT Reverse */
+    gs_u16Chime_DoorOpenCount = (UINT16)0;                                     /* counter for door open */
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_ClearTempSts__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_ClearTempSts__(void)
+{
+    UINT8 u8Index = (UINT8)0;
+
+    gs_u8Ems_Actual_Gear = 0;
+    gs_u8Valid_Actual_Gear = 0;
+    gs_u8Rvs_Mt_RawInput = 0;
+    gs_u8Rvs_Warn = 0;
+    gs_u8Rvs_WarnLast = 0;
+    gs_u8Chime_RvsCount = 0;
+
+    gs_u8Pas_SysSts = 0;
+    gs_u8Rear_Distance = 0;
+
+    gs_u8Chime_DoorOpen = 0;
+    gs_u8Chime_SeatBelt = 0;
+    gs_u8Chime_OverSpeed = 0;
+    gs_u8Chime_DoorOpen_Last = 0;
+//    gs_u8Chime_SeatBelt_Last = 0;
+     gs_u8Chime_ParkBrake = 0;
+    gs_u8Chime_DoorWarn = (UINT8)FALSE;
+
+    gs_u8Chime_MenuFlag = (UINT8)FALSE;
+    gs_u8Chime_ParkBrakeFlag = (UINT8)FALSE;
+    gs_u8Chime_OverSpeedFlag = (UINT8)FALSE;
+    gs_u8Chime_SeatBeltFlag = (UINT8)FALSE;
+    //gs_u8Chime_PCW = (UINT8)PCW_Inactive;
+    gs_u8Chime_PopLast = (UINT8)CHIME_SORT_NULL;
+    gs_u8Chime_PopLast_Mid = (UINT8)CHIME_SORT_NULL;
+
+    gs_u8Chime_TurnLeft = 0;
+    gs_u8Chime_TurnRight = 0;
+    gs_u8Chime_TurnLeft_Last = 0;
+    gs_u8Chime_TurnRight_Last = 0;
+
+    gs_u8Chime_TurnDis = TRUE;
+	gs_u8Chime_TurnEnCount = 0;
+	gs_u8Chime_TurnOpenClose = TRUE;
+
+    for (u8Index = (UINT8)0; u8Index < (UINT8)CHIME_SPLREQ_NUM; u8Index++)
+    {
+        gs_u8Chime_SplReq_Tbl[u8Index] = (UINT8)0;
+    }
+    gs_u8Chime_CurWrnArea = 0;
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_ClearTempStsVol__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_ClearTempStsVol__(void)                                  /* Add function for voltage abnormal */
+{
+    gs_u8Ems_Actual_Gear = 0;
+    gs_u8Valid_Actual_Gear = 0;
+    gs_u8Rvs_Mt_RawInput = 0;
+    gs_u8Rvs_Warn = 0;
+    gs_u8Rvs_WarnLast = 0;
+    gs_u8Chime_RvsCount = 0;
+
+    gs_u8Pas_SysSts = 0;
+    gs_u8Rear_Distance = 0;
+
+    gs_u8Chime_DoorOpen = 0;
+    gs_u8Chime_SeatBelt = 0;
+    gs_u8Chime_OverSpeed = 0;
+    gs_u8Chime_DoorOpen_Last = 0;
+//    gs_u8Chime_SeatBelt_Last = 0;
+	
+
+    gs_u8Chime_TurnLeft = 0;
+    gs_u8Chime_TurnRight = 0;
+    gs_u8Chime_TurnLeft_Last = 0;
+    gs_u8Chime_TurnRight_Last = 0;
+
+    gs_u8Chime_TurnDis = TRUE;
+	gs_u8Chime_TurnEnCount = 0;
+	gs_u8Chime_TurnOpenClose = TRUE;
+
+    //gs_u8Chime_PCW = (UINT8)PCW_Inactive;
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_CheckCplt__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_CheckCplt__(void)
+{
+    UINT8 u8Chime_MaxID = (UINT8)0;
+
+    if (eIGN_RUN == gs_eChime_KeySts)                                       /* D1 mode */
+    {
+        u8Chime_MaxID = (UINT8)CHIME_IGON_MAXID;
+
+        if ((CHIME_CLEAR == gs_u8ChimeDrvSts)                                  /* sound driver state completed, clear request */
+            && (CHIME_CLEAR != gs_u8ChimeDrvSts_Last)                          /* last sound driver state */
+            && (gs_u8CurChimeSort <= u8Chime_MaxID))                           /* chime ID is valid */
+        {
+            gs_u8Chime_WarnInput_Req[gs_tChime_D1Data_Tbl[gs_u8CurChimeSort].u8ChimeReqType] = FALSE;
+        }
+    }
+    else                                                                       /* D2 mode */
+    {
+        u8Chime_MaxID = (UINT8)CHIME_IGOFF_MAXID;
+
+        if ((CHIME_CLEAR == gs_u8ChimeDrvSts)                                  /* sound driver state completed, clear request */
+            && (CHIME_CLEAR != gs_u8ChimeDrvSts_Last)                          /* last sound driver state */
+            && (gs_u8CurChimeSort <= u8Chime_MaxID))                           /* chime ID is valid */
+        {
+            gs_u8Chime_WarnInput_Req[gs_tChime_D2Data_Tbl[gs_u8CurChimeSort].u8ChimeReqType] = FALSE;
+
+            if ((CHIME_D2_KEY_OUT == gs_u8CurChimeSort)                        /* defect #801376 */
+                || (CHIME_D2_PARK_LIGHT == gs_u8CurChimeSort))
+            {
+                gs_u8CurChimeSort = (UINT8)CHIME_SORT_NULL;
+            }
+        }
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_CheckDrvSts__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_CheckDrvSts__(void)
+{
+    UINT8 u8NewChimeSort = (UINT8)0;
+    UINT8 u8Chime_WarnID1 = (UINT8)0;
+    UINT8 u8Chime_WarnID2 = (UINT8)0;
+    BOOL bPopUpCheck1 = FALSE;
+    BOOL bPopUpCheck2 = FALSE;
+    BOOL bNotPopUpCheck = FALSE;
+    BOOL bTurnCheck = FALSE;
+
+    Chime_Mgr_GetWarnPreReq__(&u8Chime_WarnID1);                               /* main pop up warning, get Pre-Request */
+    bPopUpCheck1 = Chime_Mgr_CheckPopUp__(u8Chime_WarnID1, 0);                 /* main pop up warning, check if request is valid */
+    Chime_Mgr_GetWarnPreReq_Mid__(&u8Chime_WarnID2);                           /* middle pop up warning, get Pre-Request */
+    bPopUpCheck2 = Chime_Mgr_CheckPopUp__(u8Chime_WarnID2, 1);                 /* middle pop up warning, check if request is valid */
+
+    u8NewChimeSort = Chime_Mgr_FindHighPrio__();                               /* get highest request of Not Pop Up */
+    bNotPopUpCheck = Chime_Mgr_CheckNotPopUp__(u8NewChimeSort);                /* check if Not Pop Up request is valid */
+                                                                               /* check if can respond to Turn Left/Right */
+    //bTurnCheck = Chime_Mgr_CheckTurnLed__((UINT8)bPopUpCheck1, (UINT8)bPopUpCheck2,
+      //  (UINT8)bNotPopUpCheck, u8NewChimeSort);
+#if 0 
+   //test
+   gs_u8Chime_Respond = CHIME_RESP_NOT_POPUP;
+   gs_u8CurChimeSort = 2;  //last request
+   u8NewChimeSort = 1;	   //new request
+																			   
+#endif
+
+    if (TRUE == bTurnCheck)                                                    /* directly respond to Turn Left/Right */
+    {
+        Chime_Out_StartSound__(u8NewChimeSort);
+        gs_u8ChimeWarnSts = (UINT8)CHIME_BUSY;
+        gs_eChimeProcSts = CHIME_PROC_PREREQ;
+    }
+    else                                                                       /* check sound state to synchronize with warning */
+    {
+        if (CHIME_CLEAR == gs_u8ChimeDrvSts)                                   /* sound driver state idle */
+        {
+            gs_u8Chime_CurWrnArea = 0;
+            gs_u8CurChimeSort = CHIME_SORT_NULL;
+            gs_u8ChimeWarnSts = (UINT8)CHIME_IDLE;
+            gs_eChimeProcSts = CHIME_PROC_REQ;                                 /* change state to process real warning pop up request */
+        }
+        else                                                                   /* unexpected sound driver state, not allowed to interrupt */
+        {
+            gs_u8ChimeWarnSts = (UINT8)CHIME_BUSY;
+        }
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_CheckDrvSts__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_Input2Req__(void)
+{
+    UINT8 u8LoopCount = (UINT8)STD_INT_ZERO;
+    UINT8 u8RecoverType;
+
+    /* loop request */
+    for(u8LoopCount = (UINT8)STD_INT_ZERO; u8LoopCount < (UINT8)CHIME_REQ_NOT_POPUP_NUM; u8LoopCount++)
+    {
+        u8RecoverType = gs_tChime_ReqType[u8LoopCount].u8ChimeRecover;
+
+        if (CHIME_REQ_RESP_ONCE == u8RecoverType)                              /* respond once, can be interrupted */
+        {
+            if (((UINT8)FALSE == gs_u8Chime_WarnInput_Last[u8LoopCount])
+                && ((UINT8)TRUE == gs_u8Chime_WarnInput[u8LoopCount]))
+            {
+                gs_u8Chime_WarnInput_Req[u8LoopCount] = (UINT8)TRUE;           /* input OFF -> ON, set request */
+            }
+            else if (((UINT8)TRUE == gs_u8Chime_WarnInput_Last[u8LoopCount])
+                && ((UINT8)FALSE == gs_u8Chime_WarnInput[u8LoopCount]))
+            {
+                gs_u8Chime_WarnInput_Req[u8LoopCount] = (UINT8)FALSE;          /* input ON -> OFF, clear request */
+            }
+            else
+            {
+                ;
+            }
+        }
+                                                                               /* keep last input status */
+        gs_u8Chime_WarnInput_Last[u8LoopCount] =  gs_u8Chime_WarnInput[u8LoopCount];
+    }
+
+    /* Special chime request processing */
+    Chime_Mgr_Special_In2Req__();
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_Special_In2Req__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_Special_In2Req__(void)
+{
+   UINT8 u8Highest_ReqID = (UINT8)0;
+
+    gs_u8Chime_WarnInput_Req[CHIME_REQID_DOOR_OPEN] = (UINT8)FALSE;            /* all initialize as FALSE, only one can set TRUE */
+    //gs_u8Chime_WarnInput_Req[CHIME_REQID_OVER_SPEED] = (UINT8)FALSE;
+    gs_u8Chime_WarnInput_Req[CHIME_REQID_SEATBELT] = (UINT8)FALSE;
+    //gs_u8Chime_WarnInput_Req[CHIME_REQID_PARKBRAKE] = (UINT8)FALSE;
+#if 0
+    /* ========= Seat Belt ==================== */
+    if (((UINT8)FALSE == gs_u8Chime_SeatBelt_Last)                             /* start to respond seatbelt */
+        && ((UINT8)TRUE == gs_u8Chime_SeatBelt))
+    {
+        gs_u8Chime_SplReq_Tbl[CHIME_SPLREQ_SEATBELT] = (UINT8)3;
+        Chime_Mgr_Special_Priority__((UINT8)CHIME_SPLREQ_SEATBELT);
+    }
+    else if ((UINT8)FALSE == gs_u8Chime_SeatBelt)                              /* seatbelt relieve */
+    {
+        gs_u8Chime_SplReq_Tbl[CHIME_SPLREQ_SEATBELT] = (UINT8)0;
+    }
+    else
+    {
+        ;
+    }
+#endif
+#if 0
+    /* ========= Over Speed ==================== */
+    if (((UINT8)FALSE == gs_u8Chime_OverSpeed_Last)                            /* start to respond over speed */
+        && ((UINT8)TRUE == gs_u8Chime_OverSpeed))
+    {
+        gs_u8Chime_SplReq_Tbl[CHIME_SPLREQ_OVERSPEED] = (UINT8)3;
+        Chime_Mgr_Special_Priority__((UINT8)CHIME_SPLREQ_OVERSPEED);
+    }
+    else if ((UINT8)FALSE == gs_u8Chime_OverSpeed)                             /* overspeed relieve */
+    {
+        gs_u8Chime_SplReq_Tbl[CHIME_SPLREQ_OVERSPEED] = (UINT8)0;
+    }
+    else
+    {
+        ;
+    }
+#endif
+    /* ========= Door Open ==================== */
+    if (((UINT8)TRUE == gs_u8Chime_WarnInput[CHIME_REQID_DOOR_OPEN])           /* start to respond door open */
+        && ((UINT16)1 == gs_u16Chime_DoorOpenCount))
+    {
+        if (gs_u8Chime_SplReq_Tbl[CHIME_SPLREQ_DOOROPEN] != (UINT8)3)
+        {
+            Chime_Mgr_Special_Priority__((UINT8)CHIME_SPLREQ_DOOROPEN);
+        }
+
+        gs_u8Chime_SplReq_Tbl[CHIME_SPLREQ_DOOROPEN] = (UINT8)3;
+    }
+    else if ((UINT8)FALSE == gs_u8Chime_WarnInput[CHIME_REQID_DOOR_OPEN])       /* door open relieve */
+    {
+        gs_u8Chime_SplReq_Tbl[CHIME_SPLREQ_DOOROPEN] = (UINT8)0;
+    }
+    else
+    {
+        ;
+    }
+
+    /* ========= Special Priority Judge ==================== */
+    u8Highest_ReqID = Chime_Mgr_Special_CheckReq__();                          /* check highest priority */
+
+    if ((UINT8)0xFF != u8Highest_ReqID)                                        /* set request */
+    {
+        switch (u8Highest_ReqID)
+        {
+            case CHIME_SPLREQ_DOOROPEN:                                        /* door open */
+                gs_u8Chime_WarnInput_Req[CHIME_REQID_DOOR_OPEN] = (UINT8)TRUE;
+                break;
+
+            case CHIME_SPLREQ_OVERSPEED:                                       /* over speed */
+                //gs_u8Chime_WarnInput_Req[CHIME_REQID_OVER_SPEED] = (UINT8)TRUE;
+                break;
+
+            default:
+                break;
+        }
+    }
+    else if ((UINT8)TRUE == gs_u8Chime_SeatBelt)                               /* seat belt */
+    {
+        gs_u8Chime_WarnInput_Req[CHIME_REQID_SEATBELT] = (UINT8)TRUE;
+    }
+    else if ((UINT8)TRUE == gs_u8Chime_ParkBrake)                              /* park brake */
+    {
+        //gs_u8Chime_WarnInput_Req[CHIME_REQID_PARKBRAKE] = (UINT8)TRUE;
+    }
+    else
+    {
+        ;
+    }
+
+    /* ========= Record Last Status ==================== */
+//    gs_u8Chime_SeatBelt_Last =  gs_u8Chime_SeatBelt;
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_Special_Priority__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_Special_Priority__(UINT8 u8SplReqID)
+{
+    UINT8 u8Index = (UINT8)STD_INT_ZERO;
+
+    for (u8Index = (UINT8)STD_INT_ZERO; u8Index < (UINT8)CHIME_SPLREQ_NUM; u8Index++)
+    {
+        if ((u8Index != u8SplReqID)                                            /* keep priority for new request */
+            && (gs_u8Chime_SplReq_Tbl[u8Index] > (UINT8)1))                    /* check if old request exist */
+        {
+            gs_u8Chime_SplReq_Tbl[u8Index]--;                                  /* lower priority for old request */
+        }
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_Special_CheckReq__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static UINT8 Chime_Mgr_Special_CheckReq__(void)
+{
+    UINT8 u8Index = (UINT8)STD_INT_ZERO;
+    UINT8 u8HighestPro = (UINT8)0;
+    UINT8 u8Ret = (UINT8)0xFF;
+
+    for (u8Index = (UINT8)STD_INT_ZERO; u8Index < (UINT8)CHIME_SPLREQ_NUM; u8Index++)
+    {
+        if (gs_u8Chime_SplReq_Tbl[u8Index] > (UINT8)u8HighestPro)              /* check if higher priority request exist */
+        {
+            u8HighestPro = gs_u8Chime_SplReq_Tbl[u8Index];                     /* set as current highest priority */
+            u8Ret = u8Index;
+        }
+    }
+
+    return (u8Ret);                                                            /* highest priority request ID */
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_ProcRoutine__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_ProcRoutine__(void)
+{
+    if (gs_eChime_KeySts_Last != gs_eChime_KeySts)                             /* check if power mode switch */
+    {
+        (void)Rte_Call_tiCS_TISndCdd_RequestToStop(gs_u8CurChimeResID, (UINT8)CHIME_STOP_IMMI);  /* stop current sound */
+        gs_u8CurChimeSort = (UINT8)CHIME_SORT_NULL;
+        gs_eChimeProcSts = CHIME_PROC_DRVSTS;                                  /* change state to read sound driver status */
+
+        Chime_Mgr_ClearInputSts__();                                           /* clear input status */
+        Chime_Mgr_ClearInputLast__();
+        Chime_Mgr_ClearInputReq__();
+        Chime_Mgr_ClearCounter__();
+        Chime_Mgr_ClearTempSts__();
+    }
+    else                                                                       /* no power mode switch, normal process */
+    {
+        Chime_Mgr_Arbitrate__();
+    }
+
+    gs_eChime_KeySts_Last = gs_eChime_KeySts;                                  /* keep last power mode status */
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_Arbitrate__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_Arbitrate__(void)
+{
+	uint8 fl_signal_value_fuel_level_U8;
+
+    //Chime_Mgr_CheckCplt__();                                                   /* check if current sound complete(cplt) */
+    //Chime_Mgr_Input2Req__();                                                   /* convert input to chime request */
+
+#if 0
+    if (eIGN_RUN == gs_eChime_KeySts)
+    {
+        Chime_Read_Welcome_Animation(&gs_u8Chime_TurnOpenClose);
+    }
+    else if (eIGN_OFF == gs_eChime_KeySts)
+    {
+        Chime_Read_Close_Animation(&gs_u8Chime_TurnOpenClose);
+    }
+    else
+    {
+        ;
+    }
+
+    if (TRUE == gs_u8Chime_TurnOpenClose)
+	{
+	    gs_u8Chime_TurnDis = TRUE;
+		gs_u8Chime_TurnEnCount = 0;
+	}
+    else
+    {
+		if (gs_u8Chime_TurnEnCount >= 15)             /* Time Protect, Turn Left/Right Sound can work normally */
+		{
+        	gs_u8Chime_TurnDis = FALSE;
+		}
+		else if (gs_u8Chime_TurnEnCount >= 2)        /* Time Protect, Sychronize with TT */
+		{
+		    gs_u8Chime_TurnEnCount++;
+			if ((FALSE == gs_u8Chime_TurnLeft) && (FALSE == gs_u8Chime_TurnRight))
+			{
+        		gs_u8Chime_TurnDis = FALSE;
+				gs_u8Chime_TurnEnCount = 0;
+			}
+		}
+		else
+		{
+			gs_u8Chime_TurnEnCount++;
+		}
+    }
+
+	if (TRUE == gs_u8Chime_TurnDis)
+	{
+		gs_u8Chime_WarnInput_Req[CHIME_REQID_TURN_TICK] = FALSE;
+		gs_u8Chime_WarnInput_Req[CHIME_REQID_TURN_TOC] = FALSE;
+		gs_u8Chime_WarnInput_Req[CHIME_REQID_D2_TICK] = FALSE;
+		gs_u8Chime_WarnInput_Req[CHIME_REQID_D2_TOC] = FALSE;
+	}
+	
+	Rte_Read_rpSR_CANMSG_GW_PT2_ComIn_EMS_Fuelevel(&fl_signal_value_fuel_level_U8);
+	if(fl_signal_value_fuel_level_U8 >= CHIME_REQ_TOTAL_NUM)
+	{
+		fl_signal_value_fuel_level_U8 = CHIME_REQ_TOTAL_NUM - 1;
+	}
+	
+#endif
+
+	//Chime_Mgr_ClearInputReq__();
+	//gs_u8Chime_WarnInput_Req[fl_signal_value_fuel_level_U8] = TRUE;
+    switch (gs_eChimeProcSts)
+    {
+        case CHIME_PROC_PREREQ:                                                /* process pop up Pre-Request */
+            Chime_Mgr_Proc_PreReq__(); 
+            break;
+
+        case CHIME_PROC_DRVSTS:
+            Chime_Mgr_CheckDrvSts__();                                         /* check sound driver state */
+            break;
+
+        case CHIME_PROC_REQ:
+            Chime_Mgr_Proc_RealReq__();                                        /* process pop up Real Request */
+            break;
+
+        default:
+            gs_eChimeProcSts = CHIME_PROC_PREREQ;                              /* change state to process warning pop up Pre-Request */
+            break;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_GetWarnPreReq__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_GetWarnPreReq__(UINT8 *a_u8PreReq) /* get a_u8PreReq ID from WarningMdl,is a index*/
+{
+    UINT8 u8WarningID = (UINT8)CHIME_SORT_NULL;
+
+    switch (gs_eChime_KeySts)                                                  /* get pop up Pre-Request */
+    {
+        case eIGN_RUN:                                                      /* D1 mode */
+            //(void)Rte_Read_rpSR_TIWrnLogical_Output_D1_Chime_Request(&u8WarningID);
+
+            if (u8WarningID < (UINT8)CHIME_WARN_D1_NUM)                        /* warning ID is valid */
+            {                                                                  /* look up for chime ID */
+                (*a_u8PreReq) = gs_tChime_D1_Warn2Chime[u8WarningID].u8Chime_ChimeID;
+            }
+            else if ((UINT8)CHIME_SORT_STOP == u8WarningID)                    /* stop request */
+            {
+                (*a_u8PreReq) = (UINT8)CHIME_SORT_STOP;
+            }
+            else
+            {
+                (*a_u8PreReq) = (UINT8)CHIME_SORT_NULL;
+            }
+            break;
+
+        case eIGN_OFF:                                                      /* D2 mode */
+            //(void)Rte_Read_rpSR_TIWrnLogical_Output_D2_Chime_Request(&u8WarningID);
+
+            if (u8WarningID < (UINT8)CHIME_WARN_D2_NUM)                        /* warning ID is valid */
+            {                                                                  /* look up for chime ID */
+                (*a_u8PreReq) = gs_tChime_D2_Warn2Chime[u8WarningID].u8Chime_ChimeID;
+            }
+            else if ((UINT8)CHIME_SORT_STOP == u8WarningID)                    /* stop request */
+            {
+                (*a_u8PreReq) = (UINT8)CHIME_SORT_STOP;
+            }
+            else
+            {
+                (*a_u8PreReq) = (UINT8)CHIME_SORT_NULL;
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_GetWarnRealReq__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_GetWarnRealReq__(UINT8 *a_u8RealReq)
+{
+    UINT8 u8WarningID = (UINT8)CHIME_SORT_NULL;
+
+    switch (gs_eChime_KeySts)                                                  /* get pop up Real Request */
+    {
+        case eIGN_RUN:                                                      /* D1 mode */
+            //(void)Rte_Read_rpSR_TIWrnLogical_Output_D1_Chime_Id(&u8WarningID);
+
+            if (u8WarningID < (UINT8)CHIME_WARN_D1_NUM)                        /* warning ID is valid */
+            {                                                                  /* look up for chime ID */
+                (*a_u8RealReq) = gs_tChime_D1_Warn2Chime[u8WarningID].u8Chime_ChimeID;
+            }
+            else if ((UINT8)CHIME_SORT_STOP == u8WarningID)                    /* stop request */
+            {
+                (*a_u8RealReq) = (UINT8)CHIME_SORT_STOP;
+            }
+            else
+            {
+                (*a_u8RealReq) = (UINT8)CHIME_SORT_NULL;
+            }
+            break;
+
+        case eIGN_OFF:                                                      /* D2 mode */
+            //(void)Rte_Read_rpSR_TIWrnLogical_Output_D2_Chime_Id(&u8WarningID);
+
+            if (u8WarningID < (UINT8)CHIME_WARN_D2_NUM)                        /* warning ID is valid */
+            {                                                                  /* look up for chime ID */
+                (*a_u8RealReq) = gs_tChime_D2_Warn2Chime[u8WarningID].u8Chime_ChimeID;
+            }
+            else if ((UINT8)CHIME_SORT_STOP == u8WarningID)                    /* stop request */
+            {
+                (*a_u8RealReq) = (UINT8)CHIME_SORT_STOP;
+            }
+            else
+            {
+                (*a_u8RealReq) = (UINT8)CHIME_SORT_NULL;
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_GetWarnPreReq__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_GetWarnPreReq_Mid__(UINT8 *a_u8PreReq)
+{
+    UINT8 u8WarningID = (UINT8)CHIME_SORT_NULL;
+
+    switch (gs_eChime_KeySts)                                                  /* middle pop up warning, get Pre-Request */
+    {
+        case eIGN_RUN:                                                      /* D1 mode */
+            //(void)Chime_Read_Middle_Request(&u8WarningID);
+
+            if (u8WarningID < (UINT8)CHIME_WARN_D1_NUM)                        /* warning ID is valid */
+            {                                                                  /* look up for chime ID */
+                (*a_u8PreReq) = gs_tChime_D1_Warn2Chime[u8WarningID].u8Chime_ChimeID;
+            }
+            else if ((UINT8)CHIME_SORT_STOP == u8WarningID)                    /* stop request */
+            {
+                (*a_u8PreReq) = (UINT8)CHIME_SORT_STOP;
+            }
+            else
+            {
+                (*a_u8PreReq) = (UINT8)CHIME_SORT_NULL;
+            }
+            break;
+
+        case eIGN_OFF:                                                      /* D2 mode */
+            (*a_u8PreReq) = (UINT8)CHIME_SORT_NULL;
+            break;
+
+        default:
+            break;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_GetWarnRealReq__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_GetWarnRealReq_Mid__(UINT8 *a_u8RealReq)
+{
+    UINT8 u8WarningID = (UINT8)CHIME_SORT_NULL;
+
+    switch (gs_eChime_KeySts)                                                  /* get pop up Real Request */
+    {
+        case eIGN_RUN:                                                      /* D1 mode */
+            //(void)Chime_Read_Middle_Chime_Id(&u8WarningID);
+
+            if (u8WarningID < (UINT8)CHIME_WARN_D1_NUM)                        /* warning ID is valid */
+            {                                                                  /* look up for chime ID */
+                (*a_u8RealReq) = gs_tChime_D1_Warn2Chime[u8WarningID].u8Chime_ChimeID;
+            }
+            else if ((UINT8)CHIME_SORT_STOP == u8WarningID)                    /* stop request */
+            {
+                (*a_u8RealReq) = (UINT8)CHIME_SORT_STOP;
+            }
+            else
+            {
+                (*a_u8RealReq) = (UINT8)CHIME_SORT_NULL;
+            }
+            break;
+
+        case eIGN_OFF:                                                      /* D2 mode */
+            (*a_u8RealReq) = (UINT8)CHIME_SORT_NULL;
+            break;
+
+        default:
+            break;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_CheckPopUp__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static BOOL Chime_Mgr_CheckPopUp__                                             /* defect #801190 */
+(
+    UINT8 u8Chime_WarnID,
+    UINT8 u8ChimePopUpArea
+)
+{
+    UINT8 u8Chime_MaxID;
+	UINT8 u8OpenClose;
+    BOOL bRet = FALSE;
+    UINT8 u8LastPopUp;
+    UINT8 u8TmpPopUp;
+    UINT8 u8PopUpFlag;
+    UINT8 u8WarnInputReq;
+
+    if ((UINT8)0 == u8ChimePopUpArea)                                          /* main pop up area */
+    {
+        u8LastPopUp = gs_u8Chime_PopLast;
+        u8TmpPopUp = gs_u8Chime_TmpPopLast;
+        u8PopUpFlag = gs_u8Chime_PopLast_Flag;
+        u8WarnInputReq = gs_u8Chime_WarnInput_Req[CHIME_REQID_POPUP1];
+    }
+    else                                                                       /* middle pop up area */
+    {
+        u8LastPopUp = gs_u8Chime_PopLast_Mid;
+        u8TmpPopUp = gs_u8Chime_TmpPopMid;
+        u8PopUpFlag = gs_u8Chime_PopMid_Flag;
+        u8WarnInputReq = gs_u8Chime_WarnInput_Req[CHIME_REQID_POPUP2];
+    }
+
+    /* check if pop up warning ID is valid */
+    if (eIGN_RUN == gs_eChime_KeySts)                                       /* D1 mode */
+    {
+        u8Chime_MaxID = (UINT8)CHIME_IGON_MAXID;
+
+        if ((u8Chime_WarnID <= u8Chime_MaxID)                                  /* chime ID is valid */
+            && (CHIME_SET_WARN == gs_tChime_D1Data_Tbl[u8Chime_WarnID].u8ChimeInputType) /* pop up warning */
+            && (eSnd_NoChimeID != gs_tChime_D1Data_Tbl[u8Chime_WarnID].u8ChimeResID))    /* need to play sound */
+        {
+            bRet = TRUE;
+        }
+        else
+        {
+            ;
+        }
+    }
+    else                                                                       /* D2 mode */
+    {
+        u8Chime_MaxID = (UINT8)CHIME_IGOFF_MAXID;
+
+        if ((u8Chime_WarnID <= u8Chime_MaxID)                                  /* chime ID is valid */
+            && (CHIME_SET_WARN == gs_tChime_D2Data_Tbl[u8Chime_WarnID].u8ChimeInputType) /* pop up warning */
+            && (eSnd_NoChimeID != gs_tChime_D2Data_Tbl[u8Chime_WarnID].u8ChimeResID))    /* need to play sound */
+        {
+            bRet = TRUE;
+        }
+        else
+        {
+            ;
+        }
+    }
+
+#if 1
+    /* defect #856609, check if current pop up sound completed */
+    if (u8TmpPopUp != u8Chime_WarnID)                                          /* warning ID changed */
+    {
+        u8PopUpFlag = FALSE;                                                   /* clear flag */
+    }
+
+    if ((FALSE == u8WarnInputReq)                                              /* pop up sound completed */ /*&& (u8OpenClose != u8Chime_WarnID)   not open/close anime */
+        && (u8LastPopUp == u8Chime_WarnID)                                     /* pop up warning ID not changed */
+        && (TRUE == u8PopUpFlag))                                              /* have been responded */
+    {
+        bRet = FALSE;                                                          /* don't respond to the same pop up warning */
+    }
+#endif
+
+    if (((CHIME_D2_KEY_OUT == u8Chime_WarnID)                                  /* D2 mode, key out and park light */
+        || (CHIME_D2_PARK_LIGHT == u8Chime_WarnID))                            /* always need to respond */
+        && (eIGN_OFF == gs_eChime_KeySts))
+    {
+        bRet = TRUE;
+    }
+
+    /* check if SeatBelt/Parking Brake pop up start to respond */
+#if 0
+    if ((UINT8)CHIME_OVER_SPEED == u8Chime_WarnID)                             /* over speed warning start to display */
+    {
+        gs_u8Chime_OverSpeedFlag = (UINT8)TRUE;                                /* set flag to record */
+    }
+    else 
+#endif
+	if ((UINT8)CHIME_SEATBELT == u8Chime_WarnID)                          /* seat belt warning start to display */
+    {
+        gs_u8Chime_SeatBeltFlag = (UINT8)TRUE;                                 /* set flag to record */
+    }
+#if 0
+
+    else if ((UINT8)CHIME_PARK_BRAKE == u8Chime_WarnID)                        /* parking brake warning start to display */
+    {
+        gs_u8Chime_ParkBrakeFlag = (UINT8)TRUE;                                /* set flag to record */
+    }
+#endif
+    else
+    {
+        ;
+    }
+
+    if ((UINT8)0 == u8ChimePopUpArea)                                          /* keep data, main pop up area */
+    {
+        gs_u8Chime_TmpPopLast = u8Chime_WarnID;
+        gs_u8Chime_PopLast_Flag = u8PopUpFlag;
+    }
+    else                                                                       /* middle pop up area */
+    {
+        gs_u8Chime_TmpPopMid = u8Chime_WarnID;
+        gs_u8Chime_PopMid_Flag = u8PopUpFlag;
+    }
+
+    return (bRet);
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_CheckNotPopUp__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static BOOL Chime_Mgr_CheckNotPopUp__(UINT8 u8ChimeSort)
+{
+    BOOL bRet = FALSE;
+
+    if ((UINT8)CHIME_SORT_NULL != u8ChimeSort)                                 /* check if chime ID is valid */
+    {
+        bRet = TRUE;
+    }
+
+    return (bRet);
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_CheckTurnLed__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static BOOL Chime_Mgr_CheckTurnLed__
+(
+    UINT8 u8PopUp1_Flag,
+    UINT8 u8PopUp2_Flag,
+    UINT8 u8NotPopUp_Flag,
+    UINT8 u8NotPopUp_ChimeSort
+)
+{
+    BOOL bRet = FALSE;
+    BOOL bTurnReq = FALSE;
+    UINT8 u8TickDrvSts = (UINT8)CHIME_CLEAR;
+    UINT8 u8TocDrvSts = (UINT8)CHIME_CLEAR;
+                                                                               /* check Tick/Toc sound state */
+    (void)Rte_Call_tiCS_TISndCdd_CheckStatus(eSnd_A1_Turn, &u8TickDrvSts);
+    (void)Rte_Call_tiCS_TISndCdd_CheckStatus(eSnd_A2_Turn, &u8TocDrvSts);
+                                                                               /* check if there is Turn Left/Right request */
+    if ((CHIME_TURN_TICK == u8NotPopUp_ChimeSort) && (eIGN_RUN == gs_eChime_KeySts))
+    {
+        bTurnReq = TRUE;                                                       /* Turn Left/Right request exist */
+    }
+    else if (((CHIME_D2_TURN_TICK == u8NotPopUp_ChimeSort)
+        || (CHIME_D2_TURN_TOC == u8NotPopUp_ChimeSort))
+        && (eIGN_OFF == gs_eChime_KeySts))
+    {
+        bTurnReq = TRUE;                                                       /* Turn Left/Right request exist */
+    }
+    else
+    {
+        ;
+    }
+                                                                              /* check if can respond to Turn Left/Right */
+    if ((FALSE == u8PopUp1_Flag)                                               /* No Pop Up request */
+        && (FALSE == u8PopUp2_Flag)
+        && (TRUE == u8NotPopUp_Flag)
+        && (TRUE == bTurnReq)                                                  /* Turn Left/Right request exist */
+        && (CHIME_CLEAR == gs_u8ChimeDrvSts)                                   /* current sound state idle */
+        && (CHIME_CLEAR == u8TickDrvSts)                                       /* Tick/Toc sound state idle */
+        && (CHIME_CLEAR == u8TocDrvSts))
+    {
+        bRet = TRUE;
+    }
+
+    return (bRet);
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_Proc_PreReq__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_Proc_PreReq__(void)
+{
+    UINT8 u8NewChimeSort = (UINT8)0;
+    UINT8 u8Chime_WarnID1 = (UINT8)0;
+    UINT8 u8Chime_WarnID2 = (UINT8)0;
+    BOOL bPopUpCheck1 = FALSE;
+    BOOL bPopUpCheck2 = FALSE;
+    BOOL bNotPopUpCheck = FALSE;
+    BOOL bTurnCheck = FALSE;
+
+    Chime_Mgr_GetWarnPreReq__(&u8Chime_WarnID1);                               /* main pop up warning, get Pre-Request */
+    bPopUpCheck1 = Chime_Mgr_CheckPopUp__(u8Chime_WarnID1, 0);                 /* main pop up warning, check if request is valid */
+    Chime_Mgr_GetWarnPreReq_Mid__(&u8Chime_WarnID2);                           /* middle pop up warning, get Pre-Request */
+    bPopUpCheck2 = Chime_Mgr_CheckPopUp__(u8Chime_WarnID2, 1);                 /* middle pop up warning, check if request is valid */
+
+    u8NewChimeSort = Chime_Mgr_FindHighPrio__();                               /* get highest request of Not Pop Up */
+    bNotPopUpCheck = Chime_Mgr_CheckNotPopUp__(u8NewChimeSort);                /* check if Not Pop Up request is valid */
+
+    /* check chime respond type */
+    gs_tChimeRespData[CHIME_RESP_POPUP_01].bChime_RespCheck = bPopUpCheck1;
+    gs_tChimeRespData[CHIME_RESP_POPUP_02].bChime_RespCheck = bPopUpCheck2;
+    gs_tChimeRespData[CHIME_RESP_NOT_POPUP].bChime_RespCheck = bNotPopUpCheck;
+    gs_tChimeRespData[CHIME_RESP_POPUP_01].u8Chime_RespID = u8Chime_WarnID1;
+    gs_tChimeRespData[CHIME_RESP_POPUP_02].u8Chime_RespID = u8Chime_WarnID2;
+    gs_tChimeRespData[CHIME_RESP_NOT_POPUP].u8Chime_RespID = u8NewChimeSort;
+
+    Chime_Mgr_ComparePrio__();                                                 /* judge highest respond type */
+    /* check if can respond to Turn Left/Right */
+    //bTurnCheck = Chime_Mgr_CheckTurnLed__((UINT8)bPopUpCheck1, (UINT8)bPopUpCheck2,
+    //    (UINT8)bNotPopUpCheck, u8NewChimeSort);
+
+    /* judge current chime respond type */
+    switch (gs_u8Chime_Respond)
+    {
+        case CHIME_RESP_POPUP_01:
+            if (u8Chime_WarnID1 != gs_u8CurChimeSort)                          /* main pop up warning, New request */
+            {
+                (void)Rte_Call_tiCS_TISndCdd_RequestToStop(gs_u8CurChimeResID, (UINT8)CHIME_STOP_SU);
+                gs_eChimeProcSts = CHIME_PROC_DRVSTS;
+                gs_u8ChimeWarnSts = (UINT8)CHIME_BUSY;
+                gs_u8Chime_CurWrnArea = 3;
+            }
+            break;
+
+        case CHIME_RESP_POPUP_02:
+            if (u8Chime_WarnID2 != gs_u8CurChimeSort)                          /* middle pop up warning, New request */
+            {
+                (void)Rte_Call_tiCS_TISndCdd_RequestToStop(gs_u8CurChimeResID, (UINT8)CHIME_STOP_SU);
+                gs_eChimeProcSts = CHIME_PROC_DRVSTS;
+                gs_u8ChimeWarnSts = (UINT8)CHIME_BUSY;
+                gs_u8Chime_CurWrnArea = 3;
+            }
+            break;
+
+        case CHIME_RESP_NOT_POPUP:			
+			if (u8NewChimeSort != gs_u8CurChimeSort) 
+            //if (u8NewChimeSort != CHIME_SORT_NULL)                           /* Not pop up warning, New request */
+            {
+				Chime_Out_StartSound__(u8NewChimeSort);
+				//gs_eChimeProcSts = CHIME_PROC_DRVSTS;
+            	#if 0
+                if (FALSE == bTurnCheck)                                       /* directly respond to Turn Left/Right */
+                {
+                    (void)Rte_Call_tiCS_TISndCdd_RequestToStop(gs_u8CurChimeResID, (UINT8)CHIME_STOP_SU);
+                    gs_eChimeProcSts = CHIME_PROC_DRVSTS;
+                }
+                else                                                           /* stop sound to synchronize with warning */
+                {
+                    Chime_Out_StartSound__(u8NewChimeSort);
+                }
+				#endif
+#if 0
+                if (((UINT8)CHIME_USER_MENU1 == u8NewChimeSort)                /* respond to menu volume chime, set flag */
+                    || ((UINT8)CHIME_USER_MENU2 == u8NewChimeSort)
+                    || ((UINT8)CHIME_USER_MENU3 == u8NewChimeSort))
+                {
+                    gs_u8Chime_MenuFlag = (UINT8)TRUE;
+                }
+#endif
+                gs_u8ChimeWarnSts = (UINT8)CHIME_BUSY;
+            }
+            else                                                               /* Not pop up warning, Not New request */
+            {
+                gs_u8ChimeWarnSts = (UINT8)CHIME_IDLE;
+            }
+            break;
+
+        case CHIME_RESP_NONE:                                                  /* there is no chime request */
+        default:
+            if (CHIME_CLEAR != gs_u8ChimeDrvSts)                               /* check if need to stop sound */
+            {
+                (void)Rte_Call_tiCS_TISndCdd_RequestToStop(gs_u8CurChimeResID, (UINT8)CHIME_STOP_SU);
+                //gs_eChimeProcSts = CHIME_PROC_DRVSTS;
+                gs_u8ChimeWarnSts = (UINT8)CHIME_BUSY;
+            }
+            else
+            {
+                gs_u8CurChimeSort = CHIME_SORT_NULL;
+                gs_u8ChimeWarnSts = (UINT8)CHIME_IDLE;
+            }
+            break;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_Proc_RealReq__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_Proc_RealReq__(void)
+{
+    UINT8 u8NewChimeSort = (UINT8)0;
+    UINT8 u8Chime_WarnID1 = (UINT8)0;
+    UINT8 u8Chime_WarnID2 = (UINT8)0;
+    BOOL bPopUpCheck1 = FALSE;
+    BOOL bPopUpCheck2 = FALSE;
+    BOOL bNotPopUpCheck = FALSE;
+
+    Chime_Mgr_GetWarnRealReq__(&u8Chime_WarnID1);                              /* main pop up warning, get Pre-Request */
+    bPopUpCheck1 = Chime_Mgr_CheckPopUp__(u8Chime_WarnID1, 0);                 /* main pop up warning, check if request is valid */
+    Chime_Mgr_GetWarnRealReq_Mid__(&u8Chime_WarnID2);                          /* middle pop up warning, get Pre-Request */
+    bPopUpCheck2 = Chime_Mgr_CheckPopUp__(u8Chime_WarnID2, 1);                 /* middle pop up warning, check if request is valid */
+
+    u8NewChimeSort = Chime_Mgr_FindHighPrio__();                               /* get highest request of Not Pop Up */
+    bNotPopUpCheck = Chime_Mgr_CheckNotPopUp__(u8NewChimeSort);                /* check if Not Pop Up request is valid */
+
+    /* check chime respond type */
+    gs_tChimeRespData[CHIME_RESP_POPUP_01].bChime_RespCheck = bPopUpCheck1;
+    gs_tChimeRespData[CHIME_RESP_POPUP_02].bChime_RespCheck = bPopUpCheck2;
+    gs_tChimeRespData[CHIME_RESP_NOT_POPUP].bChime_RespCheck = bNotPopUpCheck;
+    gs_tChimeRespData[CHIME_RESP_POPUP_01].u8Chime_RespID = u8Chime_WarnID1;
+    gs_tChimeRespData[CHIME_RESP_POPUP_02].u8Chime_RespID = u8Chime_WarnID2;
+    gs_tChimeRespData[CHIME_RESP_NOT_POPUP].u8Chime_RespID = u8NewChimeSort;
+
+    Chime_Mgr_ComparePrio__();                                                 /* judge highest respond type */
+#if 0 
+   //test
+   gs_u8Chime_Respond = CHIME_RESP_NOT_POPUP;
+   gs_u8CurChimeSort = 2;  //last request
+   u8NewChimeSort = 1;	   //new request
+																				   
+#endif
+
+    /* judge current chime respond type */
+    switch (gs_u8Chime_Respond)
+    {
+        case CHIME_RESP_POPUP_01:                                              /* respond to main pop up */
+            Chime_Out_StartSound__(u8Chime_WarnID1);
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_POPUP1] = TRUE;
+            gs_u8Chime_PopLast = u8Chime_WarnID1;
+            gs_u8Chime_TmpPopLast = u8Chime_WarnID1;
+            gs_u8Chime_PopLast_Flag = (UINT8)TRUE;
+            gs_u8Chime_CurWrnArea = 1;
+            break;
+
+        case CHIME_RESP_POPUP_02:                                              /* respond to middle pop up */
+            Chime_Out_StartSound__(u8Chime_WarnID2);
+            gs_u8Chime_WarnInput_Req[CHIME_REQID_POPUP2] = TRUE;
+            gs_u8Chime_PopLast_Mid = u8Chime_WarnID2;
+            gs_u8Chime_TmpPopMid = u8Chime_WarnID2;
+            gs_u8Chime_PopMid_Flag = (UINT8)TRUE;
+            gs_u8Chime_CurWrnArea = 2;
+            break;
+
+        case CHIME_RESP_NOT_POPUP:                                             /* respond to Not pop up */
+            Chime_Out_StartSound__(u8NewChimeSort);
+#if 0
+            if (((UINT8)CHIME_USER_MENU1 == u8NewChimeSort)                    /* respond to menu volume chime, set flag */
+                || ((UINT8)CHIME_USER_MENU2 == u8NewChimeSort)
+                || ((UINT8)CHIME_USER_MENU3 == u8NewChimeSort))
+            {
+                gs_u8Chime_MenuFlag = (UINT8)TRUE;
+            }
+#endif
+            gs_u8Chime_CurWrnArea = 0;
+            break;
+
+        case CHIME_RESP_NONE:
+        default:
+            Chime_Out_StartSound__(CHIME_SORT_NULL);
+		    gs_u8Chime_CurWrnArea = 0;
+            break;
+    }
+
+    if (CHIME_RESP_NONE != gs_u8Chime_Respond)                                 /* No chime request */
+    {
+        gs_u8ChimeWarnSts = (UINT8)CHIME_BUSY;
+        gs_eChimeProcSts = CHIME_PROC_PREREQ;
+        //gs_eChimeProcSts = CHIME_PROC_DRVSTS; /*Lhbb*/
+    }
+    else
+    {
+        gs_u8ChimeWarnSts = (UINT8)CHIME_IDLE;
+    }
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Out_StartSound__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Out_StartSound__
+(
+    UINT8 a_u8ChimeCtlSort
+)
+{
+    UINT8 u8ChimeRes = (UINT8)0;
+    UINT8 u8ChimeMaxID;
+    UINT8 u8Chime_Volume;
+
+    switch (gs_eChime_KeySts)
+    {
+        case eIGN_RUN:                                                      /* D1 mode */
+            u8ChimeMaxID = (UINT8)CHIME_IGON_MAXID;
+
+            if ((a_u8ChimeCtlSort <= u8ChimeMaxID)                             /* target sound request ID is valid */
+                && (eSnd_NoChimeID != gs_tChime_D1Data_Tbl[a_u8ChimeCtlSort].u8ChimeResID))   /* target sound resource is not NULL */
+            {
+                                                                               /* sound ID offset from volume */
+                u8ChimeRes = gs_tChime_D1Data_Tbl[a_u8ChimeCtlSort].u8ChimeResID;
+                (void)Rte_Call_tiCS_TISndCdd_RequestToStart(u8ChimeRes, 0);
+                gs_u8CurChimeResID = u8ChimeRes;
+            }
+            break;
+
+        case eIGN_OFF:                                                      /* D2 mode */
+            u8ChimeMaxID = (UINT8)CHIME_IGOFF_MAXID;
+
+            if ((a_u8ChimeCtlSort <= u8ChimeMaxID)                             /* target sound request ID is valid */
+                && (eSnd_NoChimeID != gs_tChime_D2Data_Tbl[a_u8ChimeCtlSort].u8ChimeResID))   /* target sound resource is not NULL */
+            {
+                                                                               /* sound ID offset from volume */
+                u8ChimeRes = gs_tChime_D2Data_Tbl[a_u8ChimeCtlSort].u8ChimeResID;
+                (void)Rte_Call_tiCS_TISndCdd_RequestToStart(u8ChimeRes, 0);
+                gs_u8CurChimeResID = u8ChimeRes;
+            }
+            break;
+
+        default:
+            break;
+    }
+#if 0
+    if (eIGN_RUN == gs_eChime_KeySts)
+    {
+        switch (a_u8ChimeCtlSort)
+        {
+            case CHIME_USER_MENU1:
+                u8Chime_Volume = gs_u8Chime_Vol_Tbl[VOL_LEVEL_LOW];
+                break;
+
+            case CHIME_USER_MENU2:
+                u8Chime_Volume = gs_u8Chime_Vol_Tbl[VOL_LEVEL_MIDDLE];
+                break;
+
+            case CHIME_USER_MENU3:
+                u8Chime_Volume = gs_u8Chime_Vol_Tbl[VOL_LEVEL_HIGH];
+                break;
+
+            default:
+                u8Chime_Volume = gs_u8Chime_Vol_Tbl[gs_u8ChimeVolume];
+                break;
+        }
+    }
+    else
+    {
+        u8Chime_Volume = gs_u8Chime_Vol_Tbl[gs_u8ChimeVolume];
+    }
+ 
+    (void)Rte_Call_rpCS_TISndCdd_SetUserPersonalizationVolume(u8Chime_Volume);
+#endif
+    gs_u8CurChimeSort = a_u8ChimeCtlSort;                                      /* keep current request */
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Out_StartSnd_IOC__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Out_StartSnd_IOC__
+(
+    UINT8 a_u8ChimeCtlSort,
+    EKeyPos eChime_Keysts
+)
+{
+    UINT8 u8ChimeRes = (UINT8)0;
+    UINT8 u8ChimeMaxID;
+
+    switch (eChime_Keysts)
+    {
+        case eIGN_RUN:                                                      /* D1 mode */
+            u8ChimeMaxID = (UINT8)CHIME_IGON_MAXID;
+
+            if ((a_u8ChimeCtlSort <= u8ChimeMaxID)                             /* target sound request ID is valid */
+                && (eSnd_NoChimeID != gs_tChime_D1Data_Tbl[a_u8ChimeCtlSort].u8ChimeResID))   /* target sound resource is not NULL */
+            {
+                                                                               /* sound ID offset from volume */
+                u8ChimeRes = gs_tChime_D1Data_Tbl[a_u8ChimeCtlSort].u8ChimeResID;
+                (void)Rte_Call_tiCS_TISndCdd_RequestToStart(u8ChimeRes, 0);
+                gs_u8CurChimeResID = u8ChimeRes;
+            }
+            break;
+
+        case eIGN_OFF:                                                      /* D2 mode */
+            u8ChimeMaxID = (UINT8)CHIME_IGOFF_MAXID;
+
+            if ((a_u8ChimeCtlSort <= u8ChimeMaxID)                             /* target sound request ID is valid */
+                && (eSnd_NoChimeID != gs_tChime_D2Data_Tbl[a_u8ChimeCtlSort].u8ChimeResID))   /* target sound resource is not NULL */
+            {
+                                                                               /* sound ID offset from volume */
+                u8ChimeRes = gs_tChime_D2Data_Tbl[a_u8ChimeCtlSort].u8ChimeResID;
+                (void)Rte_Call_tiCS_TISndCdd_RequestToStart(u8ChimeRes, 0);
+                gs_u8CurChimeResID = u8ChimeRes;
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    gs_u8CurChimeSort = a_u8ChimeCtlSort;                                      /* keep current request */
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Out_StartSnd_EOL__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Out_StartSnd_EOL__
+(
+    UINT8 a_u8ChimeResID
+)
+{
+    if (eSnd_NoChimeID != a_u8ChimeResID)                                      /* check if need to play sound */
+    {
+        (void)Rte_Call_tiCS_TISndCdd_RequestToStart(a_u8ChimeResID, 0);
+        gs_u8CurChimeResID = a_u8ChimeResID;
+    }
+
+    gs_u8CurChimeSort = CHIME_SORT_EOL;                                        /* keep current request */
+}
+
+/* ====================================================================================================================
+**  Function Name    :    Chime_Mgr_SetOutput__()
+**  Process Timing   :    -
+**  Arguments[Input] :    -
+**  Arguments[Output]:    -
+**  Return Value     :    -
+==================================================================================================================== */
+static void Chime_Mgr_SetOutput__(void)
+{
+    BOOL bEnableSleep = FALSE;
+    UINT8 u8ChimeWarnSts = 0;
+
+    if ((UINT8)FALSE != gs_u8ChimeFuncState)                                   /* chime eabled */
+    {
+        if ((UINT8)CHIME_CLEAR == gs_u8ChimeDrvSts)                            /* sound driver idle or completed playing */
+        {
+            if ((UINT8)CHIME_SORT_NULL == gs_u8CurChimeSort)                   /* no request */
+            {
+                bEnableSleep = TRUE;                                           /* eanble sleep */
+            }
+
+            gs_u8Chime_CanOut_Tmp = (UINT8)CHIME_CANOUT_0;                     /* send 0x0 to CAN bus */
+        }
+        else                                                                   /* sound playing or processing, send current sound type */
+        {
+            //gs_u8Chime_CanOut_Tmp = gs_u8Chime_CanOut_Tbl[gs_u8CurChimeResID].u8ChimeSoundType;
+        }
+
+        if (gs_u8Chime_CanOut != gs_u8Chime_CanOut_Tmp)                        /* check if can output signal changed */
+        {
+            if ((UINT8)CHIME_CANOUT_0 != gs_u8Chime_CanOut_Tmp)                /* not 0x0 */
+            {
+                gs_u8Chime_CanOut = gs_u8Chime_CanOut_Tmp;                     /* change output immediately */
+                gs_u16Chime_CanOut_Count = (UINT16)0;                          /* clear count */
+            }
+            else                                                               /* 0x0 */
+            {
+                gs_u16Chime_CanOut_Count++;                                    /* counter add 1 */
+
+                if (gs_u16Chime_CanOut_Count >= (UINT16)CHIME_CANOUT_COUNT)    /* get to 500ms, change output */
+                {
+                    gs_u8Chime_CanOut = gs_u8Chime_CanOut_Tmp;
+                    gs_u16Chime_CanOut_Count = (UINT16)0;                      /* clear count */
+                }
+            }
+        }
+
+        if ((UINT8)TRUE == gs_u8Chime_MenuFlag)                                /* respond to menu volume, set BUSY */
+        {
+            gs_u8Chime_MenuFlag = (UINT8)FALSE;
+            gs_u8ChimeMenuSts = (UINT8)CHIME_BUSY;
+        }
+        else if ((UINT8)CHIME_CLEAR == gs_u8ChimeDrvSts)                       /* sound completed, set IDLE */
+        {
+            gs_u8ChimeMenuSts = (UINT8)CHIME_IDLE;
+        }
+        else
+        {
+            ;
+        }
+    }
+    else                                                                       /* chime disabled */
+    {
+        bEnableSleep = TRUE;                                                   /* eanble sleep */
+        gs_u8Chime_CanOut = (UINT8)CHIME_CANOUT_0;                             /* send 0x0 to CAN bus */
+    }
+
+    gs_u8ChimeDrvSts_Last = gs_u8ChimeDrvSts;                                  /* record last sound driver state */
+
+    if ((CHIME_BUSY == gs_u8ChimeWarnSts) &&
+        ((2 == gs_u8Chime_CurWrnArea) || (3 == gs_u8Chime_CurWrnArea)))
+    {
+        gs_u8ChimeWarnSts_Middle = CHIME_BUSY;
+    }
+	else
+	{
+        gs_u8ChimeWarnSts_Middle = CHIME_IDLE;
+	}
+
+    if ((CHIME_BUSY == gs_u8ChimeWarnSts) &&
+        ((1 == gs_u8Chime_CurWrnArea) || (3 == gs_u8Chime_CurWrnArea)))
+    {
+        u8ChimeWarnSts = CHIME_BUSY;
+    }
+	else
+	{
+        u8ChimeWarnSts = CHIME_IDLE;
+	}	
+
+#if 0
+    gs_u8ChimeWarnSts = CHIME_IDLE;
+    gs_u8ChimeWarnSts_Middle = CHIME_IDLE;
+#endif
+                                                                      /* IODID 2F 00 */
+    //gs_Chime_DID_50A2.DID_Data[0] = gs_u8Chime_CanOut_Tbl[gs_u8CurChimeResID].u8ChimeDiagSts;
+    #if	0
+    (void)Chime_Write_Main_Chime_State(u8ChimeWarnSts);                     /* set chime state to warning */
+    (void)Chime_Write_Middle_Chime_State(gs_u8ChimeWarnSts_Middle);            /* set chime state to warning about middle area */
+    (void)Rte_Write_ppSR_TIChime_Output_Menu_Chime_State(gs_u8ChimeMenuSts);
+	
+    /* send current sound type to CAN bus */
+    //(void)Rte_Write_ppSR_ICM_GENERAL_STATUS_2_ComOut_VeCAN_FAULT_BUZZING_IND_LAMP(gs_u8Chime_CanOut);
+    /* enable/disable sleep */
+    (void)Rte_Write_ChimeMdl_ppSR_pChimeMdl_TIEcuMext_Sleep_Condition_Chimes_Status((UINT8)bEnableSleep);
+                                                                               /* IODID 2F 00 */
+    //(void)Rte_Write_ChimeMdl_ppSR_TIDcm_DID_Read_DCM_DID50A2_Read_CurentValue(&gs_Chime_DID_50A2);
+	#endif																			   
+}
+
+
+void CChimeMdl_UpdateStatus_Operation(UINT8 index, UINT8 warning_status)
+{
+    if(index < CHIME_REQ_TOTAL_NUM)
+    {
+		gs_u8Chime_WarnInput_Req[index] = warning_status;
+    }
+}
+
+
+

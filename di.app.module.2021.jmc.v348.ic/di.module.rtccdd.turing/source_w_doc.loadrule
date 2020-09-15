@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<scm:sourceControlLoadRule eclipseProjectOptions="create" version="1" xmlns:scm="http://com.ibm.team.scm">
+    <itemLoadRule>
+        <component name="di-module-rtccdd-turing"/>
+        <item repositoryPath="/di.module.rtccdd.turing"/>
+    </itemLoadRule>
+    <itemLoadRule>
+        <component name="di-module-rtccdd-turing"/>
+        <item repositoryPath="/di.module.rtccdd.turing.doc"/>
+    </itemLoadRule>
+</scm:sourceControlLoadRule>

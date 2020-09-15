@@ -1,0 +1,593 @@
+/*************************************************************************************************************************
+**  File Name:  buzzer.h
+**  Summary:    Manage the chime
+**  Create:     2016-11-22
+**  Author:     Luo Yajun
+**  Update history:
+**  NO.     Author         Date              Content
+**  1.      Luo Yajun      2016-11-22        New
+*************************************************************************************************************************/
+
+
+/* ============================ Version =============================================================================== */
+
+#ifndef CHIME_H
+#define CHIME_H
+
+/* ============================ Include Files ========================================================================= */
+#include "std_type.h"
+
+
+#define INCLUDE_WARNING_ID   (1)
+
+/* ============================ Type Definitions ====================================================================== */
+/* Domain status */
+typedef enum
+{
+    CHIME_STATE_IDLE       = 0x00,       /* IDLE status */
+    CHIME_STATE_INIT       = 0x01,       /* INIT status */
+    CHIME_STATE_ETM        = 0x02,       /* ETM Status */
+    CHIME_STATE_EOL        = 0x03,       /* EOL Status */
+    CHIME_STATE_IGON       = 0x04,       /* IGON status */
+    CHIME_STATE_IGOFF      = 0x05,       /* IGOFF status */
+    CHIME_STATE_STOP       = 0x06,       /* STOP status */
+    CHIME_STATE_DIAG       = 0x07        /* DIAG status */
+}CHIME_STATUS_e;
+
+/* chime process status */
+typedef enum
+{
+    CHIME_PROC_IDLE       = 0x00,       /* IDLE status */
+    CHIME_PROC_PREREQ     = 0x01,       /* Process warning Pre-Request */
+    CHIME_PROC_DRVSTS     = 0x02,       /* Judge Sound Driver Status */
+    CHIME_PROC_NOT_POPUP  = 0x03,       /* Not pop up */
+    CHIME_PROC_REQ        = 0x04        /* Process warning Real Request */
+}CHIME_PROC_STATUS_e;
+
+typedef struct
+{
+    UINT8 u8ChimeID;                     /* unique ID for each Chime */
+    UINT8 u8ChimeReqType;                /* request type for process */
+    UINT8 u8Priority;                    /* priority */
+    UINT8 u8ChimeResID;                  /* sound resource */
+    UINT8 u8ChimeCycleType;              /* sound cycle type */
+    UINT8 u8ChimeInputType;              /* sound request input type */
+}CHIME_DATA_t_;
+
+typedef struct
+{
+    UINT8 u8ChimeSoundType;              /* Current Sound Type to send to CAN bus */
+    UINT8 u8ChimeDiagSts;                /* Current Sound Type for DIAG */
+}CHIME_CANOUT_DATA_t_;
+
+typedef struct
+{
+    UINT8 u8ChimeIocID;                  /* Chime ID for IODID */
+    UINT8 u8ChimeKeySts;                 /* power mode for select data table */
+}CHIME_IOC_DATA_t_;
+
+typedef struct
+{
+    UINT8 u8ChimeReqID;                  /* Chime request ID */
+    UINT8 u8ChimeRecover;                /* if need to recover after interrupted */
+}CHIME_REQ_DATA_t_;
+
+typedef struct
+{
+    BOOL  bChime_RespCheck;              /* Chime respond check flag */
+    UINT8 u8Chime_RespID;                /* Chime ID for respond */
+}CHIME_RESP_DATA_t_;
+
+typedef struct
+{
+    UINT8 u8Chime_WarningID;              /* warning ID */
+    UINT8 u8Chime_ChimeID;                /* chime ID */
+}CHIME_WARNID_TRANS_t_;
+
+typedef struct ChimeIndex_t
+{
+	UINT8	Request;
+	UINT8 	ChimeIndex;
+	UINT8 	ChimeState;
+}ChimeIndex;
+
+
+/* ============================ Defines =============================================================================== */
+/* chime request */
+#define CHIME_REQID_NULL                ( 0 )
+#define CHIME_REQID_TURN_TICK           ( 1 )
+#define CHIME_REQID_TURN_TOC                  ( 2 )
+#define CHIME_REQID_LIGHT_ON                  ( 3 )
+#define CHIME_REQID_SYSTEM_FAULT        	 ( 4 )
+#define CHIME_REQID_POWER_ON_SELFCHECK        ( 4 )
+#define CHIME_REQID_BSD_WARN					( 5 )
+#define CHIME_REQID_FRONT_UPA_WARN1			( 6 )
+#define CHIME_REQID_FRONT_UPA_WARN2			( 7 )
+#define CHIME_REQID_FORNT_UPA_WARN3			( 8 )
+#define CHIME_REQID_FORNT_UPA_WARNLONG		( 9 )
+#define CHIME_REQID_REAR_UPA_WARN1					( 10 )
+#define CHIME_REQID_REAR_UPA_WARN2					( 11 )
+#define CHIME_REQID_REAR_UPA_WARN3  				( 12 )
+#define CHIME_REQID_REAR_UPA_WARNLONG				( 13 )
+#define CHIME_REQID_DOOR_OPEN					( 14 )
+#define CHIME_REQID_SEATBELT                 ( 15 )
+#define CHIME_REQID_TPMS_WARN					( 16 )
+#define CHIME_REQID_EPB_0						( 17 )										
+#define CHIME_REQID_EPB_1    					( 18 )
+#define CHIME_REQID_EPB_2						( 19 )
+#define CHIME_REQID_LOW_FUEL                  ( 20 )
+#define CHIME_REQID_AEB_WARN                  ( 21 )
+#define CHIME_REQID_FCWS_AEB        (25)
+#define CHIME_REQID_EBA_AEB     (26)
+#define CHIME_REQID_TAKEOVER 	(25)
+#define	CHIME_REQID_TAKEOVER_IMMEDIATE 	(25)
+
+#define CHIME_REQID_LLDW_AEB        (27)
+#define CHIME_REQID_RLDW_AEB        (28)
+#define CHIME_REQID_HANDOFF_AEB     (29)
+#define CHIME_REQID_GPF_WARN                  ( 22 )
+#define CHIME_REQID_D2_TICK                  ( 23 )
+#define CHIME_REQID_D2_TOC                  ( 24 )
+
+
+#define CHIME_REQID_POPUP1              (25)
+#define CHIME_REQID_POPUP2              (26)
+
+#define CHIME_REQ_NOT_POPUP_NUM         (CHIME_REQID_POPUP1)
+#define CHIME_REQ_TOTAL_NUM             (CHIME_REQID_POPUP2+1)             /* number of chime which don't relate to pop up */
+#define CHIME_REQ_D1_MINID              (CHIME_REQID_TURN_TICK)                  /* scope of D1 mode Request ID */
+#define CHIME_REQ_D1_MAXID              (CHIME_REQID_GPF_WARN)
+#define CHIME_REQ_D2_MINID              (CHIME_REQID_TURN_TICK)              /* scope of D2 mode Request ID */
+#define CHIME_REQ_D2_MAXID              (CHIME_REQID_LIGHT_ON)
+
+#define CHIME_REQID_SPECIAL_MIN         (CHIME_REQID_DOOR_OPEN)            /* door open */
+#define CHIME_REQID_SPECIAL_MAX         (CHIME_REQID_SEATBELT)            /* park brake */
+
+#define CHIME_SPLREQ_DOOROPEN           (0)                /* Special priority */
+#define CHIME_SPLREQ_OVERSPEED          (1)
+#define CHIME_SPLREQ_NUM                (2)
+
+/* parmeter for chime request */
+#define CHIME_REQ_RESP_RECOVER          (0)                /* need to recover after interrupted */
+#define CHIME_REQ_RESP_ONCE             (1)                /* don't need to recover after interrupted */
+
+
+/* ID define for each Chime */
+#define CHIME_SORT_NULL                 (0xFF)             /* invalid sound request */
+#define CHIME_SORT_STOP                 (0xFE)             /* pop up sound stop request */
+#define CHIME_SORT_EOL                  (0xFD)             /* EOL buzzer control */
+
+#define CHIME_NULL                       ( 0 )              /* start of IG ON */
+#define CHIME_TURN_TICK                 ( 1 )
+#define CHIME_TURN_TOC                  ( 2 )
+#define CHIME_LIGHT_ON                  ( 3 )
+#define CHIME_POWER_ON_SELFCHECK        ( 4 )
+#define CHIME_BSD_WARN					( 5 )
+#define CHIME_FRONT_UPA_WARN1			( 6 )
+#define CHIME_FRONT_UPA_WARN2			( 7 )
+#define CHIME_FORNT_UPA_WARN3			( 8 )
+#define CHIME_FORNT_UPA_WARNLONG		( 9 )
+#define CHIME_REAR_UPA_WARN1					( 10 )
+#define CHIME_REAR_UPA_WARN2					( 11 )
+#define CHIME_REAR_UPA_WARN3  				( 12 )
+#define CHIME_REAR_UPA_WARNLONG				( 13 )
+#define CHIME_TPMS_WARN					( 14 )
+#define CHIME_DOOR_OPEN                 ( 15 )
+#define CHIME_SEATBELT					( 16 )
+#define CHIME_EPB_0						( 17 )										
+#define CHIME_EPB_1    					( 18 )
+#define CHIME_EPB_2						( 19 )
+#define CHIME_LOW_FUEL                  ( 20 )
+#define CHIME_AEB_WARN                  ( 21 )
+#define CHIME_GPF_WARN                  ( 22 )
+
+
+#define CHIME_D2_TURN_TICK		        ( 0 )          /* start of IG OFF */
+#define CHIME_D2_TURN_TOC				( 1 )
+#define CHIME_D2_LIGHT                  ( 2 )
+#define CHIME_D2_KEY_OUT				( 3 )
+#define CHIME_D2_PARK_LIGHT             ( 4 )
+
+/* chime sort */
+#define CHIME_IGON_MAXID                (CHIME_GPF_WARN)
+#define CHIME_IGOFF_MAXID               (CHIME_D2_PARK_LIGHT)
+
+#define CHIME_IGON_NUM                  (CHIME_IGON_MAXID + 1)                /* Chime of IG ON */
+#define CHIME_IGOFF_NUM                 (CHIME_IGOFF_MAXID + 1)               /* Chime of IG OFF */
+
+
+#if 0
+/* sound play status */
+#define CHIME_IDLE      (0)
+#define CHIME_BUSY      (1)
+#endif
+
+
+/* sound resourse ID */
+#if 0
+#define CHIME_RES_NULL  (0)
+#define CHIME_RES_1_1   (1)
+#define CHIME_RES_1_2   (2)
+#define CHIME_RES_1_3   (3)
+#define CHIME_RES_1_4   (4)
+#define CHIME_RES_1_5   (5)                                /* Add new sound type 1-5 */
+#define CHIME_RES_2_1   (6)
+#define CHIME_RES_2_2_1 (7)
+#define CHIME_RES_2_2_2 (8)
+#define CHIME_RES_2_2_3 (9)
+#define CHIME_RES_2_3   (10)
+#define CHIME_RES_2_4   (11)
+#define CHIME_RES_3_1   (12)
+#define CHIME_RES_3_2   (13)
+#define CHIME_RES_4     (14)
+#define CHIME_RES_5_1   (15)
+#define CHIME_RES_5_2   (16)
+#define CHIME_RES_6     (17)
+#define CHIME_RES_7     (18)
+#define CHIME_RES_8_1   (19)
+#define CHIME_RES_8_2   (20)
+#endif
+
+
+#define CHIME_RES_EOL_01  (21)
+#define CHIME_RES_EOL_02  (22)
+#define CHIME_RES_EOL_03  (23)
+#define CHIME_RES_EOL_04  (24)
+#define CHIME_RES_EOL_05  (25)
+#define CHIME_RES_EOL_06  (26)
+#define CHIME_RES_EOL_07  (27)
+#define CHIME_RES_EOL_08  (28)
+#define CHIME_RES_EOL_09  (29)
+#define CHIME_RES_EOL_0A  (30)
+
+#define CHIME_RES_NUM        (CHIME_RES_EOL_0A + 1)
+
+#if 0
+#define CHIME_RES_DOOROPEN   (CHIME_RES_2_3)
+#define CHIME_RES_OVERSPEED  (CHIME_RES_2_4)
+#define CHIME_RES_SEATBELT   (CHIME_RES_3_2)
+#endif
+
+/* chime input type */
+#define CHIME_SET_WARN   (0)
+#define CHIME_SET_CHIME  (1)
+
+/* sound cycle type */
+#define CHIME_CYCLE_0    (0)                               /* continuous */
+#define CHIME_CYCLE_1    (1)
+#define CHIME_CYCLE_3    (2)
+#define CHIME_CYCLE_5    (3)
+
+
+/* can output about current sound type */
+#define CHIME_CANOUT_0  (0)
+#define CHIME_CANOUT_1  (1)
+#define CHIME_CANOUT_2  (2)
+#define CHIME_CANOUT_3  (3)
+#define CHIME_CANOUT_4  (4)
+#define CHIME_CANOUT_5  (5)
+#define CHIME_CANOUT_6  (6)
+#define CHIME_CANOUT_7  (7)
+
+
+/* configuration define */
+#define CHIME_RVS_CONFIG_MT    (0)
+#define CHIME_RVS_CONFIG_AT    (1)
+#define CHIME_RVS_CONFIG_CVT   (2)
+
+#define CHIME_PAS_CONFIG_NO    (0)
+#define CHIME_PAS_CONFIG_HARD  (1)
+#define CHIME_PAS_CONFIG_CAN   (2)
+
+/* priority 20 */
+#define CHIME_20_INDEX_DOOROPEN     (0)
+#define CHIME_20_INDEX_OVERSPEED    (1)
+#define CHIME_20_INDEX_SEATBELT     (2)
+
+#define CHIME_20_DOOROPEN           (1)
+#define CHIME_20_NOT_DOOR           (2)
+
+
+/* timer counter, unit 10ms */
+#define CHIME_TASK_TIME        (3)                                        /* unit 10 ms, chime task schedule time */
+#define CHIME_RVS_DEBOUNCE     (10 / CHIME_TASK_TIME)                     /* Reverse debounce timer count, 100ms */
+#define CHIME_DOOROPEN_COUNT   (6000 / (UINT16)CHIME_TASK_TIME)           /* Door Open timer count, 60 * 1000 ms */
+#define CHIME_SEATBELT_COUNT   (12000 / (UINT16)CHIME_TASK_TIME)          /* Seat Belt timer count, 120 * 1000 ms */
+#define CHIME_CANOUT_COUNT     (51 / CHIME_TASK_TIME)                     /* CAN Output debounce timer count, >= 500ms */
+
+
+/* sound driver state */
+#define CHIME_PLAY_REQUESTED     (0x01u)
+#define CHIME_STOP_REQUESTED     (0x02u)
+#define CHIME_ACTIVATED          (0x04u)
+#define CHIME_QUEUE_TIMEOUT      (0x08u)
+#define CHIME_RESERVED           (0x10u)
+#define CHIME_RESERVED1          (0x20u)
+#define CHIME_COMPLETED          (0x40u)
+#define CHIME_INTERRUPTED        (0x80u)
+#define CHIME_CLEAR              (0x00u)
+
+
+/* ETM/DIAG mode */
+#define CHIME_ETM_STEP          (ETM_003)
+
+#define CHIME_MODE_NORMAL       (0)
+#define CHIME_MODE_ETM          (1)
+#define CHIME_MODE_IOC          (2)
+#define CHIME_MODE_EOL          (3)
+
+#define CHIME_IOC_ID            (0x50A2)
+#define CHIME_IOC_ON            (0x3)
+#define CHIME_IOC_OFF           (0x0)
+
+#define CHIME_EOL_ID            (0xFE0C)
+#define CHIME_EOL_ON            (0x3)
+#define CHIME_EOL_OFF           (0x0)
+
+#define CHIME_IOC_MAXSTATE      (0xD)
+#define CHIME_EOL_MAXSTATE      (0xA)
+
+/* stop method */
+#define CHIME_STOP_IMMI         (5)
+#define CHIME_STOP_TONE         (6)
+#define CHIME_STOP_SU           (7)
+
+/* chime action */
+#define CHIME_ACTION_INVALID    (0)
+#define CHIME_ACTION_START      (1)
+#define CHIME_ACTION_STOP       (2)
+
+
+#define CHIME_TIME_OUT_COUNT    (37)                        /* more than 90ms not respond, clear request */
+
+
+/* chime respond type */
+#define CHIME_RESP_POPUP_01     (0)                        /* main pop up */
+#define CHIME_RESP_POPUP_02     (1)                        /* middle pop up */
+#define CHIME_RESP_NOT_POPUP    (2)
+#define CHIME_RESP_NONE         (0xFF)
+
+#define CHIME_RESP_NUM          (3)                        /* number of valid respond type */
+
+
+/* convert warning ID to chime ID */
+#define CHIME_WARN_D1_NUM       (122)
+#define CHIME_WARN_D2_NUM       (17)
+
+
+
+#if (INCLUDE_WARNING_ID == 1)
+
+/* ============================ Defines ============================================================================== */
+typedef enum
+{
+    ALARM_D1_Engineering_Test_Mode = 0,
+    ALARM_D1_Welcome_Animation,
+    ALARM_D1_Customer_Menu,
+    ALARM_D1_reserved1,
+    ALARM_D1_reserved2,
+    ALARM_D1_Crash_Warning3,
+    ALARM_D1_Crash_Warning2,
+    ALARM_D1_Crash_Warning1,
+    ALARM_D1_PAS_Failure,
+    ALARM_D1_PAS_Communication_Failure,
+    ALARM_D1_Parking_Aid_Zone_4,
+    ALARM_D1_Parking_Aid_Zone_3,
+    ALARM_D1_Parking_Aid_Zone_2,
+    ALARM_D1_Parking_Aid_Zone_1,
+    ALARM_D1_BSD_Warning,
+    ALARM_D1_LDWS_ACTIVE,
+    ALARM_D1_Illumination_Adjust,
+	ALARM_D1_Illumination_Adjust_up,
+	ALARM_D1_Illumination_Adjust_down,
+    ALARM_D1_reserved4,
+    ALARM_D1_reserved5,
+    ALARM_D1_reserve6,
+    ALARM_D1_reserved7,
+    ALARM_D1_reserved8,
+    ALARM_D1_reserved9,
+    ALARM_D1_reserved10,
+    ALARM_D1_reserved11,
+    ALARM_D1_reserved12,
+    ALARM_D1_ACC_system_Active,
+    ALARM_D1_ACC_system_Cancel,
+    ALARM_D1_ACC_system_Open,
+    ALARM_D1_ACC_system_Close,
+    ALARM_D1_ACC_system_Open_Failed,        /*30*/
+    ALARM_D1_ACC_system_Setting_1,
+    ALARM_D1_ACC_system_Setting_2,
+    ALARM_D1_ACC_system_Setting_3,
+    ALARM_D1_Shift_to_Start_Guidance,
+    ALARM_D1_Brake_to_Start_Guidance_PEPS,
+    ALARM_D1_Brake_to_Start_Guidance_EMS,
+    ALARM_D1_Press_Clutch_Start_Guidance_PEPS,
+    ALARM_D1_Press_Clutch_Start_Guidance_EMS,
+    ALARM_D1_EPB_Guidance,
+    ALARM_D1_Door_Seatbelt_Status_Remind,
+    ALARM_D1_Maintenance_Remind1,
+    ALARM_D1_Maintenance_Remind2,
+    ALARM_D1_Maintenance_Remind3,
+    ALARM_D1_Start_Engine_Guidance,
+    ALARM_D1_Authentication_Failed_PEPS,
+    ALARM_D1_Authentication_Failed_EMS,
+    ALARM_D1_PEPS_Failure,
+    ALARM_D1_ESCL_not_Unlocked,
+    ALARM_D1_Fob_not_Found,
+    ALARM_D1_Fob_out_of_Vehicle,
+    ALARM_D1_Close_to_SSB,
+    ALARM_D1_Fob_Low_Battery,
+    ALARM_D1_Shift_P_to_Park_Guidance,
+    ALARM_D1_DOOR_OPEN,
+    ALARM_D1_EPB_Remind,
+    ALARM_D1_Relax_Remind,
+    ALARM_D1_Over_Speed_Warning,
+    ALARM_D1_Seatbelt_Reminder,
+    ALARM_D1_Remote_Start_Quit,
+    ALARM_D1_Telephone_call,
+    ALARM_D1_DVR_Photograph_Space_Full,
+    ALARM_D1_reserved15,
+    ALARM_D1_reserved16,
+    ALARM_D1_reserved17,
+    ALARM_D1_reserved18,
+    ALARM_D1_reserved19,
+    ALARM_D1_reserved20,
+    ALARM_D1_reserved21,
+    ALARM_D1_reserved22,
+    ALARM_D1_reserved23,
+    ALARM_D1_reserved24,
+    ALARM_D1_reserved25,
+    ALARM_D1_reserved26,
+    ALARM_D1_reserved27,
+    ALARM_D1_reserved28,
+    ALARM_D1_reserved29,
+    ALARM_D1_reserved30,
+    ALARM_D1_ESCL_Failure,
+    ALARM_D1_ACC_System_Failure,
+    ALARM_D1_TPMS_System_Failure,
+    ALARM_D1_TPMS_Tire_Pressure_Abnormal,
+    ALARM_D1_TPMS_Tire_Leaking,
+    ALARM_D1_TPMS_Tire_High_Pressure,
+    ALARM_D1_TPMS_Tire_High_Temperature,
+    ALARM_D1_TPMS_Tire_Low_Pressure,
+    ALARM_D1_TPMS_Sensor_Failure,
+    ALARM_D1_TPMS_Sensor_CommunicationFailure,
+    ALARM_D1_TPMS_Sensor_Low_Battery,
+    ALARM_D1_Brake_System_Failure,
+    ALARM_D1_Low_Brake_Fluid_Warning,
+    ALARM_D1_Airbag_System_Failure,
+    ALARM_D1_Transmission_Failure_Warning,
+    ALARM_D1_ABS_Warning,
+    ALARM_D1_ESP_Warning,
+    ALARM_D1_EPS_Warning,
+    ALARM_D1_Oil_Pressure_Warning,
+    ALARM_D1_reserved37,
+    ALARM_D1_Audio_Failure,
+    ALARM_D1_Coolant_High_Temperature,
+    ALARM_D1_Transmission_Oil_High_Temp,
+    ALARM_D1_LWDS_System_Failure,
+    ALARM_D1_BSD_System_Failure,
+    ALARM_D1_Light_System_Failure,
+    ALARM_D1_ACC_radar_warning,
+    ALARM_D1_Fuel_Sensor_Failure,
+    ALARM_D1_Low_Fuel_Warning,
+    ALARM_D1_EPB_System_Failure,
+    ALARM_D1_AUTO_HOLD_System_Failure,
+    ALARM_D1_DBF_System_Failure,
+    ALARM_D1_Parking_Brake,
+    ALARM_D1_Low_Washing_Liquid,
+    ALARM_D1_Audio_FM,
+    ALARM_D1_Music,
+    ALARM_D1_DVR_System_Failure,
+    ALARM_D1_DVR_Emergency_Space_Full,
+    ALARM_D1_DVR_SDcard_not_Found,
+    ALARM_D1_DVR_SDcard_Failure,
+    ALARM_D1_DVR_SDcard_not_Format,
+    ALARM_D1_DVR_SDcard_Insufficient,
+    ALARM_D1_COUNT,
+    ALARM_D1_CHIME_STOPFLAG = 254,
+    ALARM_D1_INVALID = 255
+}ALARM_ID_D1MODEL_e;
+
+typedef enum
+{
+    ALARM_D2_GoodbyeAnimation = 0,
+    ALARM_D2_Shift_to_Start_Guidance,
+    ALARM_D2_Brake_to_Start_Guidance,
+    ALARM_D2_Press_Clutch_Start_Guidance,
+    ALARM_D2_PEPS_Failure,
+    ALARM_D2_ESCL_not_Unlocked,
+    ALARM_D2_ESCL_Unlock_Failed,
+    ALARM_D2_Steering_Operation_Guidance,
+    ALARM_D2_Fob_not_Found,
+    ALARM_D2_Close_to_SSB,
+    ALARM_D2_Fob_Low_Battery,
+    ALARM_D2_Shift_P_to_Park_Guidance,
+    ALARM_D2_Key_Out_Remind,
+    ALARM_D2_Park_Light_Remind,
+	ALARM_D2_Key_Forgotten_Remind,
+    ALARM_D2_DOOR_OPEN,
+    ALARM_D2_ESCL_Failure,
+    ALARM_D2_COUNT,
+    ALARM_D2_CHIME_STOPFLAG = 254,
+    ALARM_D2_INVALID = 255
+}ALARM_ID_D2MODEL_e;
+
+#endif
+
+
+
+/* function declare for system call */
+void  Chime_Mgr_InitHW(void);
+
+void  Chime_Mgr_InitSW(void);
+
+void  Chime_Mgr_ExitHW(void);
+
+void  Chime_Mgr_ExitSW(void);
+
+void  Chime_Mgr_Notify_Shutdown(void);
+
+void  Chime_Mgr_Notify_Restore(void);
+
+void  OnTask10ms_Chime_Routine(void);
+
+void CChimeMdl_UpdateStatus_Operation(UINT8 index, UINT8 warning_status);
+
+
+
+#  ifndef CHIME_IDLE
+#   define CHIME_IDLE (0U)
+#  endif
+
+#  ifndef CHIME_BUSY
+#   define CHIME_BUSY (1U)
+#  endif
+
+#  ifndef eChimeStat_Idle
+#   define eChimeStat_Idle (0U)
+#  endif
+
+#  ifndef eChimeStat_Queued
+#   define eChimeStat_Queued (1U)
+#  endif
+
+#  ifndef eChimeStat_TimedOut
+#   define eChimeStat_TimedOut (2U)
+#  endif
+
+#  ifndef eChimeStat_Playing
+#   define eChimeStat_Playing (3U)
+#  endif
+
+#  ifndef eChimeStat_Interrupted
+#   define eChimeStat_Interrupted (4U)
+#  endif
+
+#  ifndef eChimeStat_Completed
+#   define eChimeStat_Completed (5U)
+#  endif
+
+#  ifndef eChimeStat_Count
+#   define eChimeStat_Count (6U)
+#  endif
+
+
+#  ifndef VOL_LEVEL_INVALID
+#   define VOL_LEVEL_INVALID (0U)
+#  endif
+
+#  ifndef VOL_LEVEL_LOW
+#   define VOL_LEVEL_LOW (1U)
+#  endif
+
+#  ifndef VOL_LEVEL_MIDDLE
+#   define VOL_LEVEL_MIDDLE (2U)
+#  endif
+
+#  ifndef VOL_LEVEL_HIGH
+#   define VOL_LEVEL_HIGH (3U)
+#  endif
+
+
+#endif    /* CHIME_H */
+
