@@ -74,6 +74,7 @@ static CAN_UINT8 NmState[CAN_NM_NUMBER_OF_CHANNELS];
 static CAN_UINT8 NmCtrlStatus[CAN_NM_NUMBER_OF_CHANNELS];
 CAN_UINT8 TxStopFlag = TRUE;
 CAN_UINT8 FirstSendFlag = TRUE;
+Std_ReturnType	BusOffState = FALSE; 
 
 #if(CAN_NM_NUMBER_OF_BUSNM > 1)
 static CAN_UINT8 NmBusNmState[CAN_NM_NUMBER_OF_CHANNELS][CAN_NM_NUMBER_OF_BUSNM];
@@ -98,6 +99,7 @@ static CAN_TMD const vnm_resp_tmd =
     VNM_MSG_OPTION,                        
     VNM_MSG_HANDLE                         
 };
+
 
 static VNM_UINT8 CanNmDTC = 0xFF;
 static VNM_UINT8       VNM_SI_Sent = 0; /*1: 0x1X has been sent by IC.*/
@@ -290,6 +292,8 @@ vnm_rxnodes_t VNM_Node_Avail[4];
 
 #define VNM_CAN_TX_STATE	1
 #define VNM_CAN_RX_STATE	2
+ 
+#define LIMPHOME_DTC_CH0 (0u)
 
 typedef struct sCanNm_DTCProc
 {	
@@ -342,10 +346,15 @@ typedef struct sCanNm_DTCProc
         }
 typedef enum
 {
-    CANNM_DTCSTS_CLEARED = 0,
+	CANNM_DTCSTS_IDLE = 0, /*When NM init, or during busoff, or after 14 service, should be idle satus*/
+    CANNM_DTCSTS_CLEARED,
     CANNM_DTCSTS_STORED,
     CANNM_Num_DTCSTS
 }CANNM_DTCStatus_Macro;
+
+#define CANNM_SET_IDLE(DTC)     \
+	{\
+	(*(DTC->DTCStatus)) = (CANNM_DTCSTS_IDLE);}
 
 #define CANNM_SET_CLEARED(DTC)     \
 	{\
@@ -359,6 +368,7 @@ typedef enum
 #define CANNM_IS_STORED(DTC)     ((*(DTC->DTCStatus)) == ( CANNM_DTCSTS_STORED))
 #define CANNM_DTCSTS(DTC)     (*(DTC->DTCStatus))
 #define CANNM_DTCSTS_ISVALID(DTC)     ((DTC->DTCStatus)!=NULL)
+
 uint16 CANNM_DTCRecvrTimer_Count[ CANNM_DTC_CNT ];
 uint16 CANNM_Rx_DTCTimeout_Count[ CANNM_DTC_CNT ];
 uint8 CANNM_Rx_DTCRecvrStatus_Count[ CANNM_DTC_CNT ];
@@ -374,7 +384,7 @@ CANNM_DTCPROC const CANNM_DTC_Table[ CANNM_DTC_CNT ] =
         &CANNM_DTCRecvrTimer_Count[0],
         &CANNM_Rx_DTCTimerStatus_Count[0],
         &CANNM_Rx_DTCRecvrStatus_Count[0],
-        CANNM_TIME_IN_TASK_TICS(1900),             /* DTC Timeout Count Value,case1: 01-> 04 -> 04, when 1st 04 received, 1s already elapsed; case2:bus off 04 ->04->04 (CanNmDTC=0xff); */
+        CANNM_TIME_IN_TASK_TICS(2000),             /* DTC Timeout Count Value, 1800 ~ 2200 ms*/
         CANNM_TIME_IN_TASK_TICS(0)             /* DTC Recover timer Count Value                  */
     },
 };
@@ -411,7 +421,9 @@ void CanNm_Init( void )
     NmState[MMCAN_CHANNEL] = NM_STATE_BUS_SLEEP; 
     NmCtrlStatus[MMCAN_CHANNEL] = 0x00;
     TxStopFlag = TRUE;
-    FirstSendFlag = TRUE;    
+    FirstSendFlag = TRUE;
+	
+	CANNM_SET_IDLE(ptrDTCProc);
 }
 
 
@@ -662,6 +674,15 @@ void VNM_PeriodicTask(void)
        ;
    }
 #endif   
+
+   BusOffState = CanSM_GetBusOffState( LIMPHOME_DTC_CH0 );
+   if ( FALSE == BusOffState  )
+   {
+	   VNM_CLEAR_BUSOFF;
+   }
+   else
+   {}
+
    /*Check and Run NM State machine*/
 
    if((VNM_UINT8)VNM_NO_OF_STATES > VNM_status.State)
@@ -1407,9 +1428,6 @@ static void VNM_Limphome(void)
    {
 		VNM_Prepare_Msg(VNM_MSG_TYP_LIMPHOME);
 		VNM_SET_LIMPHOME_TMR;
-		CANNM_CANCEL_DTCRCV_TMR(ptrDTCProc);
-		CANNM_SET_DTC_TMR(ptrDTCProc); // if bus off recovered -> limphome, restart limphome DTC  2s timer.
-		VNM_CLEAR_BUSOFF;
    }
    else
    	{
@@ -1681,6 +1699,116 @@ static void VNM_ACK_TX_CONTROL(CAN_UINT8 RT_State)
 }
 
 
+/*******************************************************************************
+** FUNCTION NAME  :  VNM_DTC
+** DESCRIPTION    :  Limphome DTC process.
+** INPUT          :  None
+** OUTPUT         :
+** RETURN         :  None
+*******************************************************************************/
+static void VNM_DTC(void)
+{
+	static VNM_UINT8 Pre_NM_State = (VNM_UINT8)VNM_OFF_VALUE; 
+	static VNM_UINT8 NM_State   = (VNM_UINT8)VNM_OFF_VALUE; /*Current NM state*/
+
+
+	NM_State   = (VNM_UINT8)VNM_status.State;
+	ptrDTCProc = &CANNM_DTC_Table[LIMPHOME_DTC_CH0];
+
+	VNM_DTC_DELAY_TMR_GO();
+	CANNM_DTC_TMR_GO(ptrDTCProc);
+	CANNM_DTCRCV_TMR_GO(ptrDTCProc);
+
+	if ( Pre_NM_State != NM_State )
+	{
+		if ( NM_State == VNM_LIMPHOME_VALUE)
+		{
+			CANNM_SET_DTC_TMR(ptrDTCProc);
+			CANNM_CANCEL_DTCRCV_TMR(ptrDTCProc);
+		}
+		else
+		{
+			CANNM_SET_DTCRCV_TMR(ptrDTCProc);
+			CANNM_CANCEL_DTC_TMR(ptrDTCProc);
+		}
+
+		Pre_NM_State = NM_State;
+	}
+	else
+	{
+		if ( NM_State == VNM_LIMPHOME_VALUE)
+		{
+			if (CANNM_DTC_TMR_XPIRED(ptrDTCProc))
+			{
+				CANNM_SET_STORED(ptrDTCProc);
+				CANNM_CANCEL_DTCRCV_TMR(ptrDTCProc);
+			}
+			else
+			{}
+		}
+		else
+		{
+			if(CANNM_DTCRCV_TMR_XPIRED(ptrDTCProc))
+			{
+				CANNM_SET_CLEARED(ptrDTCProc);
+				CANNM_CANCEL_DTC_TMR(ptrDTCProc);
+			}
+			else
+			{}
+		}
+	}
+
+
+	if ( FALSE == BusOffState  )
+	{
+		if ( TRUE == dem_IGN_ON_5s )  /*3s after IGN ON*/ /*BAT & IGN OFF->ON, Êµ²â4.259s (main->eIGN_RUN 1.254s)*/
+		{
+			if((CANNM_DTCSTS_ISVALID(ptrDTCProc))
+				&&((VNM_DTC_DELAY_TMR_XPIRED())||(VNM_DTC_DELAY_TMR_NVSTART()))) /*every 100 ms store once*/
+			{
+				switch(CANNM_DTCSTS(ptrDTCProc))
+				{
+					case CANNM_DTCSTS_CLEARED:
+						VNM_DTCClear();
+						break;
+					case CANNM_DTCSTS_STORED:
+						VNM_DTCStore();
+						break;
+					default:
+						break;
+				}
+			}
+			else
+			{}
+		}
+		else
+		{}
+	}
+	else
+	{
+		CANNM_CANCEL_DTCRCV_TMR(ptrDTCProc);
+		CANNM_SET_DTC_TMR(ptrDTCProc); /* When bus off recovered -> limphome, restart limphome DTC  2s timer.*/
+		CANNM_SET_IDLE(ptrDTCProc);
+	}
+		
+		
+	if(VNM_DTC_DELAY_TMR_NVSTART())
+	{
+		VNM_DTC_SET_DELAY_TMR()
+	}
+	else
+	{}
+	
+	if(VNM_DTC_DELAY_TMR_XPIRED())
+	{
+		VNM_DTC_SET_DELAY_TMR()
+	}
+	else
+	{}
+}
+
+
+#if 0
 static void VNM_DTC(void)
 {
 	VNM_UINT8 u8DTCID = 0x00;
@@ -1799,8 +1927,9 @@ static void VNM_DTC(void)
 	else
 	{
 	}
-
 }
+#endif
+
 static void VNM_DTCSet(VNM_UINT8 u8Val)
 {
 	Dem_SetEventStatus(2,u8Val);

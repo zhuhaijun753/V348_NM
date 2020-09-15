@@ -46,7 +46,7 @@
 #define CANSM_BUSOFF_COUNTER_VAL_SLOW                 (170u/10u) /*[180,220]ms*/
 #define CANSM_BUSOFF_COUNTER_VAL_FAST                 (40u/10u)  /*[45,70]ms*/
 #define CANSM_BUSOFF_COUNTER_FAST                     5u
-#define CANSM_BUSOFF_REVOVERY_VAL					  (200u/10u)
+#define CANSM_BUSOFF_REVOVERY_VAL					  (60u/10u)
 
 #define NWBS_TIME                                     150u
 /* ===========================================================================

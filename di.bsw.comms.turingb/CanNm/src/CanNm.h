@@ -104,6 +104,8 @@ extern void CanNm_TxConfirmation(uint8 CtrlId,  VAR( PduIdType, AUTOMATIC ) TxPd
 extern void CanNm_StateTransition( NetworkHandleType nmChannelHandle, Nm_StateType nextNmState );
 extern void CanNm_MainFunction( void );
 
+extern Std_ReturnType CanSM_GetBusOffState(NetworkHandleType Channel );
+
 /* ===========================================================================
 ** PRIVATE FUNCTION PROTOTYPES
 ** =========================================================================*/
