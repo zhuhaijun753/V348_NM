@@ -843,6 +843,15 @@ void VNM_CB_MsgTxd(void)
 {
 	VNM_SETMSGTXD;
 
+	if ((VNM_UINT8)VNM_SI_RS == (VNM_TxMsg.Data[1] & VNM_SI_RS)) /*sleep indication has been sent*/
+	{
+		VNM_SET_SI_SENT;
+	}
+	else
+	{
+		VNM_CLEAR_SI_SENT;
+	}
+
 	 /*tx succeed, busoff recovered*/
 	NM_BusOffState = FALSE;
 	VNM_CLEAR_BUSOFF;
@@ -949,7 +958,7 @@ static void VNM_Reset(void)
       VNM_CANCEL_RINGMAX_TMR;
       VNM_SET_RINGTYP_TMR;
       VNM_SETNORMAL;
-	  VNM_SET_SLEEP_TMR;
+	  VNM_SET_SLEEP_TMR; //
 	  VNM_Prepare_Msg((VNM_UINT8) VNM_MSG_TYP_ALIVE);
       CanNm_StateTransition(MMCAN_CHANNEL, NM_STATE_NORMAL_OPERATION);
    }
@@ -977,7 +986,7 @@ static void VNM_Prepare_Msg(VNM_UINT8 msg_type)
    if((VNM_SLEEPIND) && (VNM_SLEEP_TMR_XPIRED))
    {
       if((VNM_SLEEPACK && ((VNM_UINT8)VNM_MSG_TYP_ALIVE != msg_type))
-	  	|| (VNM_SLEEPACK_TRUE && VNM_SLEEPIND && VNM_SI_SENT))/*TG2_TC6_SC2:VNM_SLEEPACK is set in VNM_MsgTxd, if VNM_CLEARMSGTXD and a SI received, VNM_SLEEPACK will be set in next VNM_MsgTxd, before next VNM_MsgTxd a SI is sent other than SA*/
+	  	|| (VNM_SLEEPACK_TRUE && VNM_SLEEPIND && VNM_SI_SENT))/*VNM_SLEEPACK is set in VNM_MsgTxd, if VNM_CLEARMSGTXD and a SI received, VNM_SLEEPACK will be set in next VNM_MsgTxd, before next VNM_MsgTxd a SI is sent other than SA*/
       {
 		  VNM_TxMsg.Data[1] =  VNM_TxMsg.Data[1] |( (VNM_UINT8) VNM_SI_SA);	
       }
@@ -1028,17 +1037,16 @@ static void VNM_Normal(void)
          }
          else
          {}
-		 }
-	  else
-	  {
+	 }
+	else
+	{
 	  	if ( (VNM_UINT8)VNM_SI_NRS == (VNM_RxMsg.Data[1] & VNM_SI_RS) ) /*if 0x0?, resume IL tx*/
 	  	{
 			TxStopFlag = FALSE;
-      }
-      else
+		}
+		else
 		{}
-
-	  }
+	}
    }
    else if(VNM_RINGTTYP_TMR_XPIRED)
    {
@@ -1091,19 +1099,12 @@ static void VNM_MsgTxd(void)
    VNM_CLEARMSGTXD;
    if(VNM_FIRSTMSG)
    {
-      VNM_SET_SLEEP_TMR;
+      VNM_SET_SLEEP_TMR; /*First alive, set tBatteryRequest*/
       VNM_CLEAR_FIRSTMSGFLAG;
    }
    else
    {}
-   if ((VNM_UINT8)VNM_SI_RS == (VNM_TxMsg.Data[1] & VNM_SI_RS)) /*sleep indication has been sent*/
-   {
-       VNM_SET_SI_SENT;
-   }
-   else
-   {
-       VNM_CLEAR_SI_SENT;
-   }
+
 
    if((VNM_UINT8)VNM_MSG_TYP_RING == ( (VNM_TxMsg.Data[1]) & VNM_MSG_TYP_RING ) )
    {
@@ -1310,6 +1311,7 @@ static void VNM_PreSleep(void)
          else
          {
              VNM_SETNORMAL;
+             //VNM_SET_SLEEP_TMR;
              VNM_CLEARSLEEPACK;
          }
       }
@@ -1329,6 +1331,7 @@ static void VNM_PreSleep(void)
    else if(!VNM_SLEEPIND)
    {
       VNM_SETNORMAL;
+      //VNM_SET_SLEEP_TMR;
    }
    else
    {}
@@ -1353,7 +1356,7 @@ static void VNM_Limphome(void)
       if((VNM_UINT8)VNM_MSG_TYP_LIMPHOME == (VNM_TxMsg.Data[1] & VNM_MSG_TYP_LIMPHOME))
       {
          VNM_SETLHMARK;
-         if ((VNM_UINT8)0X14 == (VNM_TxMsg.Data[1] & (VNM_UINT8)0X14)) /*TG0_TC3_SC1:Stop IL msg immediately when NM 0x14 sent, requirement from JMC.*/
+         if ((VNM_UINT8)0X14 == (VNM_TxMsg.Data[1] & (VNM_UINT8)0X14)) /*Stop IL msg immediately when NM 0x14 sent, requirement from JMC.*/
          {
              TxStopFlag = TRUE; 
          }
@@ -1375,16 +1378,17 @@ static void VNM_Limphome(void)
       }
       else
       {}
-      if (VNM_SLEEPIND)
+	  
+      if ( (VNM_SLEEPIND) && (VNM_SLEEP_TMR_XPIRED) )
       {
          VNM_SET_RINGMAX_TMR;
          VNM_SETPRESLEEPLH;
-		 TxStopFlag = TRUE; /*TG0_TC3_SC1*/
+		 TxStopFlag = TRUE;
       }
       else
       {
-         TxStopFlag = FALSE; /*TG0_TC3_SC1*/
-   }
+         TxStopFlag = FALSE;
+      }
    }
    else if (VNM_BUSOFF)
    {
@@ -1471,11 +1475,12 @@ static void VNM_LH_Chk4SA(void)
 *******************************************************************************/
 static void VNM_PreSleepLH(void)
 {
-   if (VNM_MSG_AVAILABLE && ((VNM_UINT8)VNM_SI_SA != (VNM_RxMsg.Data[1] & VNM_SI_SIBIT))  )    /*TG4_TC3_SC1, TG4_TC3_SC2, TG4_TC3_new1*/
+   if (VNM_MSG_AVAILABLE && ((VNM_UINT8)VNM_SI_SA != (VNM_RxMsg.Data[1] & VNM_SI_SIBIT))  )
    {
-      VNM_SETLIMPHOME;  
+      VNM_SETLIMPHOME;
+      VNM_SET_SLEEP_TMR;
    }
-   else if (!VNM_SLEEPIND) /*TG4_TC3_SC3*/
+   else if (!VNM_SLEEPIND)
    {
       VNM_Prepare_Msg(VNM_MSG_TYP_LIMPHOME);
       VNM_SETLIMPHOME;
@@ -1519,11 +1524,18 @@ static void VNM_Wait4Sleep(void)
          // DllEnblMsgs();
 		 CanNm_StateTransition(MMCAN_CHANNEL, NM_STATE_NORMAL_OPERATION);
          VNM_SETON;
+         //VNM_SET_SLEEP_TMR;
       }
       else
       {
+         if (VNM_SLEEPIND)
+         {
+             VNM_SET_SLEEP_TMR;
+         }
+
          VNM_SETLIMPHOME;
-         VNM_Prepare_Msg(VNM_MSG_TYP_LIMPHOME); /*TG3_TC4_SC1:VNM_WBSLH interrupted by 0x0? or IGN ON,  send 0x?4; JMC EEA2.0 chapter 4.4.3 send Alive is only  for VNM_WBS*/
+         VNM_SET_LIMPHOME_TMR;
+         VNM_Prepare_Msg(VNM_MSG_TYP_LIMPHOME); /*VNM_WBSLH interrupted by 0x0? or IGN ON,  send 0x?4; JMC EEA2.0 chapter 4.4.3 send Alive is only  for VNM_WBS*/
          // IlTxResume(MMCAN_CHANNEL);
 		 CanNm_StateTransition(MMCAN_CHANNEL, NM_STATE_NORMAL_OPERATION);
       }
