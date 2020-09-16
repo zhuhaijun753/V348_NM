@@ -65,8 +65,6 @@ static CAN_UINT8 CanSm_CommState[CANSM_NUMBER_OF_CHANNELS];
 
 static CAN_UINT8 CanSm_BusoffFlag[CANSM_NUMBER_OF_CHANNELS];		//Bus Off Flag
 
-static CAN_UINT8 CanSm_BusoffState[CANSM_NUMBER_OF_CHANNELS];		//Bus Off 
-
 /*
 #if ( CANSM_DCM_INDICATION == STD_ON )
 static CAN_UINT8 CanSm_DcmRequestActive[CANSM_NUMBER_OF_CHANNELS];
@@ -108,6 +106,7 @@ extern boolean dem_all_block_read_finish_bool;
 boolean dem_Can_Busoff_bool;
 static boolean Can_Busoff_Change_Flag=FALSE;
 static uint8 l_dem_busoff_count=0;
+extern boolean NM_BusOffState; 
 
 
 #define SM_UNUSED_VAR(X)  do { if(0 == (X)){} } while(0)
@@ -163,7 +162,7 @@ void CanSm_Init( void )
 		CanSm_BusoffRecoveryCntr[ChannelIndex] = 0;
 
 		CanSm_BusoffFlag[ChannelIndex] = FALSE;
-		CanSm_BusoffState[ChannelIndex] = FALSE;
+
 		CanSm_BusoffDtcCntr[ChannelIndex] = 0;
 	}
 
@@ -973,16 +972,15 @@ void CanSm_MainFunction(NetworkHandleType Channel)
 		{
             CanSm_BusoffRecoveryCntr[Channel]--;
 
-			if(CanSm_BusoffRecoveryCntr[Channel] == 0)
+			if ( (FALSE == NM_BusOffState) || (CanSm_BusoffRecoveryCntr[Channel] == 0) )
 			{
 				CanSm_BusoffCntr[Channel] = 0;
 
 				CanSm_BusOffModeCntr[Channel] = 0;
 
 				CanSm_BusOffMode[Channel] = CANSM_BUSOFF_FAST_RECOVERY_MODE;
-				CanSm_BusoffDtcCntr[Channel] = 0;
 				
-				CanSm_BusoffState[Channel] = FALSE;
+				CanSm_BusoffDtcCntr[Channel] = 0;
 			}
       	}
 		
@@ -1195,7 +1193,8 @@ void CanSM_ControllerBusOff( uint8 CanSm_ControllerId )
 
         CanSm_CurrState[CanSm_ControllerId]   = CANSM_BO_TX_OFFLINE;
         CanSm_BusoffFlag[CanSm_ControllerId] = TRUE;				//Can error flag
-        CanSm_BusoffState[CanSm_ControllerId] = TRUE;				
+
+		NM_BusOffState = TRUE; 
 
 		if (CanSm_BusoffDtcCntr[CanSm_ControllerId] < 3)
 		{
@@ -1596,35 +1595,6 @@ static void CanSM_NetworkStatemachine( uint8 CanSM_CanNetworkIdx )
 		}
 	}
 
-}
-
-
-
-/* ===========================================================================
-
- Name:            CanSM_GetBusOffState
-
- Description:     Get the bus off state of the channel.
-
- Inputs:          Channel: CAN channel
-
- Returns:         Flag Indicating bus off state.
-
- =========================================================================*/
-Std_ReturnType CanSM_GetBusOffState(NetworkHandleType Channel )
-{
-#if 0 
-    if(CANSM_NUMBER_OF_CHANNELS <= Channel)
-	{
-		return (Std_ReturnType)(0XFF);
-	}
-	else
-	{
-		return (Std_ReturnType)(CanSm_BusoffFlag[Channel]);
-	}
-#endif
-
-	return (Std_ReturnType)(CanSm_BusoffState[0]); /*channel 0*/
 }
 
 static void CanSM_Busoff_dem_process( uint8 CanSM_CanNetworkIdx )

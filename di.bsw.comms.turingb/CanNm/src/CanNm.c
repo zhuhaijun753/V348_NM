@@ -74,7 +74,7 @@ static CAN_UINT8 NmState[CAN_NM_NUMBER_OF_CHANNELS];
 static CAN_UINT8 NmCtrlStatus[CAN_NM_NUMBER_OF_CHANNELS];
 CAN_UINT8 TxStopFlag = TRUE;
 CAN_UINT8 FirstSendFlag = TRUE;
-Std_ReturnType	BusOffState = FALSE; 
+boolean	NM_BusOffState = FALSE; 
 
 #if(CAN_NM_NUMBER_OF_BUSNM > 1)
 static CAN_UINT8 NmBusNmState[CAN_NM_NUMBER_OF_CHANNELS][CAN_NM_NUMBER_OF_BUSNM];
@@ -686,9 +686,6 @@ void VNM_PeriodicTask(void)
    
    VNM_ACK_TX_CONTROL(VNM_CAN_TX_STATE);
 
-
-   BusOffState = CanSM_GetBusOffState( LIMPHOME_DTC_CH0 );
-
    VNM_DTC();
    
    /*Check and transmit if message buffer is full*/
@@ -699,7 +696,6 @@ void VNM_PeriodicTask(void)
 
       if (NmCtrlStatus[MMCAN_CHANNEL] != NM_STATUS_SUSPEND)
       {
-#if 1
         if (( FALSE != FirstSendFlag ) && (0 == VNM_TmrFirstCount))
         {
             VNM_TmrFirstCount = 1;
@@ -707,7 +703,7 @@ void VNM_PeriodicTask(void)
         else
         {
         }
-#endif
+
           if(0 == CanIf_Transmit( MMCAN_CHANNEL, pTxTmd->MsgHandle, &TxPduInfoPtr ))
           {
              VNM_CLEAR_MSGBUFFULL;
@@ -845,7 +841,11 @@ void VNM_CB_MsgRcvd(CAN_RMD const * const pRmd)
 *******************************************************************************/
 void VNM_CB_MsgTxd(void)
 {
-    VNM_SETMSGTXD;
+	VNM_SETMSGTXD;
+
+	 /*tx succeed, busoff recovered*/
+	NM_BusOffState = FALSE;
+	VNM_CLEAR_BUSOFF;
 }
 /*******************************************************************************
 ** FUNCTION NAME  :  VNM_CB_BusOff
@@ -856,19 +856,6 @@ void VNM_CB_MsgTxd(void)
 *******************************************************************************/
 void VNM_CB_BusOff(void)
 {
-#if 0
-   // DllDsblMsgs();
-   CanNm_StateTransition(MMCAN_CHANNEL, NM_STATE_PREPARE_BUS_SLEEP);
-   VNM_SET_BUSOFF;
-   if(VNM_NORMAL || VNM_PRESLEEP)
-   {
-      VNM_SETLIMPHOME;
-      VNM_CANCEL_RINGMAX_TMR;
-      VNM_SET_LIMPHOME_TMR;
-   }
-   else
-   {}
-#endif
 	VNM_SET_BUSOFF;
 }
 /*******************************************************************************
@@ -1117,7 +1104,7 @@ static void VNM_MsgTxd(void)
    {
        VNM_CLEAR_SI_SENT;
    }
-   /*if((VNM_UINT8)VNM_MSG_TYP_RING == VNM_TxMsg.Data[1])*/
+
    if((VNM_UINT8)VNM_MSG_TYP_RING == ( (VNM_TxMsg.Data[1]) & VNM_MSG_TYP_RING ) )
    {
       VNM_SET_RINGMAX_TMR;
@@ -1127,21 +1114,15 @@ static void VNM_MsgTxd(void)
 	      if( ((VNM_UINT8)VNM_RING_MSG_SI_SET == (VNM_RxMsg.Data[1] & VNM_RING_MSG_SI_SET)) && (VNM_SLEEPIND && VNM_SI_SENT) && (VNM_SLEEPACK_TRUE)) 
 	      {
 	         VNM_SETSLEEPACK;
-	         // VNM_SETPRESLEEP;
-	         // ComM_Nm_txStopNormal(MMCAN_CHANNEL);
-			 // VNM_Prepare_Msg(VNM_MSG_TYP_RING);
 	      }
 	      else
-	      {
-	      }
+	      {}
 	  }
 	  else
-	  {
-	  }
+	  {}
    }
    else
-   {
-   }
+   {}
 }
 /*******************************************************************************
 ** FUNCTION NAME  :  VNM_MsgRcvd
@@ -1387,18 +1368,7 @@ static void VNM_Limphome(void)
    else if(VNM_LHTERR_TMR_XPIRED)
    {
       VNM_SET_LIMPHOME_TMR;
-	  #if 0
-      if(VNM_BUSOFF)
-      {
-	    // DllWakeup();
-		VNM_GotoMode(VNM_AWAKE_MODE);                
-		CanNm_StateTransition(MMCAN_CHANNEL, NM_STATE_NORMAL_OPERATION);
-        
-        VNM_CLEAR_BUSOFF;
-      }
-	  #endif
-      	// DllEnblMsgs();
-		//CanNm_StateTransition(MMCAN_CHANNEL, NM_STATE_NORMAL_OPERATION);
+
       if(VNM_ACTIVE)
       {
          VNM_Prepare_Msg(VNM_MSG_TYP_LIMPHOME);
@@ -1421,7 +1391,6 @@ static void VNM_Limphome(void)
 		/* Try to send limphome immediately. Tx will fail due to CanStress disturbance. CAN controller will enter busoff state.*/
 		VNM_Prepare_Msg(VNM_MSG_TYP_LIMPHOME); 
 		VNM_SET_LIMPHOME_TMR;
-		VNM_CLEAR_BUSOFF;
    }
    else
    	{
@@ -1584,9 +1553,7 @@ static void VNM_Update_Node_data(VNM_UINT8 sender, VNM_UINT8 msg_type)
 	VNM_Rx_Msg_SI[byte].value   &= (VNM_UINT32)(~(1u << (VNM_UINT32)bit));
 
   VNM_Rx_Msg_SI[byte].value   |= (VNM_UINT32)((msg_type & VNM_SI_RS) >> 4) << bit;
-    /* Check set the corresponding bit if the node has indicated ready to sleep */
-  // SleepInd = (VNM_UINT32)(((VNM_UINT32)msg_type == (VNM_UINT32)VNM_SI_RS) ? ((VNM_UINT32)VNM_TRUE <<(VNM_UINT32) bit): (VNM_UINT32)VNM_FALSE);
-  // VNM_Rx_Msg_SI[byte].value   |= SleepInd;
+
     
 	VNM_Node_Avail[byte].value  |= (VNM_UINT32)(VNM_TRUE << (VNM_UINT32)bit);
 }
@@ -1709,7 +1676,7 @@ static void VNM_DTC(void)
 	CANNM_DTCRCV_TMR_GO(ptrDTCProc);
 	VNM_DTC_DELAY_TMR_GO();
 
-	if ( ( TRUE == dem_IGN_ON_5s ) && ( FALSE == BusOffState ) )  /*3s after IGN ON &&  not bsouff*/
+	if ( ( TRUE == dem_IGN_ON_5s ) && ( FALSE == NM_BusOffState ) )  /*3s after IGN ON &&  not bsouff*/
 	{
 		if ( NM_State == VNM_LIMPHOME_VALUE)
 		{
