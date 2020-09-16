@@ -100,8 +100,6 @@ static CAN_TMD const vnm_resp_tmd =
     VNM_MSG_HANDLE                         
 };
 
-
-static VNM_UINT8 CanNmDTC = 0xFF;
 static VNM_UINT8       VNM_SI_Sent = 0; /*1: 0x1X has been sent by IC.*/
 
 /*******************************************************************************
@@ -675,14 +673,6 @@ void VNM_PeriodicTask(void)
    }
 #endif   
 
-   BusOffState = CanSM_GetBusOffState( LIMPHOME_DTC_CH0 );
-   if ( FALSE == BusOffState  )
-   {
-	   VNM_CLEAR_BUSOFF;
-   }
-   else
-   {}
-
    /*Check and Run NM State machine*/
 
    if((VNM_UINT8)VNM_NO_OF_STATES > VNM_status.State)
@@ -695,6 +685,9 @@ void VNM_PeriodicTask(void)
    }
    
    VNM_ACK_TX_CONTROL(VNM_CAN_TX_STATE);
+
+
+   BusOffState = CanSM_GetBusOffState( LIMPHOME_DTC_CH0 );
 
    VNM_DTC();
    
@@ -876,7 +869,6 @@ void VNM_CB_BusOff(void)
    else
    {}
 #endif
-	CanNmDTC = 0xff; //
 	VNM_SET_BUSOFF;
 }
 /*******************************************************************************
@@ -1426,8 +1418,10 @@ static void VNM_Limphome(void)
    }
    else if (VNM_BUSOFF)
    {
-		VNM_Prepare_Msg(VNM_MSG_TYP_LIMPHOME);
+		/* Try to send limphome immediately. Tx will fail due to CanStress disturbance. CAN controller will enter busoff state.*/
+		VNM_Prepare_Msg(VNM_MSG_TYP_LIMPHOME); 
 		VNM_SET_LIMPHOME_TMR;
+		VNM_CLEAR_BUSOFF;
    }
    else
    	{
@@ -1668,7 +1662,6 @@ static void VNM_ACK_TX_CONTROL(CAN_UINT8 RT_State)
 		{
 	  		//TxStopFlag = FALSE;
 		}
-
 	  }
 	  else 
 	  {
@@ -1686,8 +1679,6 @@ static void VNM_ACK_TX_CONTROL(CAN_UINT8 RT_State)
 		{
 	  		//TxStopFlag = FALSE;
 		}
-
-
 	  }
 	  else 
 	  {
@@ -1708,227 +1699,71 @@ static void VNM_ACK_TX_CONTROL(CAN_UINT8 RT_State)
 *******************************************************************************/
 static void VNM_DTC(void)
 {
-	static VNM_UINT8 Pre_NM_State = (VNM_UINT8)VNM_OFF_VALUE; 
 	static VNM_UINT8 NM_State   = (VNM_UINT8)VNM_OFF_VALUE; /*Current NM state*/
-
 
 	NM_State   = (VNM_UINT8)VNM_status.State;
 	ptrDTCProc = &CANNM_DTC_Table[LIMPHOME_DTC_CH0];
 
-	VNM_DTC_DELAY_TMR_GO();
+	
 	CANNM_DTC_TMR_GO(ptrDTCProc);
 	CANNM_DTCRCV_TMR_GO(ptrDTCProc);
+	VNM_DTC_DELAY_TMR_GO();
 
-	if ( Pre_NM_State != NM_State )
+	if ( ( TRUE == dem_IGN_ON_5s ) && ( FALSE == BusOffState ) )  /*3s after IGN ON &&  not bsouff*/
 	{
 		if ( NM_State == VNM_LIMPHOME_VALUE)
 		{
-			CANNM_SET_DTC_TMR(ptrDTCProc);
-			CANNM_CANCEL_DTCRCV_TMR(ptrDTCProc);
+			if ( CANNM_DTC_TMR_NVSTART(ptrDTCProc) )
+			{
+				CANNM_SET_DTC_TMR(ptrDTCProc);
+			}
+			else if ( CANNM_DTC_TMR_XPIRED(ptrDTCProc) )
+			{
+				CANNM_SET_STORED(ptrDTCProc);
+			}
+			else
+			{}
 		}
 		else
 		{
-			CANNM_SET_DTCRCV_TMR(ptrDTCProc);
+			CANNM_SET_CLEARED(ptrDTCProc);
 			CANNM_CANCEL_DTC_TMR(ptrDTCProc);
 		}
 
-		Pre_NM_State = NM_State;
-	}
-	else
-	{
-		if ( NM_State == VNM_LIMPHOME_VALUE)
+		if( (CANNM_DTCSTS_ISVALID(ptrDTCProc) ) \
+		&& ( (VNM_DTC_DELAY_TMR_XPIRED() ) ||(VNM_DTC_DELAY_TMR_NVSTART() ) ) ) /*handle every 100 ms  */
 		{
-			if (CANNM_DTC_TMR_XPIRED(ptrDTCProc))
+			switch(CANNM_DTCSTS(ptrDTCProc))
 			{
-				CANNM_SET_STORED(ptrDTCProc);
-				CANNM_CANCEL_DTCRCV_TMR(ptrDTCProc);
+				case CANNM_DTCSTS_CLEARED:
+					VNM_DTCClear();
+					break;
+				case CANNM_DTCSTS_STORED:
+					VNM_DTCStore();
+					break;
+				default:
+					break;
 			}
-			else
-			{}
-		}
-		else
-		{
-			if(CANNM_DTCRCV_TMR_XPIRED(ptrDTCProc))
-			{
-				CANNM_SET_CLEARED(ptrDTCProc);
-				CANNM_CANCEL_DTC_TMR(ptrDTCProc);
-			}
-			else
-			{}
-		}
-	}
-
-
-	if ( FALSE == BusOffState  )
-	{
-		if ( TRUE == dem_IGN_ON_5s )  /*3s after IGN ON*/ /*BAT & IGN OFF->ON, Êµ²â4.259s (main->eIGN_RUN 1.254s)*/
-		{
-			if((CANNM_DTCSTS_ISVALID(ptrDTCProc))
-				&&((VNM_DTC_DELAY_TMR_XPIRED())||(VNM_DTC_DELAY_TMR_NVSTART()))) /*every 100 ms store once*/
-			{
-				switch(CANNM_DTCSTS(ptrDTCProc))
-				{
-					case CANNM_DTCSTS_CLEARED:
-						VNM_DTCClear();
-						break;
-					case CANNM_DTCSTS_STORED:
-						VNM_DTCStore();
-						break;
-					default:
-						break;
-				}
-			}
-			else
-			{}
 		}
 		else
 		{}
 	}
 	else
 	{
-		CANNM_CANCEL_DTCRCV_TMR(ptrDTCProc);
-		CANNM_SET_DTC_TMR(ptrDTCProc); /* When bus off recovered -> limphome, restart limphome DTC  2s timer.*/
+		CANNM_CANCEL_DTC_TMR(ptrDTCProc);
 		CANNM_SET_IDLE(ptrDTCProc);
 	}
-		
-		
-	if(VNM_DTC_DELAY_TMR_NVSTART())
+
+	/*100ms loop timer*/
+	if( (VNM_DTC_DELAY_TMR_XPIRED() ) || ( VNM_DTC_DELAY_TMR_NVSTART() ) )
 	{
-		VNM_DTC_SET_DELAY_TMR()
-	}
-	else
-	{}
-	
-	if(VNM_DTC_DELAY_TMR_XPIRED())
-	{
-		VNM_DTC_SET_DELAY_TMR()
+		VNM_DTC_SET_DELAY_TMR();
 	}
 	else
 	{}
 }
 
 
-#if 0
-static void VNM_DTC(void)
-{
-	VNM_UINT8 u8DTCID = 0x00;
-	
-	VNM_DTC_DELAY_TMR_GO();
-	
-		
-		for(u8DTCID = 0x00; u8DTCID<CANNM_DTC_CNT; u8DTCID++)
-		{
-			ptrDTCProc = &CANNM_DTC_Table[u8DTCID];
-			
-			CANNM_DTC_TMR_GO(ptrDTCProc);
-			
-			CANNM_DTCRCV_TMR_GO(ptrDTCProc);
-
-			
-			if(CanNmDTC != (VNM_TxMsg.Data[1] &0x04))
-			{
-				CanNmDTC = VNM_TxMsg.Data[1] &0x04;
-
-				if(CanNmDTC == 0x04)
-				{
-					if(CANNM_DTC_TMR_NVSTART(ptrDTCProc))
-					{
-						CANNM_SET_DTC_TMR(ptrDTCProc);
-					}
-					else if(CANNM_DTCRCV_TMR_RUNNING(ptrDTCProc))
-					{
-						CANNM_CANCEL_DTCRCV_TMR(ptrDTCProc);
-						CANNM_SET_DTC_TMR(ptrDTCProc);
-					}
-				}
-				else if(CanNmDTC != 0x04)
-				{
-					if(CANNM_DTC_TMR_XPIRED(ptrDTCProc))
-					{
-						/*start recover*/
-						if(CANNM_DTCRCV_TMR_NVSTART(ptrDTCProc))
-						{
-							CANNM_SET_DTCRCV_TMR(ptrDTCProc);
-						}
-						else if(CANNM_DTCRCV_TMR_RUNNING(ptrDTCProc)) 
-						{
-						}
-					}
-					else
-					{
-					}
-				}
-			}
-			else
-			{
-				if(CanNmDTC == 0x04)
-				{
-				if (CANNM_DTC_TMR_XPIRED(ptrDTCProc))
-					{
-						CANNM_SET_STORED(ptrDTCProc);
-
-						CANNM_CANCEL_DTCRCV_TMR(ptrDTCProc);
-					}
-					else
-					{
-					}
-				}
-				else if(CanNmDTC != 0x04)
-				{
-				if(CANNM_DTCRCV_TMR_XPIRED(ptrDTCProc))
-					{
-						CANNM_SET_CLEARED(ptrDTCProc);
-
-						CANNM_CANCEL_DTC_TMR(ptrDTCProc);
-					}
-					else
-					{
-						
-					}
-
-				}
-
-			}
-
-		}
-
-		if((CANNM_DTCSTS_ISVALID(ptrDTCProc))
-			&&((VNM_DTC_DELAY_TMR_XPIRED())||(VNM_DTC_DELAY_TMR_NVSTART())))
-		{
-			switch(CANNM_DTCSTS(ptrDTCProc))
-			{
-			case CANNM_DTCSTS_CLEARED:
-				VNM_DTCClear();
-				break;
-			case CANNM_DTCSTS_STORED:
-				VNM_DTCStore();
-				break;
-			default:
-				break;
-			}
-		}
-			
-
-
-			
-
-		//VNM_DTC_CANCEL_DELAY_TMR();
-
-
-		
-	if(VNM_DTC_DELAY_TMR_NVSTART())
-	{
-		VNM_DTC_SET_DELAY_TMR()
-	}
-	if(VNM_DTC_DELAY_TMR_XPIRED())
-	{
-		VNM_DTC_SET_DELAY_TMR()
-	}
-	else
-	{
-	}
-}
-#endif
 
 static void VNM_DTCSet(VNM_UINT8 u8Val)
 {
