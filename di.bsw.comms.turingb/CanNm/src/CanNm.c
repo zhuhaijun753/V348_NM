@@ -921,7 +921,9 @@ static void VNM_InitReset(void)
     VNM_CLEARSLEEPACK;
 	VNM_CLEAR_SLEEPACK_STATUS;
 	VNM_CLEAR_SI_SENT;
-	// DllEnblMsgs();
+	
+	VNM_SET_SLEEP_TMR; /*Every time send Alive through InitReset, restart tBatteryRequest*/
+	
     VNM_Reset();
 }
 
@@ -945,7 +947,7 @@ static void VNM_Reset(void)
         }
         else
         {
-      TxStopFlag = FALSE;
+            TxStopFlag = FALSE;
         }
       VNM_Clear_Node_data();
       VNM_Prepare_Msg((VNM_UINT8) VNM_MSG_TYP_ALIVE);
@@ -953,12 +955,13 @@ static void VNM_Reset(void)
    }
    else
    {}
+
    if(((VNM_UINT8)VNM_RXCNT_LIMIT >= VNM_Rxcount) && ((VNM_UINT8)VNM_TXCNT_LIMIT >= VNM_Txcount))
    {
       VNM_CANCEL_RINGMAX_TMR;
       VNM_SET_RINGTYP_TMR;
       VNM_SETNORMAL;
-	  VNM_SET_SLEEP_TMR; //
+      
 	  VNM_Prepare_Msg((VNM_UINT8) VNM_MSG_TYP_ALIVE);
       CanNm_StateTransition(MMCAN_CHANNEL, NM_STATE_NORMAL_OPERATION);
    }
@@ -1310,8 +1313,7 @@ static void VNM_PreSleep(void)
          }
          else
          {
-             VNM_SETNORMAL;
-             //VNM_SET_SLEEP_TMR;
+             VNM_SETON;
              VNM_CLEARSLEEPACK;
          }
       }
@@ -1330,8 +1332,7 @@ static void VNM_PreSleep(void)
    }
    else if(!VNM_SLEEPIND)
    {
-      VNM_SETNORMAL;
-      //VNM_SET_SLEEP_TMR;
+      VNM_SETON;
    }
    else
    {}
@@ -1478,7 +1479,7 @@ static void VNM_PreSleepLH(void)
    if (VNM_MSG_AVAILABLE && ((VNM_UINT8)VNM_SI_SA != (VNM_RxMsg.Data[1] & VNM_SI_SIBIT))  )
    {
       VNM_SETLIMPHOME;
-      VNM_SET_SLEEP_TMR;
+      //VNM_SET_SLEEP_TMR;/*Handled in Limphome VNM_MsgRcvd_InLH*/
    }
    else if (!VNM_SLEEPIND)
    {
@@ -1524,14 +1525,15 @@ static void VNM_Wait4Sleep(void)
          // DllEnblMsgs();
 		 CanNm_StateTransition(MMCAN_CHANNEL, NM_STATE_NORMAL_OPERATION);
          VNM_SETON;
-         //VNM_SET_SLEEP_TMR;
       }
-      else
+      else /*VNM_WBSLH*/
       {
-         if (VNM_SLEEPIND)
+         if (VNM_SLEEPIND) /*MSGRCVD*/
          {
              VNM_SET_SLEEP_TMR;
          }
+         else
+         {}
 
          VNM_SETLIMPHOME;
          VNM_SET_LIMPHOME_TMR;
