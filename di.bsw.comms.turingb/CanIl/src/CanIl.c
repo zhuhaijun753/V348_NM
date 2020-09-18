@@ -2618,8 +2618,6 @@ CanIlTxTaskService( CAN_HWINST const hwInst )
 
     CAN_IL_TX_FRAME const * pcanTxFrameHdl;
 
-	CAN_UINT8 isPeriodic;
-
 
 #ifdef CANIL_IFSUPPORT
 
@@ -2661,8 +2659,6 @@ CanIlTxTaskService( CAN_HWINST const hwInst )
 	        txNow = FALSE;
 	        pcanTxFrame    = &pcanTxFrameHdl[iHandle];
 
-			isPeriodic = TRUE;
-
 	        /* If the Delay Count is Greater than Zero,*/
 	        /* Decrement the Delay Count for the Current Frame... */
 
@@ -2680,7 +2676,6 @@ CanIlTxTaskService( CAN_HWINST const hwInst )
 	                {
 	                    /* Transmit Immediately */
   					    txNow = TRUE;
-                        isPeriodic = FALSE; /* Coverity warning fix */
 	                }  /* Pending Event or Periodic Transmission */
 
 	            } /* if (0 == (*(pTxFrame->pTxDelayCount)) */
@@ -2703,7 +2698,6 @@ CanIlTxTaskService( CAN_HWINST const hwInst )
 	            {
 	                /* Transmit Immediately */
 	                txNow = TRUE;
-  				    isPeriodic = FALSE; /* Coverity warning fix */
 	            }
 	        } /* else */
 
@@ -3150,6 +3144,65 @@ CanIlTxInitializationMsgs( CAN_HWINST const hwInst )
 	}
 }
 
+extern uint32	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x510_ComOut_IC_OdometerMasterValue; 
+extern uint16	Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Year;
+extern uint8	Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Month;
+extern uint8	Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Date;
+extern uint8	Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Hour;
+extern uint8	Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Minute;
+extern uint8	Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Second;
+//---------------------------------------------------------------------------------------------------------------------
+/// @brief  Initiate all tx signals in tx data buffer to invalid value according to CAN Matrix..
+///
+/// @return  NONE.
+//---------------------------------------------------------------------------------------------------------------------
+void Rte_Init_Output_Signals( void )
+{
+	/*Initiate RTE variables with invalid value**/
+	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x510_ComOut_IC_OdometerMasterValue = 0x00FFFFFFU; 
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x525_ComOut_IC_AFC
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x510_ComOut_IC_QDashACCFail
+//	Rte_AdasChime_ppSR_CANMSG_IC_0x386_ComOut_IC_BSDSoundSts
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x510_ComOut_IC_AirbagTelltaleBehavior
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x510_ComOut_IC_VehSpd_HMI
+
+	Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Year = 0xFFFFU;
+	Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Month = 0xFFU;
+	Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Date = 0xFFU;
+	Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Hour = 0xFFU;
+	Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Minute = 0xFFU;
+	Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Second = 0xFFU;
+
+//	Rte_CruiseMdl_ppSR_CANMSG_IC_ComOut_IC_CheckSum_IC = 0U;
+//	Rte_CruiseMdl_ppSR_CANMSG_IC_ComOut_IC_CruiseSwitch = 0U;
+//	Rte_CruiseMdl_ppSR_CANMSG_IC_ComOut_IC_DriverBeltSwitchSig = 0U;
+//	Rte_CruiseMdl_ppSR_CANMSG_IC_ComOut_IC_RollingCount_IC1 = 0U;
+//	Rte_CruiseMdl_ppSR_CANMSG_IC_ComOut_IC_TPMSManuStudyCmd = 0U;
+//	Rte_CruiseMdl_ppSR_CANMSG_IC_ComOut_IC_TargetCruiseVehS = 0;
+//	Rte_CruiseMdl_ppSR_CANMSG_IC_ComOut_IC_TotalOdmeter = 0U;
+//	Rte_CruiseMdl_ppSR_CANMSG_IC_ComOut_IC_passengerBeltSwitchSig = 0U;
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x525_ComOut_IC_DTE = 0U;
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x525_ComOut_IC_Fuel_Level_Volumn = 0U;
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x525_ComOut_IC_Fuel_Level_VolumnQF = 0U;
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x525_ComOut_IC_ManRgen_D_Rq = 0U;
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x525_ComOut_IC_AlarmOrNot = 0U;
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x525_ComOut_IC_AlarmStatus = 0U;
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x392_ComOut_IC_ChangOilDistance = 0;
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x392_ComOut_IC_Fuel_level = 0U;
+//	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x392_ComOut_IC_AverageSpeed = 0U;
+
+	/*Update tx data buffer with invalid signal value*/
+	Com_SendSignal( ComConf_ComSignal_IC_OdometerMasterValue_ffd44f7a, (void*)(&Rte_ComVnimMdl_rpSR_CANMSG_IC_0x510_ComOut_IC_OdometerMasterValue));
+
+	Com_SendSignal( ComConf_ComSignal_IC_Year_afccb5cc, (void*)(&Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Year));
+	Com_SendSignal( ComConf_ComSignal_IC_Month_afccb5cc, (void*)(&Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Month));
+	Com_SendSignal( ComConf_ComSignal_IC_Date_afccb5cc, (void*)(&Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Date));
+	Com_SendSignal( ComConf_ComSignal_IC_Hour_afccb5cc, (void*)(&Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Hour));
+	Com_SendSignal( ComConf_ComSignal_IC_Minute_afccb5cc, (void*)(&Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Minute));
+	Com_SendSignal( ComConf_ComSignal_IC_Second_afccb5cc, (void*)(&Rte_ClockMdl_ppSR_CANMSG_IC_time_0x581_ComOut_IC_Second));
+
+}
+
 
 /* ===========================================================================
 
@@ -3165,6 +3218,7 @@ CanIlTxInitializationMsgs( CAN_HWINST const hwInst )
 static void
 CanIlInitTxPeriodicMessageData( CAN_HWINST const hwInst )
 {
+#if 0
     CAN_IL_TX_MESSAGE const * pcanMsgDesc;
 
     CAN_UINT8 const * pInitData;
@@ -3174,7 +3228,7 @@ CanIlInitTxPeriodicMessageData( CAN_HWINST const hwInst )
     CAN_UINT8   numBytes;
 
     CAN_IL_TX_MESSAGE const * pcanTxMsgHdl;
-
+#endif
 	CAN_UINT8 FuncExecSt = TRUE;
 
 
@@ -3189,6 +3243,7 @@ CanIlInitTxPeriodicMessageData( CAN_HWINST const hwInst )
 
     if(FuncExecSt != FALSE)
 	{
+#if 0
 		pcanTxMsgHdl = pCan_Il_Tx_Message[hwInst];
 
 	    /* Set Transmit Message Data Initialization Values */
@@ -3212,6 +3267,8 @@ CanIlInitTxPeriodicMessageData( CAN_HWINST const hwInst )
 	        }
 
 	    } /* for ( iHandle = 0; iHandle < CAN_IL_TX_NUM_MESSAGES; iHandle++ ) */
+#endif
+		Rte_Init_Output_Signals();
 	}
 
 }

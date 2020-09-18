@@ -69,7 +69,7 @@ extern boolean dem_Can_Busoff_bool;             //Lost Communication DTC Record 
 //=====================================================================================================================
 //  FORWARD DECLARATIONS
 //=====================================================================================================================
-static void Rte_Init_Memory( void );
+//void Rte_Init_Output_Signals( void );
 static void ComIn_Msg_DTC_Process(void);
 static boolean ComIn_DTC_StoreIn_Condition(void);
 
@@ -80,8 +80,6 @@ static boolean ComIn_DTC_StoreIn_Condition(void);
 //---------------------------------------------------------------------------------------------------------------------
 static Std_ReturnType CmpInit( void )
 {
-	Rte_Init_Memory();
-   
     return E_OK;
 }
 
@@ -1684,11 +1682,23 @@ static Std_ReturnType CmpDiagReturn( void )
     return E_OK;
 }
 
-extern uint32 Rte_ComVnimMdl_rpSR_CANMSG_IC_0x510_ComOut_IC_OdometerMasterValue;
-static void Rte_Init_Memory( void )
-{
-	Rte_ComVnimMdl_rpSR_CANMSG_IC_0x510_ComOut_IC_OdometerMasterValue = 0x00FFFFFFU; 
-}
+//extern uint8 Ccl_SendSignal( Ccl_SignalIdType SignalId, const void* SignalDataPtr )
+//---------------------------------------------------------------------------------------------------------------------
+/// @brief  Initiate all tx signals in tx data buffer to invalid value according to CAN Matrix..
+///
+/// @return  NONE.
+//---------------------------------------------------------------------------------------------------------------------
+//void Rte_Init_Output_Signals( void )
+//{
+//	uint8 u8Data = (uint8)0xFF;
+//	uint16 u16Data = (uint16)0xFFFF;
+//	uint32 u32Data = (uint32)0x00FFFFFF;
+//	
+//	//Rte_ComVnimMdl_rpSR_CANMSG_IC_0x510_ComOut_IC_OdometerMasterValue = 0x00FFFFFFU; 
+//	
+//	Com_SendSignal( ComConf_ComSignal_IC_OdometerMasterValue_ffd44f7a, (void*)(&u32Data));
+//	
+//}
 
 
 static boolean ComIn_DTC_StoreIn_Condition(void)
