@@ -48,12 +48,24 @@ static uint8    fl_signal_RF_Pressure_WarningSt_Last_U8 = FALSE;
 static uint8    fl_signal_RR_Pressure_WarningSt_Last_U8 = FALSE;
 static uint8    fl_signal_LR_Pressure_WarningSt_Last_U8 = FALSE;
 static uint8    fl_signal_Temperature_WarningSt_Last_U8 = FALSE;
-static uint8    fl_signal_TirePosition_WarningSt_Last1_U8 = FALSE;
+static uint8    fl_signal_TirePosition_WarningSt_Last1_U8 = 5;
 static uint8    fl_signal_TirePosition_WarningSt_Last2_U8 = FALSE;
 static uint8    fl_signal_SystemSt_Last_U8 = FALSE;
 static uint8    l_IGN_statePre_U8 = FALSE;
 static boolean  l_Tpms_flag = TRUE;
 static uint8    l_ProveoutCounter_U8 = FALSE;
+
+
+static uint8 TriePosition_0_fisrt = TRUE;
+static uint8 TriePosition_1_fisrt = TRUE;
+static uint8 TriePosition_2_fisrt = TRUE;
+static uint8 TriePosition_3_fisrt = TRUE;
+static uint8 TriePosition_4_fisrt = TRUE;
+
+static uint8  Temperature_TriePosition_1_fisrt = TRUE;
+static uint8  Temperature_TriePosition_2_fisrt = TRUE;
+static uint8  Temperature_TriePosition_3_fisrt = TRUE;
+static uint8  Temperature_TriePosition_4_fisrt = TRUE;
 
 /*****************************************************************************
 *                                 Manifest Constants                         *
@@ -99,7 +111,8 @@ static uint8    l_ProveoutCounter_U8 = FALSE;
 #define System_Status_1               0x01
 #define System_Status_2               0x02
 
-#define VEHICLE_TPMS_CHIME            (1)
+#define VEHICLE_TPMS_CHIME_1            (1)
+#define VEHICLE_TPMS_CHIME_3            (3)
 
 /*                                 Type Declarations                          *
 ******************************************************************************/
@@ -125,6 +138,8 @@ static void f_Tpms_System_Error_Process(void);
 static void f_Tpms_Pressure_Process(void);
 static void f_Tpms_Temperature_Warning_Process(void);
 static boolean Tpms_PowerOn_Self_Test_Action(void);
+static void f_Tpms_System_Error_Position_Init(void);
+static void f_Tpms_Temperature_Warning_Position_Init(void);
 
 //---------------------------------------------------------------------------------------------------------------------
 /// @brief	Transitional initialization state
@@ -191,7 +206,7 @@ static Std_ReturnType CmpActive( void )
 	uint8 IsEngineCfg_Tpms_Chime = FALSE;
 	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_TPMS,&IsEngineCfg_Tpms_Chime);
 
-	if(VEHICLE_TPMS_CHIME == IsEngineCfg_Tpms_Chime)
+	if((VEHICLE_TPMS_CHIME_1 == IsEngineCfg_Tpms_Chime) || (VEHICLE_TPMS_CHIME_3 == IsEngineCfg_Tpms_Chime))
 	{
 		Rte_Read_rpBattState_BatteryState(&fl_Battery_state);
 		Rte_Read_rpIgnState_IGNState(&fl_IGN_state);
@@ -213,11 +228,13 @@ static Std_ReturnType CmpActive( void )
 					if(l_Tpms_flag == FALSE)
 					{
 						f_TpmsChime_Process();
-					}
-					else
-					{
-						f_TpmsinitialState();
-					}						
+					}					
+				}
+				else
+				{
+					f_Tpms_System_Error_Position_Init();
+					f_Tpms_Temperature_Warning_Position_Init();
+					f_TpmsinitialState();
 				}
 			}
 			else
@@ -273,7 +290,7 @@ static void f_TpmsinitialState(void)
     fl_signal_RR_Pressure_WarningSt_Last_U8 = FALSE;
     fl_signal_LR_Pressure_WarningSt_Last_U8 = FALSE;
     fl_signal_Temperature_WarningSt_Last_U8 = FALSE;
-    fl_signal_TirePosition_WarningSt_Last1_U8 = FALSE;
+    fl_signal_TirePosition_WarningSt_Last1_U8 = 5;
     fl_signal_TirePosition_WarningSt_Last2_U8 = FALSE;
     fl_signal_SystemSt_Last_U8 = FALSE;
 
@@ -321,6 +338,8 @@ static void f_TpmsChime_Process(void)
 	if(FALSE == f_ret)
 	{
 		f_TpmsinitialState();
+		f_Tpms_System_Error_Position_Init();
+		f_Tpms_Temperature_Warning_Position_Init();
 	}
 	else
 	{
@@ -335,34 +354,93 @@ static void f_TpmsChime_Process(void)
 static void f_Tpms_System_Error_Process(void)
 {
     uint8    fl_signal_SystemSt_U8 = 0;
-    uint8    fl_signal_TirePosition_WarningSt_U8 = 0;
+    uint8    fl_signal_TirePosition_WarningSt_U8 = 5;
 
 	Rte_Read_rpSR_CANMSG_TPMS_Tire_0x361_ComIn_Tire_Position(&fl_signal_TirePosition_WarningSt_U8); 
 	Rte_Read_rpSR_CANMSG_TPMS_Tire_0x361_ComIn_TPMS_System_Status(&fl_signal_SystemSt_U8);
 
 
-	if((fl_signal_SystemSt_U8 == System_Status_1) && (fl_signal_SystemSt_Last_U8 != fl_signal_SystemSt_U8))
+	if(fl_signal_SystemSt_U8 == System_Status_1)
 	{
-		l_TpmsChimeState_U8 = TRUE;
-		Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
-	}
-	else if((fl_signal_SystemSt_U8 == System_Status_2)
-	&& ((fl_signal_TirePosition_WarningSt_U8 == TriePosition_0)
-	|| (fl_signal_TirePosition_WarningSt_U8 == TriePosition_1)
-	|| (fl_signal_TirePosition_WarningSt_U8 == TriePosition_2)
-	|| (fl_signal_TirePosition_WarningSt_U8 == TriePosition_3)
-	|| (fl_signal_TirePosition_WarningSt_U8 == TriePosition_4))
-	&& ((fl_signal_SystemSt_Last_U8 != fl_signal_SystemSt_U8)
-	|| (fl_signal_TirePosition_WarningSt_Last1_U8 != fl_signal_TirePosition_WarningSt_U8)))
-	{
-		l_TpmsChimeState_U8 = TRUE;
-		Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
-	}
-	
-	fl_signal_TirePosition_WarningSt_Last1_U8 = fl_signal_TirePosition_WarningSt_U8;
-	fl_signal_SystemSt_Last_U8 = fl_signal_SystemSt_U8;
+		if(fl_signal_SystemSt_Last_U8 != fl_signal_SystemSt_U8)
+		{
+			l_TpmsChimeState_U8 = TRUE;
+			Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
+		}
 
+		f_Tpms_System_Error_Position_Init();
+		fl_signal_TirePosition_WarningSt_Last1_U8 = 5;
+	}
+	else if(fl_signal_SystemSt_U8 == System_Status_2)
+	{
+		if(TriePosition_0 == fl_signal_TirePosition_WarningSt_U8)
+		{
+			if(fl_signal_TirePosition_WarningSt_Last1_U8 != fl_signal_TirePosition_WarningSt_U8)
+			{
+				l_TpmsChimeState_U8 = TRUE;				
+				Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
+			}
+			
+			f_Tpms_System_Error_Position_Init();
+		}
+		
+		else if(TriePosition_1 == fl_signal_TirePosition_WarningSt_U8)
+		{
+			if(TRUE == TriePosition_1_fisrt)
+			{
+				l_TpmsChimeState_U8 = TRUE;
+				TriePosition_1_fisrt = FALSE;
+				
+				Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
+			}
+		}
+
+		else if(TriePosition_2 == fl_signal_TirePosition_WarningSt_U8)
+		{
+			if(TRUE == TriePosition_2_fisrt)
+			{
+				l_TpmsChimeState_U8 = TRUE;
+				TriePosition_2_fisrt = FALSE;
+
+				Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
+			}
+		}
+
+		else if(TriePosition_3 == fl_signal_TirePosition_WarningSt_U8)
+		{
+			if(TRUE == TriePosition_3_fisrt)
+			{
+				l_TpmsChimeState_U8 = TRUE;
+				TriePosition_3_fisrt = FALSE;
+
+				Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
+			}
+		}
+
+		else if(TriePosition_4 == fl_signal_TirePosition_WarningSt_U8)
+		{
+			if(TRUE == TriePosition_4_fisrt)
+			{
+				l_TpmsChimeState_U8 = TRUE;
+				TriePosition_4_fisrt = FALSE;
+
+				Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
+			}
+		}
+		else 
+		{
+			
+		}
+		
+		fl_signal_TirePosition_WarningSt_Last1_U8 = fl_signal_TirePosition_WarningSt_U8;
+	}
+	else
+	{
+		f_Tpms_System_Error_Position_Init();
+		fl_signal_TirePosition_WarningSt_Last1_U8 = 5;
+	}
 	
+	fl_signal_SystemSt_Last_U8 = fl_signal_SystemSt_U8;
 }
 
 static void f_Tpms_Pressure_Process(void)
@@ -430,22 +508,80 @@ static void f_Tpms_Temperature_Warning_Process(void)
 
 	Rte_Read_rpSR_CANMSG_TPMS_Tire_0x361_ComIn_Temperature_Warning(&fl_signal_Temperature_WarningSt_U8); 
 	Rte_Read_rpSR_CANMSG_TPMS_Tire_0x361_ComIn_Tire_Position(&fl_signal_TirePosition_WarningSt_U8); 
-	
-	if((fl_signal_Temperature_WarningSt_U8 == Temperature_Waring)
-	&& ((fl_signal_TirePosition_WarningSt_U8 == TriePosition_1)
-	||  (fl_signal_TirePosition_WarningSt_U8 == TriePosition_2)
-	||  (fl_signal_TirePosition_WarningSt_U8 == TriePosition_3)
-	||  (fl_signal_TirePosition_WarningSt_U8 == TriePosition_4))
-	&& ((fl_signal_Temperature_WarningSt_Last_U8 != fl_signal_Temperature_WarningSt_U8)
-	||  (fl_signal_TirePosition_WarningSt_Last2_U8 != fl_signal_TirePosition_WarningSt_U8)))
+
+	if(Temperature_Waring == fl_signal_Temperature_WarningSt_U8)
 	{
-		l_TpmsChimeState_U8 = TRUE;
-		Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
+		if(TriePosition_0 == fl_signal_TirePosition_WarningSt_U8)
+		{
+			f_Tpms_Temperature_Warning_Position_Init();
+		}
+		else if(TriePosition_1 == fl_signal_TirePosition_WarningSt_U8)
+		{
+			if(TRUE == Temperature_TriePosition_1_fisrt)
+			{
+				l_TpmsChimeState_U8 = TRUE;
+				Temperature_TriePosition_1_fisrt = FALSE;
+				
+				Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
+			}
+		}
+		else if(TriePosition_2 == fl_signal_TirePosition_WarningSt_U8)
+		{
+			if(TRUE == Temperature_TriePosition_2_fisrt)
+			{
+				l_TpmsChimeState_U8 = TRUE;
+				Temperature_TriePosition_2_fisrt = FALSE;
+
+				Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
+			}
+		}
+		else if(TriePosition_3 == fl_signal_TirePosition_WarningSt_U8)
+		{
+			if(TRUE == Temperature_TriePosition_3_fisrt)
+			{
+				l_TpmsChimeState_U8 = TRUE;
+				Temperature_TriePosition_3_fisrt = FALSE;
+
+				Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
+			}
+		}
+		else if(TriePosition_4 == fl_signal_TirePosition_WarningSt_U8)
+		{
+			if(TRUE == Temperature_TriePosition_4_fisrt)
+			{
+				l_TpmsChimeState_U8 = TRUE;
+				Temperature_TriePosition_4_fisrt = FALSE;
+
+				Rte_Call_rpCS_TpmsChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,l_TpmsChimeState_U8);
+			}
+		}
+		else
+		{
+			
+		}
+	}
+	else
+	{
+		f_Tpms_Temperature_Warning_Position_Init();
 	}
 	
-	fl_signal_Temperature_WarningSt_Last_U8 = fl_signal_Temperature_WarningSt_U8;
 	fl_signal_TirePosition_WarningSt_Last2_U8 = fl_signal_TirePosition_WarningSt_U8;
-	
+}
+
+static void f_Tpms_System_Error_Position_Init(void)
+{
+	 TriePosition_1_fisrt = TRUE;
+	 TriePosition_2_fisrt = TRUE;
+	 TriePosition_3_fisrt = TRUE;
+	 TriePosition_4_fisrt = TRUE;
+}
+
+static void f_Tpms_Temperature_Warning_Position_Init(void)
+{
+	Temperature_TriePosition_1_fisrt = TRUE;
+	Temperature_TriePosition_2_fisrt = TRUE;
+	Temperature_TriePosition_3_fisrt = TRUE;
+	Temperature_TriePosition_4_fisrt = TRUE;
 }
 
 /*End of File*/

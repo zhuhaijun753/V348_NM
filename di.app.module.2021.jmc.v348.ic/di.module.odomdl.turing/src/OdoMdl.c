@@ -3441,7 +3441,7 @@ static boolean ODO_EMS_NR_TOUT(void)
 static void OdoLogicalMdl_To_EMS(void)
 {
 	uint32 kilometers_odo = 0;
-	uint32 EMS_BackupOdometer = 0;
+	//uint32 EMS_BackupOdometer = 0;
 	boolean IsTimerElapsed= FALSE;
 	boolean IsTimerStatrt= FALSE;
 	boolean isodochange = FALSE;
@@ -3449,7 +3449,7 @@ static void OdoLogicalMdl_To_EMS(void)
 	NV_Data_Trip_A    Maintenance_mileage;
     NV_Data_Trip_B    Backup_odo;
     uint16 backup_odo_count = 0;
-    uint32 datla_currentodo = 0;
+    //uint32 datla_currentodo = 0;
     uint32 current_maintance = 0;
 
 	//Get KiloMeters from OdoMdl
@@ -3500,20 +3500,11 @@ static void OdoLogicalMdl_To_EMS(void)
                         backup_odo_count = Backup_odo.TripIncrease +1;
                         Backup_odo.TripIncrease = backup_odo_count;
                         Rte_Write_NV_TripMdl_TripB_value(&Backup_odo);
-                        datla_currentodo = (l_ems_backupodometervalue / 10) - (kilometers_odo / 100);
+                        //datla_currentodo = (l_ems_backupodometervalue / 10) - (kilometers_odo / 100);
                         current_maintance = Maintenance_mileage.TripTotalODO - (kilometers_odo / 100);
-                         if(current_maintance < datla_currentodo)
-                         {
-                            Maintenance_mileage.TripTotalODO = 0;    
-                            Rte_Write_NV_TripMdl_TripA_value(&Maintenance_mileage);
-                            Rte_Write_pprpMaintenance_mileage_distance_value(0); 
-                         }
-                         else 
-                         {
-                            Maintenance_mileage.TripTotalODO = current_maintance - datla_currentodo + l_ems_backupodometervalue / 10; 
-                            Rte_Write_NV_TripMdl_TripA_value(&Maintenance_mileage);
-                            Rte_Write_pprpMaintenance_mileage_distance_value(current_maintance - datla_currentodo);   
-                         }
+                        Maintenance_mileage.TripTotalODO = current_maintance + l_ems_backupodometervalue / 10; 
+                        Rte_Write_NV_TripMdl_TripA_value(&Maintenance_mileage);
+                        Rte_Write_pprpMaintenance_mileage_distance_value(current_maintance); 
 
 					}
 					l_ems_odometer_update_complete = TRUE ;
@@ -3615,27 +3606,36 @@ static void EMS_Input_Compare(void)
     static uint8 countevalue = 0;
     uint32 u32_EMS_BackupOdometer = 0;
     static uint32 Pre_EMSbackupodometer = 0;
-    static uint8 CountTimer = 0;
-    CountTimer++;
-    if(CountTimer >= 80)// 800ms compare one time
+    static uint8 counter = 0;
+    counter++;
+    if(counter >= 5)
     {
-       Rte_Read_rpSR_CANMSG_GW_EMS_0x636_ComIn_EMS_BackupOdometer(&u32_EMS_BackupOdometer);
-       if(Pre_EMSbackupodometer == u32_EMS_BackupOdometer)
-       {
-          countevalue++; 
-       }
-       else 
-       {
-         countevalue = 0;  
-         l_ems_backupodometervalue = 0;
-       }
-       Pre_EMSbackupodometer = u32_EMS_BackupOdometer;
-       if(countevalue >= 3)
-       {
-           l_ems_backupodometervalue = u32_EMS_BackupOdometer;
-           countevalue = 0;
-       }
-       CountTimer = 0;
+    
+        Rte_Read_rpSR_CANMSG_GW_EMS_0x636_ComIn_EMS_BackupOdometer(&u32_EMS_BackupOdometer);
+        if(u32_EMS_BackupOdometer != 0)
+        {
+            if(Pre_EMSbackupodometer == u32_EMS_BackupOdometer)
+            {
+               countevalue++; 
+            }
+            else 
+            {
+              countevalue = 0;  
+              l_ems_backupodometervalue = 0;
+            }
+            Pre_EMSbackupodometer = u32_EMS_BackupOdometer;
+            if(countevalue >= 10)
+            {
+                l_ems_backupodometervalue = u32_EMS_BackupOdometer; 
+                countevalue = 0;
+            }
+        }
+        else 
+        {
+            l_ems_backupodometervalue = 0;
+            countevalue = 0;
+        }
+        counter = 0;
      }
 }
 

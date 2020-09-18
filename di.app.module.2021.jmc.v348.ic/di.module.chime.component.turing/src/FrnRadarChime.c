@@ -73,7 +73,9 @@ static uint8    l_ProveoutCounter_U8   = 0;
 #define CHIME_FRNRADAR_VALUE_4  (4)
 #define CHIME_FRNRADAR_VALUE_5  (5)
 
-#define IsEngineCfg_FOUR_SENSORS (3)
+#define IsEngineCfg_TWO_SENSORS   (1)
+#define IsEngineCfg_THREE_SENSORS (2)
+#define IsEngineCfg_FOUR_SENSORS  (3)
 /*                                 Type Declarations                          *
 ******************************************************************************/
 
@@ -159,10 +161,16 @@ static Std_ReturnType CmpActive( void )
 	EBatteryState fl_Battery_state;
     uint8 fl_animationFlag = TRUE;
 	
-	uint8 IsEngineCfg_PAM = 0;
-	//Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_REAR_SENSORS,&IsEngineCfg_PAM);
+	uint8 IsEngineCfg_Rear_PAM = 0;
+	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_REAR_SENSORS,&IsEngineCfg_Rear_PAM);
+	uint8 IsEngineCfg_Front_PAM = 0;
+	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_REAR_SENSORS,&IsEngineCfg_Front_PAM);
 	
-	if(IsEngineCfg_FOUR_SENSORS == IsEngineCfg_PAM)
+
+	
+	if((IsEngineCfg_FOUR_SENSORS == IsEngineCfg_Rear_PAM)  || (IsEngineCfg_THREE_SENSORS == IsEngineCfg_Rear_PAM) 
+	|| (IsEngineCfg_TWO_SENSORS == IsEngineCfg_Rear_PAM)   || (IsEngineCfg_TWO_SENSORS == IsEngineCfg_Front_PAM)
+	|| (IsEngineCfg_FOUR_SENSORS == IsEngineCfg_Front_PAM) || (IsEngineCfg_THREE_SENSORS == IsEngineCfg_Front_PAM))
 	{
 		Rte_Read_rpBattState_BatteryState(&fl_Battery_state);
 		Rte_Read_rpIgnState_IGNState(&fl_IGN_state);
@@ -184,21 +192,17 @@ static Std_ReturnType CmpActive( void )
 					{
 						f_Chime_FrnRadar_Process();
 					}
-					else
-					{
-						f_Chime_FrnRadar_Initial_State();
-					}
 				}
 				else
 				{
+					l_FrnRad_Flag = TRUE;
+					l_ProveoutCounter_U8 = 0;
+					
 					f_Chime_FrnRadar_Initial_State();
 				}
 			}
 			else
 			{
-				l_FrnRad_Flag = TRUE;
-				l_ProveoutCounter_U8 = 0;
-				
 				f_Chime_FrnRadar_Initial_State();
 			}
 		}

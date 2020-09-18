@@ -153,19 +153,19 @@ static UINT8 gs_u8ChimeDrvSts;                                      /* sound dri
 **  Sound Source        Sound Res
 **  Chime1(Tic)         eSnd_N331_Tick
 **  Chime2(Toc)         eSnd_N331_Tock
-**  Chime7              eSnd_N331_TPMS_1000ms
-**  Chime8_1Hz          eSnd_N331_PosLmp_1000ms
-**  Chime9              eSnd_N331_ACC_250ms
-**  Chime15             eSnd_N331_Radar_250ms
+**  Chime7              eSnd_N331_Chime7_1hz
+**  Chime8_1Hz          eSnd_N331_Chime8_1hz
+**  Chime9              eSnd_N331_Chime9
+**  Chime15             eSnd_N331_Chime15
 **  Chime17_1Hz         eSnd_N331_Chime_17_1hz
 **  Chime17_2Hz         eSnd_N331_Chime_17_2hz
 **  Chime17_4Hz         eSnd_N331_Chime_17_4hz
 **  Chime17_Long        eSnd_N331_Chime_17_long
-**  Chime22             eSnd_N331_ACC_2hz_250ms
-**  Chime25_1Hz         eSnd_N331_SeatBelt_1000ms    
-**  Chime30             eSnd_N331_SeatBelt_1000ms_05hz
-**  Chime45_2Hz         eSnd_N331_BSD_250ms
-**  Chime48             eSnd_N331_Radar_500ms
+**  Chime22             eSnd_N331_Chime22
+**  Chime25_1Hz         eSnd_N331_Chime25_1hz    
+**  Chime30             eSnd_N331_Chime30
+**  Chime45_2Hz         eSnd_N331_Chime45
+**  Chime48             eSnd_N331_Chime48
 
 
 **--------------------------------------------------------------------------------------------------------------*/
@@ -176,73 +176,73 @@ static const CHIME_DATA_t_ gs_tChime_D1Data_Tbl[CHIME_IGON_NUM] =              /
 /*1*/   {CHIME_NULL                     ,CHIME_REQID_NULL                   ,100,eSnd_NoChimeID     		,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
 /*2*/   {CHIME_TURN_TICK                ,CHIME_REQID_TURN_TICK              ,21 ,eSnd_N331_Tick       		,CHIME_CYCLE_0  ,CHIME_SET_CHIME},
 /*3*/   {CHIME_TURN_TOC                 ,CHIME_REQID_TURN_TOC               ,21 ,eSnd_N331_Tock       		,CHIME_CYCLE_0  ,CHIME_SET_CHIME},//continue to use
-/*4*/   {CHIME_DOOR_OPEN                ,CHIME_REQID_DOOR_OPEN              ,9  ,eSnd_N331_PosLmp_1000ms    ,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*5*/   {CHIME_SEATBELT                 ,CHIME_REQID_SEATBELT               ,11 ,eSnd_N331_SeatBelt_1000ms  ,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*6*/   {CHIME_TPMS_WARN                ,CHIME_REQID_TPMS_WARN              ,10 ,eSnd_N331_TPMS_1000ms      ,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*7*/   {CHIME_PEPS_ESCL	            ,CHIME_REQID_PEPS_ESCL		        ,95	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*8*/   {CHIME_PEPS_SYS_FAIL            ,CHIME_REQID_PEPS_SYS_FAIL	        ,18	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*9*/   {CHIME_PEPS_REMAIN_NUM          ,CHIME_REQID_PEPS_REMAIN_NUM	    ,96	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*10*/  {CHIME_PEPS_DOOR_OPEN	        ,CHIME_REQID_PEPS_DOOR_OPEN	        ,97	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*11*/  {CHIME_PEPS_OPEN_NOT_OFF        ,CHIME_REQID_PEPS_OPEN_NOT_OFF      ,98	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*12*/  {CHIME_PEPS_IMMO		        ,CHIME_REQID_PEPS_IMMO		        ,14	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*13*/  {CHIME_PEPS_SSB			        ,CHIME_REQID_PEPS_SSB			    ,94 ,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*14*/  {CHIME_PEPS_NO_KEY_FOUND        ,CHIME_REQID_PEPS_NO_KEY_FOUND      ,15	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*15*/  {CHIME_PEPS_KEY_OUT		        ,CHIME_REQID_PEPS_KEY_OUT		    ,16	,eSnd_N331_PosLmp_1000ms    ,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*16*/  {CHIME_PEPS_KEY_BAT		        ,CHIME_REQID_PEPS_KEY_BAT		    ,17	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*17*/  {CHIME_PEPS_BRK_IND		        ,CHIME_REQID_PEPS_BRK_IND		    ,19	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*18*/ 	{CHIME_PEPS_CLUTCH_IND	        ,CHIME_REQID_PEPS_CLUTCH_IND	    ,99	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*19*/  {CHIME_PEPS_NOTPN		        ,CHIME_REQID_PEPS_NOTPN		        ,20	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*20*/  {CHIME_PSNG_SEATBELT	        ,CHIME_REQID_PSNG_SEATBELT	        ,11	,eSnd_N331_SeatBelt_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*21*/  {CHIME_PRK_BRK			        ,CHIME_REQID_PRK_BRK			    ,32	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*22*/  {CHIME_KEY_IN_ON		        ,CHIME_REQID_KEY_IN_ON		        ,31	,eSnd_N331_Radar_500ms		,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*23*/  {CHIME_BK_HOME			        ,CHIME_REQID_BK_HOME			    ,22	,eSnd_N331_ACC_2hz_250ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*24*/  {CHIME_POS_LAMP			        ,CHIME_REQID_POS_LAMP			    ,7	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*25*/  {CHIME_NOT_IN_P			        ,CHIME_REQID_NOT_IN_P			    ,8	,eSnd_N331_NotInP_2000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*26*/  {CHIME_SCR_1HZ                  ,CHIME_REQID_SCR_1HZ	            ,35	,eSnd_N331_Radar_500ms		,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*27*/  {CHIME_SCR_2HZ_1                ,CHIME_REQID_SCR_2HZ_1	            ,33	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*28*/	{CHIME_SCR_2HZ_2                ,CHIME_REQID_SCR_2HZ_2	            ,34	,eSnd_N331_Radar_250ms		,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*29*/  {CHIME_DPF_WARN 		        ,CHIME_REQID_DPF_WARN               ,36 ,eSnd_N331_ACC_250ms  		,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*30*/	{CHIME_LaneAssit_WarningAudio   ,CHIME_REQID_LaneAssit_WarningAudio ,4  ,eSnd_N331_BSD_250ms        ,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*31*/	{CHIME_Nav_Sts 	                ,CHIME_REQID_Nav_Sts                ,5  ,eSnd_N331_ACC_250ms   		,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*32*/	{CHIME_LaneAssit_HandsonReq     ,CHIME_REQID_LaneAssit_HandsonReq   ,3  ,eSnd_N331_Radar_500ms      ,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*33*/	{CHIME_TAKE_OVER_REQ 	        ,CHIME_REQID_TAKE_OVER_REQ          ,2  ,eSnd_N331_ACC_250ms   		,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*34*/	{CHIME_PCW_STATE 	            ,CHIME_REQID_PCW_STATE              ,1  ,eSnd_N331_ACC_2hz_250ms   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*35*/	{CHIME_BSDSound_SwitchSts       ,CHIME_REQID_BSDSound_SwitchSts     ,5  ,eSnd_N331_Radar_250ms  	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*36*/	{CHIME_CTA_warningReq 	        ,CHIME_REQID_CTA_warningReq         ,5  ,eSnd_N331_Radar_250ms   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*37*/	{CHIME_DOA_WarningReq 	        ,CHIME_REQID_DOA_WarningReq         ,5  ,eSnd_N331_Radar_250ms   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*38*/	{CHIME_STT           	        ,CHIME_REQID_STT                    ,37 ,eSnd_N331_Radar_500ms   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*39*/	{CHIME_LOWFUEL           	    ,CHIME_REQID_LOWFUEL                ,23 ,eSnd_N331_PosLmp_1000ms   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*40*/	{CHIME_ATS           	        ,CHIME_REQID_ATS                    ,38 ,eSnd_N331_Radar_500ms   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*41*/	{CHIME_ATS_DMC                  ,CHIME_REQID_ATS_DMC                ,38 ,eSnd_N331_Radar_500ms   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*42*/	{CHIME_Over_Spd					,CHIME_REQID_Over_Spd				,13 ,eSnd_N331_SeatBelt_1000ms_05hz	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*43*/	{CHIME_Low_OilPress				,CHIME_REQID_Low_OilPress			,12 ,eSnd_N331_ACC_2hz_250ms  	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*4*/   {CHIME_DOOR_OPEN                ,CHIME_REQID_DOOR_OPEN              ,9  ,eSnd_N331_Chime8_1hz    ,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*5*/   {CHIME_SEATBELT                 ,CHIME_REQID_SEATBELT               ,11 ,eSnd_N331_Chime25_1hz  ,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*6*/   {CHIME_TPMS_WARN                ,CHIME_REQID_TPMS_WARN              ,10 ,eSnd_N331_Chime7_1hz      ,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*7*/   {CHIME_PEPS_ESCL	            ,CHIME_REQID_PEPS_ESCL		        ,95	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*8*/   {CHIME_PEPS_SYS_FAIL            ,CHIME_REQID_PEPS_SYS_FAIL	        ,18	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*9*/   {CHIME_PEPS_REMAIN_NUM          ,CHIME_REQID_PEPS_REMAIN_NUM	    ,96	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*10*/  {CHIME_PEPS_DOOR_OPEN	        ,CHIME_REQID_PEPS_DOOR_OPEN	        ,97	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*11*/  {CHIME_PEPS_OPEN_NOT_OFF        ,CHIME_REQID_PEPS_OPEN_NOT_OFF      ,98	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*12*/  {CHIME_PEPS_IMMO		        ,CHIME_REQID_PEPS_IMMO		        ,14	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*13*/  {CHIME_PEPS_SSB			        ,CHIME_REQID_PEPS_SSB			    ,94 ,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*14*/  {CHIME_PEPS_NO_KEY_FOUND        ,CHIME_REQID_PEPS_NO_KEY_FOUND      ,15	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*15*/  {CHIME_PEPS_KEY_OUT		        ,CHIME_REQID_PEPS_KEY_OUT		    ,16	,eSnd_N331_Chime8_1hz    ,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*16*/  {CHIME_PEPS_KEY_BAT		        ,CHIME_REQID_PEPS_KEY_BAT		    ,17	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*17*/  {CHIME_PEPS_BRK_IND		        ,CHIME_REQID_PEPS_BRK_IND		    ,19	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*18*/ 	{CHIME_PEPS_CLUTCH_IND	        ,CHIME_REQID_PEPS_CLUTCH_IND	    ,99	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*19*/  {CHIME_PEPS_NOTPN		        ,CHIME_REQID_PEPS_NOTPN		        ,20	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*20*/  {CHIME_PSNG_SEATBELT	        ,CHIME_REQID_PSNG_SEATBELT	        ,11	,eSnd_N331_Chime25_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*21*/  {CHIME_PRK_BRK			        ,CHIME_REQID_PRK_BRK			    ,32	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*22*/  {CHIME_KEY_IN_ON		        ,CHIME_REQID_KEY_IN_ON		        ,31	,eSnd_N331_Chime48		,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*23*/  {CHIME_BK_HOME			        ,CHIME_REQID_BK_HOME			    ,22	,eSnd_N331_Chime22	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*24*/  {CHIME_POS_LAMP			        ,CHIME_REQID_POS_LAMP			    ,7	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*25*/  {CHIME_NOT_IN_P			        ,CHIME_REQID_NOT_IN_P			    ,8	,eSnd_N331_Not_Use	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*26*/  {CHIME_SCR_1HZ                  ,CHIME_REQID_SCR_1HZ	            ,35	,eSnd_N331_Chime48		,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*27*/  {CHIME_SCR_2HZ_1                ,CHIME_REQID_SCR_2HZ_1	            ,33	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*28*/	{CHIME_SCR_2HZ_2                ,CHIME_REQID_SCR_2HZ_2	            ,34	,eSnd_N331_Chime15		,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*29*/  {CHIME_DPF_WARN 		        ,CHIME_REQID_DPF_WARN               ,36 ,eSnd_N331_Chime8_1hz  		,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*30*/	{CHIME_LaneAssit_WarningAudio   ,CHIME_REQID_LaneAssit_WarningAudio ,4  ,eSnd_N331_Chime45        ,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*31*/	{CHIME_Nav_Sts 	                ,CHIME_REQID_Nav_Sts                ,5  ,eSnd_N331_Chime9   		,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*32*/	{CHIME_LaneAssit_HandsonReq     ,CHIME_REQID_LaneAssit_HandsonReq   ,3  ,eSnd_N331_Chime48      ,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*33*/	{CHIME_TAKE_OVER_REQ 	        ,CHIME_REQID_TAKE_OVER_REQ          ,2  ,eSnd_N331_Chime9   		,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*34*/	{CHIME_PCW_STATE 	            ,CHIME_REQID_PCW_STATE              ,1  ,eSnd_N331_Chime22   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*35*/	{CHIME_BSDSound_SwitchSts       ,CHIME_REQID_BSDSound_SwitchSts     ,5  ,eSnd_N331_Chime15  	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*36*/	{CHIME_CTA_warningReq 	        ,CHIME_REQID_CTA_warningReq         ,5  ,eSnd_N331_Chime15   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*37*/	{CHIME_DOA_WarningReq 	        ,CHIME_REQID_DOA_WarningReq         ,5  ,eSnd_N331_Chime15   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*38*/	{CHIME_STT           	        ,CHIME_REQID_STT                    ,37 ,eSnd_N331_Chime48   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*39*/	{CHIME_LOWFUEL           	    ,CHIME_REQID_LOWFUEL                ,23 ,eSnd_N331_Chime8_1hz   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*40*/	{CHIME_ATS           	        ,CHIME_REQID_ATS                    ,38 ,eSnd_N331_Chime48   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*41*/	{CHIME_ATS_DMC                  ,CHIME_REQID_ATS_DMC                ,38 ,eSnd_N331_Chime48   	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*42*/	{CHIME_Over_Spd					,CHIME_REQID_Over_Spd				,13 ,eSnd_N331_Chime30	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
+/*43*/	{CHIME_Low_OilPress				,CHIME_REQID_Low_OilPress			,12 ,eSnd_N331_Chime22  	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
 /*44*/	{CHIME_UPA_1HZ				    ,CHIME_REQID_UPA_1HZ				,6  ,eSnd_N331_Chime_17_1hz     ,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
 /*45*/	{CHIME_UPA_2HZ					,CHIME_REQID_UPA_2HZ				,6  ,eSnd_N331_Chime_17_2hz  	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
 /*46*/	{CHIME_UPA_4HZ					,CHIME_REQID_UPA_4HZ				,6  ,eSnd_N331_Chime_17_4hz  	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
 /*47*/	{CHIME_UPA_LONG					,CHIME_REQID_UPA_LONG				,6  ,eSnd_N331_Chime_17_long  	,CHIME_CYCLE_1  ,CHIME_SET_CHIME},
-/*48*/  {CHIME_ENG_HIGH_TEMP			,CHIME_REQID_ENG_HIGH_TEMP			,14 ,eSnd_N331_PosLmp_1000ms  	,CHIME_CYCLE_1  ,CHIME_SET_CHIME}
+/*48*/  {CHIME_ENG_HIGH_TEMP			,CHIME_REQID_ENG_HIGH_TEMP			,14 ,eSnd_N331_Chime8_1hz  	,CHIME_CYCLE_1  ,CHIME_SET_CHIME}
 };      
 static const CHIME_DATA_t_ gs_tChime_D2Data_Tbl[CHIME_IGOFF_NUM] =              /* look-up table for chime config information */
 {
 	    /* Chime ID */                  /* Request Type */                 /* Priority *//* Sound Res */    /* Cycle Type *//* Request Input Type */
 /*1*/	{CHIME_D2_TICK	                ,CHIME_REQID_D2_TICK	            ,21	,eSnd_N331_Tick	    		,CHIME_CYCLE_0	,CHIME_SET_CHIME},
 /*2*/	{CHIME_D2_TOC	                ,CHIME_REQID_D2_TOC	                ,21	,eSnd_N331_Tock	    		,CHIME_CYCLE_0	,CHIME_SET_CHIME},
-/*3*/	{CHIME_D2_PEPS_ESCL				,CHIME_REQID_D2_PEPS_ESCL			,95	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*4*/	{CHIME_D2_PEPS_SYS_FAIL			,CHIME_REQID_D2_PEPS_SYS_FAIL		,18	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*5*/	{CHIME_D2_PEPS_REMAIN_NUM		,CHIME_REQID_D2_PEPS_REMAIN_NUM		,96	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*6*/	{CHIME_D2_PEPS_DOOR_OPEN		,CHIME_REQID_D2_PEPS_DOOR_OPEN		,97	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*7*/	{CHIME_D2_PEPS_OPEN_NOT_OFF		,CHIME_REQID_D2_PEPS_OPEN_NOT_OFF	,98	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*8*/	{CHIME_D2_CHIME_PEPS_SSB		,CHIME_REQID_D2_PEPS_SSB			,94	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*9*/	{CHIME_D2_PEPS_NO_KEY_FOUND		,CHIME_REQID_D2_PEPS_NO_KEY_FOUND	,15	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*10*/	{CHIME_D2_PEPS_KEY_OUT			,CHIME_REQID_D2_PEPS_KEY_OUT		,16	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*11*/	{CHIME_D2_PEPS_BRK_IND			,CHIME_REQID_D2_PEPS_BRK_IND		,19	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*12*/	{CHIME_D2_PEPS_CLUTCH_IND		,CHIME_REQID_D2_PEPS_CLUTCH_IND		,99	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*13*/	{CHIME_D2_PEPS_NOTPN		    ,CHIME_REQID_D2_PEPS_NOTPN		    ,20	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*14*/	{CHIME_D2_KEY_IN_ON				,CHIME_REQID_D2_KEY_IN_ON			,31	,eSnd_N331_Radar_500ms		,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*15*/	{CHIME_D2_BK_HOME				,CHIME_REQID_D2_BK_HOME				,100,eSnd_N331_BSD_250ms	    ,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*16*/	{CHIME_D2_POS_LAMP				,CHIME_REQID_D2_POS_LAMP			,7	,eSnd_N331_PosLmp_1000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*17*/	{CHIME_D2_NOT_IN_P				,CHIME_REQID_D2_NOT_IN_P			,8	,eSnd_N331_NotInP_2000ms	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
-/*18*/	{CHIME_D2_LIGHT_ON				,CHIME_REQID_D2_LIGHT_ON			,5	,eSnd_N331_BSD_250ms		,CHIME_CYCLE_1	,CHIME_SET_CHIME}
+/*3*/	{CHIME_D2_PEPS_ESCL				,CHIME_REQID_D2_PEPS_ESCL			,95	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*4*/	{CHIME_D2_PEPS_SYS_FAIL			,CHIME_REQID_D2_PEPS_SYS_FAIL		,18	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*5*/	{CHIME_D2_PEPS_REMAIN_NUM		,CHIME_REQID_D2_PEPS_REMAIN_NUM		,96	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*6*/	{CHIME_D2_PEPS_DOOR_OPEN		,CHIME_REQID_D2_PEPS_DOOR_OPEN		,97	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*7*/	{CHIME_D2_PEPS_OPEN_NOT_OFF		,CHIME_REQID_D2_PEPS_OPEN_NOT_OFF	,98	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*8*/	{CHIME_D2_CHIME_PEPS_SSB		,CHIME_REQID_D2_PEPS_SSB			,94	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*9*/	{CHIME_D2_PEPS_NO_KEY_FOUND		,CHIME_REQID_D2_PEPS_NO_KEY_FOUND	,15	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*10*/	{CHIME_D2_PEPS_KEY_OUT			,CHIME_REQID_D2_PEPS_KEY_OUT		,16	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*11*/	{CHIME_D2_PEPS_BRK_IND			,CHIME_REQID_D2_PEPS_BRK_IND		,19	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*12*/	{CHIME_D2_PEPS_CLUTCH_IND		,CHIME_REQID_D2_PEPS_CLUTCH_IND		,99	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*13*/	{CHIME_D2_PEPS_NOTPN		    ,CHIME_REQID_D2_PEPS_NOTPN		    ,20	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*14*/	{CHIME_D2_KEY_IN_ON				,CHIME_REQID_D2_KEY_IN_ON			,31	,eSnd_N331_Chime48		,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*15*/	{CHIME_D2_BK_HOME				,CHIME_REQID_D2_BK_HOME				,100,eSnd_N331_Chime45	    ,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*16*/	{CHIME_D2_POS_LAMP				,CHIME_REQID_D2_POS_LAMP			,7	,eSnd_N331_Chime8_1hz	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*17*/	{CHIME_D2_NOT_IN_P				,CHIME_REQID_D2_NOT_IN_P			,8	,eSnd_N331_Not_Use	,CHIME_CYCLE_1	,CHIME_SET_CHIME},
+/*18*/	{CHIME_D2_LIGHT_ON				,CHIME_REQID_D2_LIGHT_ON			,5	,eSnd_N331_Chime45		,CHIME_CYCLE_1	,CHIME_SET_CHIME}
 };
 
 

@@ -68,23 +68,24 @@ static uint16 ffuel_Calc_IGNOFF_ON_Fuel(void);
 #define addResolution(x)   						(x+3)
 #define FUEL_FAST_FILL_ENTRY_VSP_LIMIT   		(uint16)(300)    		//3KM/H		
 #define FUEL_FAST_FILL_ENTRY_TACH_LIMIT   		(uint32)(30000)    		//300RPM
-#define SHORT_CIRCUIT_RESISTOR    				(uint16)(300)			//3ohm
-#define OPEN_CIRCUIT_RESISTOR    				(uint16)(30000)			//300ohm
+#define SHORT_CIRCUIT_RESISTOR    				(uint16)(500)			//5ohm
+#define OPEN_CIRCUIT_RESISTOR    				(uint16)(31500)			//315ohm
 #define F_STOP_RESISTOR							(uint16)(900)			//9ohm
-#define E_STOP_RESISTOR							(uint16)(29040)			//290ohm
+#define E_STOP_RESISTOR							(uint16)(30350)			//303.5ohm
 #define Fuel_TimeOut_60S                    	(uint16)(60000)			//60s
 #define NORMAL_CIRCUIT							(uint16)(0x1)
 #define SHORT_CIRCUIT							(uint16)(0x2)
 #define OPEN_CIRCUIT							(uint16)(0x3)
 #define InvalidFuelSignal        				(uint32)(0x1FFF)		// the max signal value from it is 68.00L < 0x1FFF, OK
-#define ValidFuelSignal                 		(uint16)(0x1)
+#define NormalFuel                 				(uint16)(0x0)
+#define ABNormalFuel                 			(uint16)(0x1)
 #define RESULT_NORMAL             				(uint16)(0x2)
 #define RESULT_FAILED            				(uint16)(0x3)
 #define FUEL_SENSOR_FAULT        				(uint16)(10)
 #define IOC_FE05_GAUGE_TYPE_FUEL				(uint16)(0x81)
 #define FUEL_LEVEL_PERCENT_INVALID				(uint16)(0x7F)
-#define FUEL_FULL_VOLUME						(uint16)(7420)
-#define FUEL_EMPTY_VOLUME						(uint16)(500)
+#define FUEL_FULL_VOLUME						(uint16)(7100)
+#define FUEL_EMPTY_VOLUME						(uint16)(600)
 #define FUEL_INVALID_VOLUME						(uint16)0xffff
 #define FULE_MAX_LED_BAR						(uint8)(8)
 #define FUEL_ONE_LEDBAR							(uint8)1
@@ -102,8 +103,8 @@ static uint16 ffuel_Calc_IGNOFF_ON_Fuel(void);
 * Definition of constant shall be followed by a comment that explains the    *
 * purpose of the constant.                                                   *
 ******************************************************************************/
-const uint16 NVM_DTE_1_LFW_ON_Thres_U16  = (1100);						/* Default Value : 11L		low fuel */
-const uint16 NVM_DTE_1_LFW_OFF_Thres_U16 = (1540);						/* Default Value : 15.4L	low fuel */
+const uint16 NVM_DTE_1_LFW_ON_Thres_U16  = (1000);						/* Default Value : 10L	 low fuel */
+const uint16 NVM_DTE_1_LFW_OFF_Thres_U16 = (1200);						/* Default Value : 12L	 low fuel */
 const uint32 NVM_FUEL_CALI_Factor[2] = { 688956 , 425531 };
 
 
@@ -112,58 +113,56 @@ const uint32 NVM_FUEL_CALI_Factor[2] = { 688956 , 425531 };
 *********************************************************************************/
 static const uint16 F_FUEL_A_RES_TO_Volum[13][2] =
 {
-	{ (uint16)(0u), (uint16)(29040u) },		
-	{ (uint16)(1010u), (uint16)(8060u) },	
-	{ (uint16)(3760u), (uint16)(7420u) },
-	{ (uint16)(5980u), (uint16)(6780u) },
-	{ (uint16)(8200u), (uint16)(6140u) },
-	{ (uint16)(11700u), (uint16)(5180u) },		
-	{ (uint16)(15140u), (uint16)(4220u) },		
-	{ (uint16)(17790u), (uint16)(3300u) },
-	{ (uint16)(21010u), (uint16)(2380u) },
-	{ (uint16)(23710u), (uint16)(1540u) },
-	{ (uint16)(25010u), (uint16)(1100u) },
-	{ (uint16)(27820u), (uint16)(500) },
-	{ (uint16)(29040u), (uint16)(0u) },
+	{ (uint16)(0u), (uint16)(30000u) },		
+	{ (uint16)(1000u), (uint16)(7900u) },	
+	{ (uint16)(4700u), (uint16)(7100u) },
+	{ (uint16)(7000u), (uint16)(6600u) },
+	{ (uint16)(8900u), (uint16)(6000u) },
+	{ (uint16)(11900u), (uint16)(5100u) },		
+	{ (uint16)(15500u), (uint16)(4100u) },		
+	{ (uint16)(18800u), (uint16)(3200u) },
+	{ (uint16)(21400u), (uint16)(2300u) },
+	{ (uint16)(24000u), (uint16)(1500u) },
+	{ (uint16)(26000u), (uint16)(1000u) },
+	{ (uint16)(28400u), (uint16)(600u) },
+	{ (uint16)(30000u), (uint16)(0u) },
 };
 
 
 /*********************************************************************************
               PF to Fuel table
 *********************************************************************************/
-static const uint16 F_FUEL_A_PF_TO_FUEL[14][2] =
+static const uint16 F_FUEL_A_PF_TO_FUEL[13][2] =
 {
 	{ (uint16)(0u), 		(uint16)(254*256u) },
 	{ (uint16)(0),			(uint16)(0)}, 
-	{ (uint16)(1u),			(uint16)(60u)}, 		/* 1.89	    = 0% = 0.6L 		*/
-	{ (uint16)(15u),		(uint16)500u  },		/* 15.7	    = 6.2% = 5L 		*/
-	{ (uint16)(34u),		(uint16)1100u },		/* 34.6	    = 13% = 11L		*/
-	{ (uint16)(48u),		(uint16)1540u },		/* 48.5	    = 18.5% = 15.4L		*/
-	{ (uint16)(75u),		(uint16)2380u },		/* 75.0     = 29% = 23.8L		*/
-	{ (uint16)(103u),		(uint16)3300u },		/* 103.9	= 40.5% = 33L		*/
-	{ (uint16)(132u),		(uint16)4220u },		/* 132.9	= 52% = 42.2L		*/
-	{ (uint16)(163u),		(uint16)5180u },		/* 163.2	= 64% = 51.8L		*/
-	{ (uint16)(193u),		(uint16)6140u } ,		/* 193.4	= 76% = 61.4L		*/
-	{ (uint16)(213u),		(uint16)6780u },		/* 213.6	= 84% = 67.8L			*/
-	{ (uint16)(233u),		(uint16)7420u },		/* 233.8	= 92% = 74.2L		*/
-	{ (uint16)(254u),		(uint16)8060u },		/* 254.0	= 100%   = 80.6L			*/
+	{ (uint16)(19u),		(uint16)600u  },		/* 19.3	    = 7.5% =  6L 		*/
+	{ (uint16)(32u),		(uint16)1000u },		/* 32.2	    = 12.6% = 10L		*/
+	{ (uint16)(48u),		(uint16)1500u },		/* 48.2	    = 18.9% = 15L		*/
+	{ (uint16)(74u),		(uint16)2300u },		/* 73.9     = 29.1% = 23L		*/
+	{ (uint16)(103u),		(uint16)3200u },		/* 102.8	= 40.5% = 32L		*/
+	{ (uint16)(132u),		(uint16)4100u },		/* 131.8	= 51.8% = 41L		*/
+	{ (uint16)(163u),		(uint16)5100u },		/* 163.9	= 64.5% = 51L		*/
+	{ (uint16)(193u),		(uint16)6000u } ,		/* 192.9	= 75.9% = 60L		*/
+	{ (uint16)(212u),		(uint16)6600u },		/* 212.2	= 83.5% =  66L			*/
+	{ (uint16)(228u),		(uint16)7100u },		/* 228.3	= 89.8% = 71L		*/
+	{ (uint16)(254u),		(uint16)7900u },		/* 254.0	= 100%   = 79L			*/
 };
 
 /*********************************************************************************
               Fuel to LED BAR table
 *********************************************************************************/
-static const THRESHOLD F_FUEL_BAR_THRESHOLD[10] =
+static const THRESHOLD F_FUEL_BAR_THRESHOLD[9] =
 {
 	{ (uint16)8, (uint16)0 },
-	{ (uint16)500, (uint16)1540 },
-	{ (uint16)1540, (uint16)2380 },
-	{ (uint16)2380, (uint16)3300 },
-	{ (uint16)3300, (uint16)4220 },
-	{ (uint16)4220, (uint16)5180 },
-	{ (uint16)5180, (uint16)6140 },
-	{ (uint16)6140, (uint16)6780 },
-	{ (uint16)6780, (uint16)7420 },
-	{ (uint16)7420, (uint16)8060 },
+	{ (uint16)600, (uint16)900 },
+	{ (uint16)1500, (uint16)1800 },
+	{ (uint16)2300, (uint16)2600 },
+	{ (uint16)3200, (uint16)3500 },
+	{ (uint16)4100, (uint16)4400 },
+	{ (uint16)5100, (uint16)5400 },
+	{ (uint16)6000, (uint16)6300 },
+	{ (uint16)6600, (uint16)7100 },
 };
 
 
@@ -171,7 +170,7 @@ static const THRESHOLD F_FUEL_BAR_THRESHOLD[10] =
 *                                 Type Declarations                          *
 ******************************************************************************/
 static uint8 l_sleep_status_flag_U8;
-static uint16 l_fuel_filter_resistance_U16;
+static uint32 l_fuel_filter_resistance_U32;
 static uint16 l_fuel_filter_volume_U16;
 static uint16 l_fuel_unfilter_volume_U16;
 static uint16 l_fuel_ignoff_instance_volume_U16;
@@ -182,7 +181,7 @@ boolean l_fuel_abnormal_status;
 static uint8  l_fuel_ip_counter;     
 static uint8 l_ignoff_cnt = 0;
 static boolean IGNOFF_ON_FLAG;
-static uint16 l_fuel_resistance[15]={0};
+static uint32 l_fuel_resistance[15]={0};
 static uint8 l_fuel_sample=0;
 
 typedef struct  
@@ -220,13 +219,13 @@ static boolean l_first_battOff_On = FALSE;
 
 //Fuel Test page
 static void fuel_test(void);
-uint16 test_fuel_res;
+uint32 test_fuel_res;
 uint16 test_unfuel;
 uint16 test_calfuel;
 uint16 test_disfuel;
 uint16 test_stable_fuel;
 
-//#define Fuel_Test  
+#define Fuel_Test  
 
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -543,10 +542,10 @@ static void ffuel_pkg_process_KSSlowTimetask(void)
 static uint16 ffuel_Calc_IGNOFF_ON_Fuel(void)
 {
 	uint8 i=0;
-	uint16 fl_res_sum_b=0;
-	uint16 fl_res_average_b=0;
+	uint32 fl_res_sum_b=0;
+	uint32 fl_res_average_b=0;
 	
-	l_fuel_resistance[l_fuel_sample++] = l_fuel_filter_resistance_U16;
+	l_fuel_resistance[l_fuel_sample++] = l_fuel_filter_resistance_U32;
 
 	if(l_fuel_sample >= SAMPLE_RES_CNT)
 	{
@@ -562,7 +561,7 @@ static uint16 ffuel_Calc_IGNOFF_ON_Fuel(void)
 
 		l_fuel_sample = 0;
 
-		l_fuel_filter_resistance_U16 = fl_res_average_b;
+		l_fuel_filter_resistance_U32 = fl_res_average_b;
 		
 		return TRUE;
 	}
@@ -593,14 +592,13 @@ static boolean ffuel_process_resistor_to_fuelVolume(void)
 {
 	boolean fl_timer_resDef_started_bool;
 	eIgnState fl_IGN_state;
-	boolean fl_calc_state=FALSE;
 	
 	Rte_Read_rpIgnState_IGNState(&fl_IGN_state);	
 
 	ffuel_compute_resistorValue();
 	
-	// SysRS_02_Gauges_1281, 3 ohm shortCircuit , 9 ohm openCircuit
-	if(l_fuel_filter_resistance_U16 < SHORT_CIRCUIT_RESISTOR || l_fuel_filter_resistance_U16 > OPEN_CIRCUIT_RESISTOR)
+	// SysRS_02_Gauges_1281, 5 ohm shortCircuit , 315 ohm openCircuit
+	if(l_fuel_filter_resistance_U32 < SHORT_CIRCUIT_RESISTOR || l_fuel_filter_resistance_U32 > OPEN_CIRCUIT_RESISTOR)
 	{
 		ffuel_process_abnormal_resistor(fl_IGN_state);	
 		l_pre_ignoff_status = fl_IGN_state;
@@ -608,22 +606,33 @@ static boolean ffuel_process_resistor_to_fuelVolume(void)
 	}
 	else
 	{			
-		Rte_Write_ppSR_DteMdl_AbnormalState_AbnormalState(ValidFuelSignal);
+		Rte_Write_ppSR_DteMdl_AbnormalState_AbnormalState(NormalFuel);
 		Rte_Write_ppSR_FuelShortCircuitTimeout_STATUS(FALSE);
 		Rte_Write_ppSR_FuelOpenCircuitTimeout_STATUS(FALSE);		
 		Rte_Call_rp_TmExt_Wrap_Timer_IsStarted(eTimerHandleFuelInvalidWait, &fl_timer_resDef_started_bool); 
 		if(fl_timer_resDef_started_bool)
 			Rte_Call_rp_TmExt_Timer_Stop(eTimerHandleFuelInvalidWait);
 			
-		//resistance is between 9ohm ~ 290ohm
-		if(l_fuel_filter_resistance_U16 >= F_STOP_RESISTOR && l_fuel_filter_resistance_U16 <= E_STOP_RESISTOR)
+		//resistance is between 9ohm ~ 303.5ohm
+		if(l_fuel_filter_resistance_U32 > F_STOP_RESISTOR && l_fuel_filter_resistance_U32 < E_STOP_RESISTOR)
 		{
 			ffuel_compute_fuelVolume();		
-			return TRUE;
 		}
 		else
-		{
-			return FALSE;
+		{	
+			// 5ohm < Res < 9ohm , fuel volume is 79L
+			if(l_fuel_filter_resistance_U32 >= SHORT_CIRCUIT_RESISTOR && l_fuel_filter_resistance_U32 <= F_STOP_RESISTOR)
+			{
+				l_fuel_unfilter_volume_U16 = 7900;		//10ohm ± 1.0 --> 79L
+				l_fuel_filter_volume_U16 = 7900;
+			}
+
+			//303.5ohm < Res < 315ohm , fuel volume is 0L
+			if(l_fuel_filter_resistance_U32 >= E_STOP_RESISTOR && l_fuel_filter_resistance_U32 <= OPEN_CIRCUIT_RESISTOR)
+			{
+				l_fuel_unfilter_volume_U16 = 0;			//300ohm ± 3.5 --> 0L
+				l_fuel_filter_volume_U16 = 0;
+			}
 		}
 
 		//DTC SET NORMAL
@@ -633,6 +642,8 @@ static boolean ffuel_process_resistor_to_fuelVolume(void)
 		}
 		
 		l_pre_ignoff_status = fl_IGN_state;
+
+		return TRUE;
 	}
 }
 
@@ -678,18 +689,18 @@ static void ffuel_process_abnormal_resistor(eIgnState fl_IGN_state)
 			ffuel_display_zeroBar();								//display 0 LED Bar 
 			Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_Fuel_Level_Volumn(InvalidFuelSignal);						
 			Rte_Write_ppSR_CANMSG_IC_0x392_ComOut_IC_Fuel_level(FUEL_LEVEL_PERCENT_INVALID);
-			if(l_fuel_filter_resistance_U16 < SHORT_CIRCUIT_RESISTOR)
+			if(l_fuel_filter_resistance_U32 < SHORT_CIRCUIT_RESISTOR)
 			{
 				Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_Fuel_Level_VolumnQF(SHORT_CIRCUIT);		//SHORT CIRCUIT
 				Rte_Write_ppSR_FuelShortCircuitTimeout_STATUS(TRUE);								//low fuel TT display in SHORT CIRCUIT
 			}
-			else if(l_fuel_filter_resistance_U16 > OPEN_CIRCUIT_RESISTOR)
+			else if(l_fuel_filter_resistance_U32 > OPEN_CIRCUIT_RESISTOR)
 			{
 				Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_Fuel_Level_VolumnQF(OPEN_CIRCUIT);			//OPEN CIRCUIT
 				Rte_Write_ppSR_FuelOpenCircuitTimeout_STATUS(TRUE);									//low fuel TT display in open CIRCUIT
 			}
 			
-			Rte_Write_ppSR_DteMdl_AbnormalState_AbnormalState(InvalidFuelSignal);
+			Rte_Write_ppSR_DteMdl_AbnormalState_AbnormalState(ABNormalFuel);
 
 			if(fl_IGN_state == eIGN_RUN)
 			{
@@ -702,7 +713,7 @@ static void ffuel_process_abnormal_resistor(eIgnState fl_IGN_state)
 			Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_Fuel_Level_Volumn(l_fuel_filter_volume_U16);
 			Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_Fuel_Level_VolumnQF(NORMAL_CIRCUIT);				//normal circuit
 				Rte_Write_ppSR_CANMSG_IC_0x392_ComOut_IC_Fuel_level(l_fuel_percentage_level_U8);			//IC FUEL PERCNET VOLUME
-			Rte_Write_ppSR_DteMdl_AbnormalState_AbnormalState(ValidFuelSignal);	
+			Rte_Write_ppSR_DteMdl_AbnormalState_AbnormalState(NormalFuel);	
 
 			if(fl_IGN_state == eIGN_RUN)
 			{
@@ -738,7 +749,7 @@ static void ffuel_process_abnormal_resistor(eIgnState fl_IGN_state)
 **
 **  Critical Section:   None
 **
-**  Created:            07/02/19 by Vincent
+**  Created:            09/07/2020 by sli34
 **
 **==========================================================================*/
 
@@ -746,72 +757,78 @@ static boolean ffuel_directConvertVolume(void)
 {
 	/*********************************************
 	*	
-	*	58±3    --->    60.07L
-	*	83±3    --->    54L
-	*	98±3    --->    49.29L
-	*	118±3   --->   	42.6L
-	*	143±3   --->   	34.83L
-	*	168±3   --->   	27.06L
-	*	193±3   --->   	19.75L
-	*	228±3   --->   	10.7L
-	*	253±3   --->   	5.67L
-	*	273±3   --->   	2.9L
+	*	300±3.5    --->    0L
+	*	284±3.5    --->    6L
+	*	260±3.1    --->    10L
+	*	240±3.1   --->     15L
+	*	214±2.8   --->     23L
+	*	188±2.4   --->   	32L
+	*	155±2.1   --->   	41L
+	*	119±1.7   --->   	51L
+	*	89±1.7   --->   	60L
+	*	70±1.3   --->   	66L
+	*	47±1.0   --->   	71L
+	*	10±1.0   --->   	79L
 	*
 	**********************************************/	
-			
-	if ((l_fuel_filter_resistance_U16  <= 28170) && (l_fuel_filter_resistance_U16 >= 27470))	//278.2±3.5
+	if ((l_fuel_filter_resistance_U32  <= 30350) && (l_fuel_filter_resistance_U32 >= 29650))	//300±3.5
 	{
-		l_fuel_unfilter_volume_U16 = 500;
+		l_fuel_unfilter_volume_U16 = 0;
 		return TRUE;
 	}	
-	else if ((l_fuel_filter_resistance_U16 <= 25360) && (l_fuel_filter_resistance_U16 >= 24660))	//250.1±3.5
+	else if ((l_fuel_filter_resistance_U32  <= 28750) && (l_fuel_filter_resistance_U32 >= 28050))	//284±3.5
 	{
-		l_fuel_unfilter_volume_U16 = 1100;			
+		l_fuel_unfilter_volume_U16 = 600;
 		return TRUE;
 	}	
-	else if ((l_fuel_filter_resistance_U16 <= 24020) && (l_fuel_filter_resistance_U16 >= 23400))	//237.1±3.1
+	else if ((l_fuel_filter_resistance_U32 <= 26310) && (l_fuel_filter_resistance_U32 >= 25690))	//260±3.1
 	{
-		l_fuel_unfilter_volume_U16 = 1540;
+		l_fuel_unfilter_volume_U16 = 1000;			
+		return TRUE;
+	}	
+	else if ((l_fuel_filter_resistance_U32 <= 24310) && (l_fuel_filter_resistance_U32 >= 23690))	//240±3.1
+	{
+		l_fuel_unfilter_volume_U16 = 1500;
 		return TRUE;
 	}
-	else if ((l_fuel_filter_resistance_U16 <= 21290) && (l_fuel_filter_resistance_U16 >= 20810))	//210.1±2.8
+	else if ((l_fuel_filter_resistance_U32 <= 21680) && (l_fuel_filter_resistance_U32 >= 21120))	//214±2.8
 	{
-		l_fuel_unfilter_volume_U16 = 2380;
+		l_fuel_unfilter_volume_U16 = 2300;
 		return TRUE;
 	}
-	else if ((l_fuel_filter_resistance_U16 <= 18030) && (l_fuel_filter_resistance_U16 >= 17550))	//177.9±2.4
+	else if ((l_fuel_filter_resistance_U32 <= 19040) && (l_fuel_filter_resistance_U32 >= 18560))	//188±2.4
 	{	
-		l_fuel_unfilter_volume_U16 = 3300;		
+		l_fuel_unfilter_volume_U16 = 3200;		
 		return TRUE;
 	}
-	else if ((l_fuel_filter_resistance_U16 <= 15350) && (l_fuel_filter_resistance_U16 >= 14930))	//151.4±2.1
+	else if ((l_fuel_filter_resistance_U32 <= 15710) && (l_fuel_filter_resistance_U32 >= 15290))	//155±2.1
 	{
-		l_fuel_unfilter_volume_U16 = 4220;
+		l_fuel_unfilter_volume_U16 = 4100;
 		return TRUE;
 	}
-	else if ((l_fuel_filter_resistance_U16 <= 11870) && (l_fuel_filter_resistance_U16 >= 11530))	//117±1.7
+	else if ((l_fuel_filter_resistance_U32 <= 12070) && (l_fuel_filter_resistance_U32 >= 11730))	//119±1.7
 	{
-		l_fuel_unfilter_volume_U16 = 5180;
+		l_fuel_unfilter_volume_U16 = 5100;
 		return TRUE;
 	}
-	else if ((l_fuel_filter_resistance_U16 <= 8330) && (l_fuel_filter_resistance_U16 >= 8070))		//82±1.3
+	else if ((l_fuel_filter_resistance_U32 <= 9070) && (l_fuel_filter_resistance_U32 >= 8730))		//89±1.7
 	{
-		l_fuel_unfilter_volume_U16 = 6140;		
+		l_fuel_unfilter_volume_U16 = 6000;		
 		return TRUE;
 	}
-	else if ((l_fuel_filter_resistance_U16 <= 6080) && (l_fuel_filter_resistance_U16 >= 5880))		//59.8±1.0
+	else if ((l_fuel_filter_resistance_U32 <= 7130) && (l_fuel_filter_resistance_U32 >= 6870))		//70±1.3
 	{
-		l_fuel_unfilter_volume_U16 = 6780;		
+		l_fuel_unfilter_volume_U16 = 6600;		
 		return TRUE;
 	}
-	else if ((l_fuel_filter_resistance_U16 <= 3860) && (l_fuel_filter_resistance_U16 >= 3660))		//37.6±1.0
+	else if ((l_fuel_filter_resistance_U32 <= 4800) && (l_fuel_filter_resistance_U32 >= 4600))		//47±1.0
 	{
-		l_fuel_unfilter_volume_U16 = 7420;		
+		l_fuel_unfilter_volume_U16 = 7100;		
 		return TRUE;
 	}
-	else if ((l_fuel_filter_resistance_U16 <= 1110) && (l_fuel_filter_resistance_U16 >= 910))		//10.1±1.0
+	else if ((l_fuel_filter_resistance_U32 <= 1110) && (l_fuel_filter_resistance_U32 >= 900))		//10±1.0
 	{
-		l_fuel_unfilter_volume_U16 = 8060;		
+		l_fuel_unfilter_volume_U16 = 7900;		
 		return TRUE;
 	}
 
@@ -846,7 +863,7 @@ static boolean ffuel_directConvertVolume(void)
 	
 	if(fl_directConvert == FALSE)
 	{
-		l_fuel_unfilter_volume_U16 = LinearInterpolateWord((void *)&F_FUEL_A_RES_TO_Volum[0][0], l_fuel_filter_resistance_U16);								
+		l_fuel_unfilter_volume_U16 = LinearInterpolateWord((void *)&F_FUEL_A_RES_TO_Volum[0][0], l_fuel_filter_resistance_U32);								
 	}
 
 	if(l_pre_ign_status == eIGN_OFF || l_fuel_abnormal_status == TRUE)
@@ -912,8 +929,8 @@ Critical Section    : None
 {
 	sint32 fl_FuelSender_ATD_value_U16;
 	sint32 fl_Vbatt_ATD_value_U16;
-	sint32 tmp1;
-	sint32 tmp2;
+	uint32 tmp1;
+	uint32 tmp2;
 
 	Rte_Read_tiSR_IoHwAb_Impl_GetVoltage(eIOVoltageInId_MAI_P_BAT_C, &fl_Vbatt_ATD_value_U16);
 	Rte_Read_tiSR_IoHwAb_Impl_GetVoltage(eIOVoltageInId_MAI_FUEL, &fl_FuelSender_ATD_value_U16);
@@ -923,17 +940,17 @@ Critical Section    : None
 
 	if (fl_FuelSender_ATD_value_U16 == 0 || fl_Vbatt_ATD_value_U16 == 0)
 	{
-		l_fuel_filter_resistance_U16 = 0;
+		l_fuel_filter_resistance_U32 = 0;
 	}
 	else if ((tmp1 > tmp2) && (fl_FuelSender_ATD_value_U16 < 2690))
 	{
 		tmp1 = (tmp1 - tmp2) / fl_FuelSender_ATD_value_U16;
-		tmp1 = 1000000 / tmp1;
-		l_fuel_filter_resistance_U16 = (uint16)tmp1 *100;
+		tmp1 = 100000000 / tmp1;
+		l_fuel_filter_resistance_U32 = tmp1;
 	}
 	else
 	{
-		l_fuel_filter_resistance_U16 = 65535;
+		l_fuel_filter_resistance_U32 = 65535;
 	}
 }
 
@@ -966,9 +983,6 @@ static void ffuel_process_fuel_gauge(void)
 
 		//cacl fuel percentage
         ffuel_calc_fuel_percentage();
-
-        //can output
-		//ffuel_output_canMessage();
 
 		//calc fuel led bar
 		ffuel_calc_fuel_led_bar();
@@ -1097,7 +1111,7 @@ static void ffuel_output_canMessage(void)
 {	
 	Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_Fuel_Level_VolumnQF(NORMAL_CIRCUIT);		//normal circuit
 	Rte_Write_ppSR_CANMSG_IC_0x392_ComOut_IC_Fuel_level(l_fuel_percentage_level_U8);
-	if(l_display_fuel_value_U16 < FUEL_EMPTY_VOLUME)		//SysRS_02_Gauges_020413  When Fuel point<E Point (5L), output is 0L
+	if(l_display_fuel_value_U16 < FUEL_EMPTY_VOLUME)		//SysRS_02_Gauges_020413  When Fuel point<E Point (6L), output is 0L
 	{
 		Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_Fuel_Level_Volumn(0);	
 	}
@@ -1621,7 +1635,7 @@ static void ffuel_check_first_battOff_On(void)
 
 static void fuel_test(void)
 {
-	 test_fuel_res = l_fuel_filter_resistance_U16/100;
+	 test_fuel_res = l_fuel_filter_resistance_U32;
 	 test_unfuel = l_fuel_unfilter_volume_U16;
 	 test_calfuel = l_calculate_fuel_value_U16;
 	 test_disfuel = l_display_fuel_value_U16;

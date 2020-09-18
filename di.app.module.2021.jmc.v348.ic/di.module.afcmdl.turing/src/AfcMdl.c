@@ -30,13 +30,12 @@ CMPLIB_INSTANCE(AFCMdl)
 static void fafc_common_init(void);
 static void fafc_single_init(void);
 static void fafc_accumulate_init(void);
-//static void fafc_accumulate_read_from_nvm(void);
 static void fafc_calc_single_afc(uint64 f_distance_value_U64, uint64 f_fuel_value_U64);
 static void fafc_calc_accumulate_afc(uint64 f_distance_value_U64, uint64 f_fuel_value_U64);
 static uint64 fafc_calc_Fuel_in_ml(uint64 history_fuel_consum_total, uint64 lastFuel, uint64 newFuel);
 static uint64 fafc_calc_Distance_in_m(uint64 historyODO, uint64 preODO, uint64 newODO);
 static void fafc_ignOn_process(void);
-static void fafc_check_idle_status(uint16 fl_ABS_VehSpdLgt, uint32 fl_engspeed_signal_value);
+static void fafc_check_idle_status(void);
 static uint16 fafc_get_loop_refresh_cycle(void);
 static void fafc_can_output(void);
 static void fafc_writeValue_to_HMI(void);
@@ -86,8 +85,8 @@ static boolean l_first_Battery_Accumulate_On;
 /*AFC display value, resolution 0.1*/
 static uint64 l_afc_single_value;
 static uint64 l_afc_accumulate_value;
-static uint64 l_afc_pre_single_value = AFC_INVALID_VALUE;
-static uint64 l_afc_pre_accumulate_value = AFC_INVALID_VALUE;
+static uint64 l_afc_pre_single_value;
+static uint64 l_afc_pre_accumulate_value;
 /*A(k) and B(k) in Formula : AFC_D (k) =A (k)* AFC_C (k) + B (k)* AFC_E   zoom 1000 */
 static sint32 l_stored_A_single_value;
 static sint32 l_stored_B_single_value;				//raw value is 100%
@@ -102,6 +101,19 @@ static uint64	l_afc_fuel_single_consum_total;
 static uint64	l_afc_fuel_accumulate_consum_total;
 static boolean  l_afc_abnormal_state;
 #pragma ghs section bss=default
+
+#define TEST_AFC
+
+uint16 test_single_afc;
+uint32 test_single_odo;
+uint32 test_single_fuel;
+uint16 test_single_A;
+uint16 test_single_B;
+uint16 test_accumulate_afc;
+uint32 test_accumulate_odo;
+uint32 test_accumulate_fuel;
+
+static void test_afc(void);
 
 
 /*============================================================================
@@ -238,6 +250,10 @@ static Std_ReturnType CmpActive( void )
 	fafc_can_output();
 
 	fafc_writeValue_to_HMI();	
+
+#ifdef TEST_AFC
+	test_afc();
+#endif
 	
 	return E_OK;
 }
@@ -286,7 +302,6 @@ static void fafc_ignOn_process(void)
 {
 	uint8 	fl_engspeed_signal_nr=0;
 	uint8   fl_engspeed_signal_tout=0;
-    uint32	fl_engspeed_signal_value=0;    
 	uint8 	fl_fuel_consum_signal_nr=0;
 	uint8 	fl_fuel_consum_signal_tout=0;
     uint64	fl_fuel_consum_signal_value=0;
@@ -295,10 +310,9 @@ static void fafc_ignOn_process(void)
 	uint8 	fl_ABS_WhlMil_tout=0;
 	uint8   fl_WhlMilgFrntRiStatus=0;
 	uint8   fl_WhlMilgFrntLeStatus=0;
-	uint16  fl_ABS_VehSpdLgt=0;
-	
+
+	uint32 fl_engspeed_signal_value=0;
 	Rte_Read_rpSR_AFCMdl_TITachMdl_Send_value(&fl_engspeed_signal_value);
-	Rte_Read_rpSR_TISpdMdl_value(&fl_ABS_VehSpdLgt);
 	Rte_Read_rpSR_CANMSG_GW_EMS_Power_0x10B_ComIn_NR(&fl_engspeed_signal_nr);
 	Rte_Read_rpSR_CANMSG_GW_EMS_Power_0x10B_ComIn_Tout(&fl_engspeed_signal_tout);
 
@@ -323,7 +337,8 @@ static void fafc_ignOn_process(void)
 	}
 
 	//SysRS_03_LCD_Routine_1128
-	if( (fl_ABS_WhlMil_nr == RTE_E_NEVER_RECEIVED) || (fl_ABS_WhlMil_tout == RTE_E_TIMEOUT) || ((fl_WhlMilgFrntRiStatus == AFC_INVALID_STATUS) && (fl_WhlMilgFrntLeStatus == AFC_INVALID_STATUS)))
+	if( (fl_ABS_WhlMil_nr == RTE_E_NEVER_RECEIVED) || (fl_ABS_WhlMil_tout == RTE_E_TIMEOUT) || ((fl_WhlMilgFrntRiStatus == AFC_INVALID_STATUS) && (fl_WhlMilgFrntLeStatus == AFC_INVALID_STATUS)) ||\
+	 (fl_fuel_consum_signal_nr == RTE_E_NEVER_RECEIVED) || (fl_fuel_consum_signal_tout == RTE_E_TIMEOUT) )
 	{			
 		/* ABS_Sts Signal Missing, Stop AFC Fuel consumption Calculation */
 		l_afc_single_value = AFC_INVALID_VALUE;
@@ -332,88 +347,78 @@ static void fafc_ignOn_process(void)
 	}
 	else
 	{
-		if((fl_engspeed_signal_nr == RTE_E_NEVER_RECEIVED) || (fl_engspeed_signal_tout == RTE_E_TIMEOUT))								/* Enging Speed signal is valid */
+		if((fl_engspeed_signal_nr == RTE_E_NEVER_RECEIVED) || (fl_engspeed_signal_tout == RTE_E_TIMEOUT))		
 		{			
-			/* EngineSpeed Signal Missing, Stop AFC Fuel consumption Calculation */
-			l_afc_single_value = AFC_INVALID_VALUE;
-			l_afc_accumulate_value = AFC_INVALID_VALUE;			
-			l_afc_abnormal_state = TRUE;
+			/* EngineSpeed Signal Missing, Stop AFC Fuel consumption Calculation , and display previous AFC value*/
+			l_afc_single_value = l_afc_pre_single_value;
+			l_afc_accumulate_value = l_afc_pre_accumulate_value;
 		}
 		else
 		{			
-			if( (fl_fuel_consum_signal_nr == RTE_E_NEVER_RECEIVED) || (fl_fuel_consum_signal_tout == RTE_E_TIMEOUT) )
-			{							
-				l_afc_single_value = AFC_INVALID_VALUE;
-				l_afc_accumulate_value = AFC_INVALID_VALUE;					
-				l_afc_abnormal_state = TRUE;
-			}			
-			else
+			if(l_afc_abnormal_state == TRUE)
 			{
-				if(l_afc_abnormal_state == TRUE)
-				{
-					l_afc_single_value = l_afc_pre_single_value;
-					l_afc_accumulate_value = l_afc_pre_accumulate_value;
-					l_afc_abnormal_state = FALSE;
-				}
-				else
+				l_afc_single_value = l_afc_pre_single_value;
+				l_afc_accumulate_value = l_afc_pre_accumulate_value;
+				l_afc_abnormal_state = FALSE;
+			}
+			else
+			{					
+				/*check engine status whether is idle or not*/
+				fafc_check_idle_status();
+				
+				/*fuel or odo missing, stop calculate AFC*/
+				if(l_afc_idle_status == FALSE)
 				{					
-					/*check engine status whether is idle or not*/
-					fafc_check_idle_status(fl_ABS_VehSpdLgt, fl_engspeed_signal_value);
-					
-					/*fuel or odo missing, stop calculate AFC*/
-					if(l_afc_idle_status == FALSE)
-					{					
-						/* Calcaluation Fuel Consumption */
-						if( (l_wait_fuelsig_from_ign_on == TRUE) || (l_wait_fuelsig_from_clear == TRUE) )
-						{
-							l_wait_fuelsig_from_ign_on = FALSE;
-							l_fuel_consum_signal_value_pre = fl_fuel_consum_signal_value;											
-							l_wait_fuelsig_from_clear = FALSE;
-						}
-						else
-						{
-							l_afc_fuel_single_consum_total = fafc_calc_Fuel_in_ml(l_afc_fuel_single_consum_total, l_fuel_consum_signal_value_pre, fl_fuel_consum_signal_value); 																						
-							l_afc_fuel_accumulate_consum_total = fafc_calc_Fuel_in_ml(l_afc_fuel_accumulate_consum_total, l_fuel_consum_signal_value_pre, fl_fuel_consum_signal_value); 							
-							l_fuel_consum_signal_value_pre = fl_fuel_consum_signal_value;
-						}
-							
-						/* Calculation Odo */
-						fl_odo_value = Rte_Read_rpSR_AfcMdl_OdoValue(ODO_1M);
-						if( (l_wait_odo_from_ign_on == TRUE) || (l_wait_odo_from_clear == TRUE ) )
-						{
-							if(fl_odo_value != FODO_ODO_NVM_ERROR) 
-							{
-								l_odo_value_pre = fl_odo_value;
-								
-								l_wait_odo_from_ign_on = FALSE;
-								l_wait_odo_from_clear = FALSE;
-							}
-							else
-							{
-								/* until wait for valid ODO Data	*/
-							}	
-						}
-						else
-						{
-							if(fl_odo_value != FODO_ODO_NVM_ERROR) 
-							{
-								l_afc_odo_single_total = fafc_calc_Distance_in_m(l_afc_odo_single_total, l_odo_value_pre, fl_odo_value);
-								l_afc_odo_accumulate_total = fafc_calc_Distance_in_m(l_afc_odo_accumulate_total, l_odo_value_pre, fl_odo_value);
-								l_odo_value_pre = fl_odo_value;
-							}
-						}
+					/* Calcaluation Fuel Consumption */
+					if( (l_wait_fuelsig_from_ign_on == TRUE) || (l_wait_fuelsig_from_clear == TRUE) )
+					{
+						l_wait_fuelsig_from_ign_on = FALSE;
+						l_fuel_consum_signal_value_pre = fl_fuel_consum_signal_value;											
+						l_wait_fuelsig_from_clear = FALSE;
+					}
+					else
+					{
+						l_afc_fuel_single_consum_total = fafc_calc_Fuel_in_ml(l_afc_fuel_single_consum_total, l_fuel_consum_signal_value_pre, fl_fuel_consum_signal_value); 																						
+						l_afc_fuel_accumulate_consum_total = fafc_calc_Fuel_in_ml(l_afc_fuel_accumulate_consum_total, l_fuel_consum_signal_value_pre, fl_fuel_consum_signal_value); 							
+						l_fuel_consum_signal_value_pre = fl_fuel_consum_signal_value;
+					}
 						
-						/* Calculation AFC */
-						l_afc_calc_single_count_U16++;
-						l_afc_calc_accumulate_count_U16++;
-						fafc_calc_single_afc(l_afc_odo_single_total, l_afc_fuel_single_consum_total);
-						fafc_calc_accumulate_afc(l_afc_odo_accumulate_total, l_afc_fuel_accumulate_consum_total);
-					}				
+					/* Calculation Odo */
+					fl_odo_value = Rte_Read_rpSR_AfcMdl_OdoValue(ODO_1M);
+					if( (l_wait_odo_from_ign_on == TRUE) || (l_wait_odo_from_clear == TRUE ) )
+					{
+						if(fl_odo_value != FODO_ODO_NVM_ERROR) 
+						{
+							l_odo_value_pre = fl_odo_value;
+							
+							l_wait_odo_from_ign_on = FALSE;
+							l_wait_odo_from_clear = FALSE;
+						}
+						else
+						{
+							/* until wait for valid ODO Data	*/
+						}	
+					}
+					else
+					{
+						if(fl_odo_value != FODO_ODO_NVM_ERROR) 
+						{
+							l_afc_odo_single_total = fafc_calc_Distance_in_m(l_afc_odo_single_total, l_odo_value_pre, fl_odo_value);
+							l_afc_odo_accumulate_total = fafc_calc_Distance_in_m(l_afc_odo_accumulate_total, l_odo_value_pre, fl_odo_value);
+							l_odo_value_pre = fl_odo_value;
+						}
+					}
 					
-				}											
-				l_afc_pre_single_value = l_afc_single_value;
-				l_afc_pre_accumulate_value = l_afc_accumulate_value;
-			}			
+					/* Calculation AFC */
+					l_afc_calc_single_count_U16++;
+					l_afc_calc_accumulate_count_U16++;
+					fafc_calc_single_afc(l_afc_odo_single_total, l_afc_fuel_single_consum_total);
+					fafc_calc_accumulate_afc(l_afc_odo_accumulate_total, l_afc_fuel_accumulate_consum_total);
+				}				
+				
+			}											
+			l_afc_pre_single_value = l_afc_single_value;
+			l_afc_pre_accumulate_value = l_afc_accumulate_value;
 		}				
 	}
 	
@@ -866,13 +871,18 @@ void fafc_clear_acc_value(void)
 **
 ** Critical Section:
 **
-** Created:            02/04/2019 by sli34
+** Created:            02/04/2020 by sli34
 **
 **==========================================================================*/
-static void fafc_check_idle_status(uint16 fl_ABS_VehSpdLgt, uint32 fl_engspeed_signal_value)
+static void fafc_check_idle_status(void)
 {
 	uint8 fl_timer_resDef_started_bool=0;
 	uint8 fl_timer_resDef_isElapsed_bool=0;
+    uint32	fl_engspeed_signal_value=0;    
+	uint16  fl_ABS_VehSpdLgt=0;
+	
+	Rte_Read_rpSR_AFCMdl_TITachMdl_Send_value(&fl_engspeed_signal_value);
+	Rte_Read_rpSR_TISpdMdl_value(&fl_ABS_VehSpdLgt);
 
 	if(fl_engspeed_signal_value < AFC_TACH_300RPM)		//Defect:tach=0,stop refresh afc
 	{
@@ -1030,10 +1040,12 @@ static void fafc_check_first_Battary(void)
 		l_stored_B_single_value = 1000;				//raw value is 100%		
 		l_first_Battery_Single_On = TRUE;
 		l_afc_single_value = AFC_INVALID_VALUE;
+		l_afc_pre_single_value = AFC_INVALID_VALUE;
 		l_stored_A_accumulate_value = 0;
 		l_stored_B_accumulate_value = 1000;			//raw value is 100%
 		l_first_Battery_Accumulate_On = TRUE;		
 		l_afc_accumulate_value = AFC_INVALID_VALUE;
+		l_afc_pre_accumulate_value = AFC_INVALID_VALUE;
 		l_afc_odo_single_total = 0;
 		l_afc_odo_accumulate_total = 0;
 		l_afc_fuel_single_consum_total = 0;
@@ -1046,5 +1058,29 @@ static void fafc_check_first_Battary(void)
 		l_afc_num = 10;
 }
 
+
+/****************************************************************************
+Function Name       : test_afc
+
+Description         : the Function is used to display AFC TEST PAGE
+
+Parameters          : None
+
+Return Value        : None
+
+Critical Section    : None
+******************************************************************************/
+static void test_afc(void)
+{
+	test_single_afc = l_afc_single_value;
+	test_single_A = l_stored_A_single_value;
+	test_single_B = l_stored_B_single_value;
+	test_single_odo = l_afc_odo_single_total;
+	test_single_fuel = l_afc_fuel_single_consum_total;
+	
+	test_accumulate_afc = l_afc_accumulate_value;
+	test_accumulate_odo = l_afc_odo_accumulate_total;
+	test_accumulate_fuel = l_afc_fuel_accumulate_consum_total;
+}
 
 

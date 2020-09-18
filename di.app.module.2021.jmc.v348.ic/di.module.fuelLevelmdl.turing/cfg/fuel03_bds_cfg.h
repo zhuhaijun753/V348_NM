@@ -120,9 +120,9 @@
 ** delete 4L / (47.2L-3.8L) * 100 % * 254
 ** delete 4L / (68L -3.5L) * 100 % * 254
 ** 4L / (64L -2.9L) * 100 % * 254
+** 4L / (79L -6L) * 100 % * 254
 */
-//#define FUEL03_POSITIVE_INIT_FILL_DELTA_A                 (14)	
-#define FUEL03_POSITIVE_INIT_FILL_DELTA_A                 	(17)				
+#define FUEL03_POSITIVE_INIT_FILL_DELTA_A                 	(13)				
 
 
 /*
@@ -469,7 +469,7 @@
 **						47.2L	240 degree			100%      
 */
 
-#define FUEL03_SENDER_RAW_TO_PF_TBL_SIZE (14)
+#define FUEL03_SENDER_RAW_TO_PF_TBL_SIZE (13)
 #define FUEL03_SENDER_RAW_TO_PF_TBL 					\
 		{(uint16)(0u),      (uint16)(254*256u)},		\
 		{(uint16)(0u), 		(uint16)(0u*256u)},			\

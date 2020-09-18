@@ -2406,13 +2406,14 @@ static void fuel03_fast_fill_determination( void )
     {
     	Fuel03FastFillLatencyTimeCounter --;
 
+#if 0
     	if( Fuel03FastFillLatencyTimeCounter == 0)
     	{
     		CLEARBIT( Fuel03SenderA.MoreFilterFlags, FUEL03_FAST_FILL_FLAG );
     		Rte_Write_ppSR_TIFuel_RefuelState_TIFuel_RefuelState(FALSE);
     		fuel03_ign_off_on_fill_flag = FALSE;
     	}
-
+#endif
     	return;		/* Stay FAST FILL Status until Fuel03FastFillLatencyTimeCounter equal to 0 */
     }
 

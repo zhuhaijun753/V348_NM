@@ -40,7 +40,8 @@ static boolean l_TPMS_Flag = TRUE;
 #define TEMP_VALUE_5				((uint8)5u)
 #define TEMP_VALUE_6				((uint8)6u)
 #define TEMP_VALUE_7				((uint8)7u)
-#define VEHICLE_TPMS                (1)
+#define VEHICLE_TPMS_1                (1)
+#define VEHICLE_TPMS_3                (3)
 
 #define PRESSURE_INVALID_VALUE		((uint8)0xFF)
 
@@ -143,7 +144,7 @@ static Std_ReturnType CmpActive( void )
 	uint8 IsEngineCfg_Tpms = FALSE;
 	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_TPMS,&IsEngineCfg_Tpms);
 
-	if(VEHICLE_TPMS == IsEngineCfg_Tpms)
+	if((VEHICLE_TPMS_1 == IsEngineCfg_Tpms) || (VEHICLE_TPMS_3 == IsEngineCfg_Tpms))
 	{
 		fttmdl_N356TPMS_process();
 	}

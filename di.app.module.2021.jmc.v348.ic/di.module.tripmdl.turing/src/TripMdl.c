@@ -66,8 +66,8 @@ CMPLIB_INSTANCE(TripMdl)
 ******************************************************************************/
 #define MAX_DISPLAY_TRIP_VALUE	4999900 /*Trip display MAXVAlue*/
 //#define CALCULATION_FACTOR 43779
-#define   Vehicle_Tire_245_Trip		   46118
-#define   Vehicle_Tire_235_Trip		   43529
+#define   Vehicle_Tire_245_Trip		   44965
+#define   Vehicle_Tire_235_Trip		   42440
 #define CALCULATION_UINT    10
 #define OFFSET_VALUE    100
 #define NVM_CRC_TRIP_ODO			0xFFFF
@@ -883,18 +883,18 @@ static void average_speed_cal(void)
 				Rte_Call_rpTimer_TmExt_Timer_Stop(eTimerAverageSpeed);
 				drive_time++;/*time=drivetime*/
 				odo_drive_time++;
-				if((drive_time >= MAX_DRIVE_TIME) || (odo_drive_time >= MAX_DRIVE_TIME))/*max 100 hours*/
-				{
-					drive_time = 0;
-					curr_drive_distance = 0;  /*clear drive time and distance and speed*/
-					average_speed = 0;
-					odo_drive_distance = 0;
-					odo_average_speed = 0;
-					odo_drive_time = 0;
-					PowerON_odoaverspeed = 0;
-					PowerON_Triaverspeed = 0;
-
-				}
+//				if((drive_time >= MAX_DRIVE_TIME) || (odo_drive_time >= MAX_DRIVE_TIME))/*max 100 hours*/
+//				{
+//					drive_time = 0;
+//					curr_drive_distance = 0;  /*clear drive time and distance and speed*/
+//					average_speed = 0;
+//					odo_drive_distance = 0;
+//					odo_average_speed = 0;
+//					odo_drive_time = 0;
+//					PowerON_odoaverspeed = 0;
+//					PowerON_Triaverspeed = 0;
+//
+//				}
 				if(curr_drive_distance >= MIN_DRIVE_DISTANCE)/*more then 300m  or trip reached 0xffff minute*/
 				{
 					if(drive_time != 0)

@@ -286,13 +286,13 @@ static void Dim_pkg_process_Diagntask(void)
 			{
 				fl_dimderate_display_duty = 50;
 			}
-			else if(fl_dimderate_duty >5 && fl_dimderate_duty <= 100) 		//06h-64h: luminance of detailed data value
+			else if(fl_dimderate_duty >5 && fl_dimderate_duty <= 95) 		//06h-5Fh: luminance of detailed data value
 			{
 				fl_dimderate_display_duty = fl_dimderate_duty * 10;
 			}
-			else if(fl_dimderate_duty > 100 && fl_dimderate_duty <= 255)	//64h-FFh: invalid：luminance of 100%													//65h-FFh: invalid：luminance of 5%
+			else if(fl_dimderate_duty > 95 && fl_dimderate_duty <= 255)	//60h-FFh: invalid：luminance of 95%													//65h-FFh: invalid：luminance of 5%
 			{
-				fl_dimderate_display_duty = 1000;
+				fl_dimderate_display_duty = 950;
 			}
 			
 			Rte_Call_rpCS_TIIoHwAb_PwmOut_SetDuty(eIODutyOutId_MDO_TFT_BL1_PWM,fl_dimderate_display_duty);
@@ -382,8 +382,6 @@ static void Dim_IgnOn_Process(void)
 	Dim_calc_bgLumpValue();
 	/*Dim input process*/
 	Dim_InputProcess_TFT_Temperature();
-	/*dim calc Temperature Waring for TFT*/
-	Dim_DeratedDutyProcess();
 	/*Dim set TFT or Led bar value*/
 	Dim_Set_TFT_And_LedBar_And_TT_PWM();
 	/*Dim check timer isRunning*/
@@ -530,7 +528,11 @@ static void Dim_InputProcess_TFT_Temperature(void)
 
 			/* average */
 			l_LcdTempAvr_u16 = (uint16)(fl_LcdTempSum_u32 / cPROCESS_SAMPLE_CNT);
+
+			/*dim calc Temperature Waring for TFT*/
+			Dim_DeratedDutyProcess();
 		}
+		
     }
 }
 
@@ -1095,8 +1097,10 @@ static void Dim_calc_bgLumpValue(void)
 		l_dimming_pre_LCD_base_duty_U16 = l_dimming_LCD_base_duty_U16;
 		l_first_dimming = TRUE;
 	}
-
-	l_dimming_LCD_base_duty_U16 = (l_dimming_LCD_base_duty_U16 + 7*l_dimming_pre_LCD_base_duty_U16)/8;
+	else
+	{
+		l_dimming_LCD_base_duty_U16 = (l_dimming_LCD_base_duty_U16 + 7*l_dimming_pre_LCD_base_duty_U16)/8;
+	}
 
 	l_dimming_pre_LCD_base_duty_U16 = l_dimming_LCD_base_duty_U16;
 

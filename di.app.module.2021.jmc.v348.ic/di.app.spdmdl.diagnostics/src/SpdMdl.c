@@ -156,7 +156,7 @@ static Std_ReturnType CmpActive( void )
 {
 	eIgnState fl_IGN_state = 0;
 	EBatteryState fl_Battery_state = 0;
-    uint8 l_flag = 0;
+   // uint8 l_flag = 0;
 	uint8 l_OTAMode = 0;
 	
 	Rte_Read_rpBattState_BatteryState(&fl_Battery_state);

@@ -34,26 +34,49 @@ CMPLIB_INSTANCE(AccMdl)
 //=====================================================================================================================
 //  PRIVATE
 //=====================================================================================================================
-static uint8 TtAccWhiteStatus = 0;
-static uint8 TtAccGreenStatus = 0;
-static uint8 TtAccRedStatus = 0;
+static uint8 TtAccWhiteStatus = cTT_TURN_OFF;
+static uint8 TtAccGreenStatus = cTT_TURN_OFF;
+static uint8 TtAccRedStatus = cTT_TURN_OFF;
 
-static uint8 TtLdwStatus = 0;
+static uint8 TtLdwStatus = cTT_TURN_OFF;
+
+static uint8 TtBsd_CTA_OFF_Status = cTT_TURN_OFF;
+static uint8 TtBsd_SOD_DOA_Status = cTT_TURN_OFF;
+
+static uint8 TtAebRedStatus = cTT_TURN_OFF;
+static uint8 TtAebYellowStatus = cTT_TURN_OFF;
+
+static uint8 TtFcwRedStatus = cTT_TURN_OFF;
+static uint8 TtFcwYellowStatus = cTT_TURN_OFF;
+
+static uint8 TtAutoBeamStatus = cTT_TURN_OFF;
 
 static boolean  l_ACCMDL_Flag = TRUE;
-static uint8    l_Proveout_Counter_U8 = FALSE;
+static uint8    l_Proveout_Counter_U8 = 0;
 
+#define TT_ACC_VALUE_1        (1)
+#define TT_ACC_VALUE_2        (2)
+#define TT_ACC_VALUE_3        (3)
+#define TT_ACC_VALUE_4        (4)
+#define TT_ACC_VALUE_5        (5)
+#define TT_ACC_VALUE_6        (6)
+#define TT_ACC_VALUE_7        (7)
 
-static uint8 TtBsd_CTA_OFF_Status = 0;
-static uint8 TtBsd_SOD_DOA_Status = 0;
+#define TT_LDW_VALUE_5        (5)
+#define TT_LDW_VALUE_6        (6)
+#define TT_LDW_VALUE_7        (7)
 
-static uint8 TtAebRedStatus = 0;
-static uint8 TtAebYellowStatus = 0;
+#define BSDOFFCTA_VALUE_1     (1)
+#define BSDOFFSOD_DOA_VALUE_1 (1)
 
-static uint8 TtFcwRedStatus = 0;
-static uint8 TtFcwYellowStatus = 0;
+#define TT_AEB_VALUE_0        (0)
+#define TT_AEB_VALUE_1        (1)
 
-static uint8 TtAutoBeamStatus = 0;
+#define TT_FCW_VALUE_0        (0)
+#define TT_FCW_VALUE_1        (1)
+
+#define AUTO_BEAM_VALUE_3     (3)
+
 
 #define ADAS_1 (1)
 #define ADAS_2 (2)
@@ -159,8 +182,8 @@ static Std_ReturnType CmpActive( void )
 	uint8 IsEngineCfg_Acc = 0;
 	
 	Rte_Read_rpIgnState_IGNState(&fl_ign_substate);
-	//Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_ADAS,&IsEngineCfg_Adas);
-	//Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_Cruise,&IsEngineCfg_Acc);
+	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_ADAS,&IsEngineCfg_Adas);
+	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_Cruise,&IsEngineCfg_Acc);
 
 	if(fl_ign_substate  == eIGN_RUN )
 	{
@@ -171,10 +194,9 @@ static Std_ReturnType CmpActive( void )
 			case ADAS_1:
 				fttmdl_Ldw_Process();
 				fttmdl_BsdOff_Process();
-				fttmdl_AEB_Process();
 				fttmdl_Fcw_Process();
 				fttmdl_AutoBeam_Process();
-			break;
+				break;
 			case ADAS_2:
 				fttmdl_Ldw_Process();
 				fttmdl_BsdOff_Process();
@@ -186,19 +208,15 @@ static Std_ReturnType CmpActive( void )
 				{
 					fttmdl_Acc_Process();
 				}
-			break;
+				break;
 			default:
-				//
-			break;
+				break;
 				
 		}
 	}
 	else
 	{
 		fttmdl_AccMdl_All_Init();
-
-		l_ACCMDL_Flag = TRUE;
-		l_Proveout_Counter_U8 = FALSE;
 	}
 
 	return E_OK;
@@ -264,35 +282,35 @@ static void fttmdl_Acc_Process(void)
 	}
 	else
 	{
-		// ACCMode ==1/2/4/5 White Turn On
-		if((1 == u8AccIconDisplay) || (2 == u8AccIconDisplay)
-		|| (4 == u8AccIconDisplay) || (5 == u8AccIconDisplay))
+		switch(u8AccIconDisplay)
 		{
-			TtAccWhiteStatus = cTT_TURN_ON;
-			TtAccRedStatus = cTT_TURN_OFF;
-			TtAccGreenStatus = cTT_TURN_OFF;
-		}
-		// ACCMode ==3/6 Green Turn On
-		else if((3 == u8AccIconDisplay) || (6 == u8AccIconDisplay))
-		{
-			TtAccWhiteStatus = cTT_TURN_OFF;
-			TtAccRedStatus = cTT_TURN_OFF;
-			TtAccGreenStatus = cTT_TURN_ON;
-	
-		}
-		// ACCMode ==0x7 Red Turn On
-		else if(7 == u8AccIconDisplay)
-		{
-			TtAccWhiteStatus = cTT_TURN_OFF;
-			TtAccRedStatus = cTT_TURN_ON;
-			TtAccGreenStatus = cTT_TURN_OFF;
-	
-		}
-		else 
-		{
-			TtAccWhiteStatus = cTT_TURN_OFF;
-			TtAccRedStatus = cTT_TURN_OFF;
-			TtAccGreenStatus = cTT_TURN_OFF;
+			// ACCMode ==1/2/4/5 White Turn On
+			case TT_ACC_VALUE_1:
+			case TT_ACC_VALUE_2:
+			case TT_ACC_VALUE_4:
+			case TT_ACC_VALUE_5:
+				TtAccWhiteStatus = cTT_TURN_ON;
+				TtAccRedStatus = cTT_TURN_OFF;
+				TtAccGreenStatus = cTT_TURN_OFF;
+				break;
+			// ACCMode ==3/6 Green Turn On
+			case TT_ACC_VALUE_3:
+			case TT_ACC_VALUE_6:
+				TtAccWhiteStatus = cTT_TURN_OFF;
+				TtAccRedStatus = cTT_TURN_OFF;
+				TtAccGreenStatus = cTT_TURN_ON;
+				break;
+			// ACCMode ==0x7 Red Turn On
+			case TT_ACC_VALUE_7:
+				TtAccWhiteStatus = cTT_TURN_OFF;
+				TtAccRedStatus = cTT_TURN_ON;
+				TtAccGreenStatus = cTT_TURN_OFF;
+				break;
+			default:
+				TtAccWhiteStatus = cTT_TURN_OFF;
+				TtAccRedStatus = cTT_TURN_OFF;
+				TtAccGreenStatus = cTT_TURN_OFF;
+				break;
 		}
 	}
 	
@@ -337,14 +355,14 @@ static void fttmdl_Ldw_Process(void)
 	else
 	{
 		/*IPM_LaneAssit_Status	0x5 || 0x6 || 0x7	On*/
-		if((u8LdwIconDisplay == 5) || (u8LdwIconDisplay == 6) || (u8LdwIconDisplay == 7))
+		if((TT_LDW_VALUE_5 == u8LdwIconDisplay) || (TT_LDW_VALUE_6 == u8LdwIconDisplay) || (TT_LDW_VALUE_7 == u8LdwIconDisplay))
 		{
 			TtLdwStatus = cTT_TURN_ON;
 		}
 		else
 		{
 			TtLdwStatus = cTT_TURN_OFF;
-		}			
+		}	
 	}
 	
 	Rte_Call_rpCS_AccMdl_TIMdlUpdateTtStatus_Operation(cTTLDW,TtLdwStatus);
@@ -393,12 +411,12 @@ static void fttmdl_BsdOff_Process(void)
 	else
 	{
 		/*Display in the Same place and priority：SODLCA_OFFTelltale<CTA_OFFTelltale*/
-		if(1 == u8BsdOffCtaIconDisplay)
+		if(BSDOFFCTA_VALUE_1 == u8BsdOffCtaIconDisplay)
 		{
 			TtBsd_CTA_OFF_Status = cTT_TURN_ON;
 			TtBsd_SOD_DOA_Status = cTT_TURN_OFF;
 		}
-		else if((1 == u8BsdOffSodLcaIconDisplay) || (1 == u8BsdOffDoaIconDisplay) )
+		else if((BSDOFFSOD_DOA_VALUE_1 == u8BsdOffSodLcaIconDisplay) || (BSDOFFSOD_DOA_VALUE_1 == u8BsdOffDoaIconDisplay) )
 		{
 			TtBsd_CTA_OFF_Status = cTT_TURN_OFF;
 			TtBsd_SOD_DOA_Status = cTT_TURN_ON;
@@ -452,13 +470,13 @@ static void fttmdl_AEB_Process(void)
 	{
 		
 		/*AEB_STATE = 0X0  display red AEB icon*/
-		if(u8AebIconDisplay == 0)
+		if(TT_AEB_VALUE_0 == u8AebIconDisplay)
 		{
 			TtAebRedStatus = cTT_TURN_ON;
 			TtAebYellowStatus = cTT_TURN_OFF;
 		}
 		/*AEB_STATE = 0X1  display yellow AEB icon*/
-		else if(u8AebIconDisplay == 1)
+		else if(TT_AEB_VALUE_1 == u8AebIconDisplay)
 		{
 			TtAebYellowStatus = cTT_TURN_ON;
 			TtAebRedStatus = cTT_TURN_OFF;
@@ -512,13 +530,13 @@ static void fttmdl_Fcw_Process(void)
 	{
 		
 		/* PCW_STATE = 0x0  display red Fcw icon*/
-		if(u8PcwIconDisplay == 0)
+		if(TT_FCW_VALUE_0 == u8PcwIconDisplay)
 		{
 			TtFcwRedStatus = cTT_TURN_ON;
 			TtFcwYellowStatus = cTT_TURN_OFF;
 		}
 		/* PCW_STATE = 0x1  display yellow Fcw icon*/
-		else if(u8PcwIconDisplay == 1)
+		else if(TT_FCW_VALUE_1 == u8PcwIconDisplay)
 		{
 			TtFcwYellowStatus = cTT_TURN_ON;
 			TtFcwRedStatus = cTT_TURN_OFF;
@@ -563,7 +581,7 @@ static void fttmdl_AutoBeam_Process(void)
 	else
 	{
 		/*IPM_HMA_Status== 0x3 -> On    else -> OFF*/
-		if(u8AutoBeamIconDisplay == 3)
+		if(AUTO_BEAM_VALUE_3 == u8AutoBeamIconDisplay)
 		{
 			TtAutoBeamStatus = cTT_TURN_ON;
 		}
@@ -713,5 +731,8 @@ static void fttmdl_AccMdl_All_Init(void)
 	fttmdl_AEB_Init();
 	fttmdl_Fcw_Init();
 	fttmdl_AutoBeam_Init();
+	
+	l_ACCMDL_Flag = TRUE;
+	l_Proveout_Counter_U8 = FALSE;
 }
 

@@ -136,7 +136,7 @@ static void VNM_ACK_TX_CONTROL(CAN_UINT8 RT_State);
    GLOBAL VARIABLES
 *******************************************************************************/
 extern boolean dem_all_block_read_finish_bool;
-extern boolean dem_batt_in_mormal_5s;
+extern boolean dem_batt_state;
 extern boolean dem_IGN_ON_5s;
 //extern boolean dem_out_crank_5s;
 
@@ -146,6 +146,7 @@ vnm_rxnodes_t VNM_Node_Avail[4];
 /* ===========================================================================
 ** M A C R O   D E F I N I T I O N S
 ** =========================================================================*/
+#define CAN_LIMP_HOME_DTC			(1)
 
 #define NM_UNUSED_VAR(X)  do { if(0 == (X)){} } while(0)
 #define VNM_IAMNOTSKIPPED		VNM_FALSE
@@ -1748,7 +1749,7 @@ static void VNM_DTC(void)
 
 static void VNM_DTCSet(VNM_UINT8 u8Val)
 {
-	Dem_SetEventStatus(2,u8Val);
+	Dem_SetEventStatus(CAN_LIMP_HOME_DTC,u8Val);
 }
 static void VNM_DTCStore(void)
 {

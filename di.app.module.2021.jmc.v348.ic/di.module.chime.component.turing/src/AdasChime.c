@@ -126,7 +126,7 @@ typedef enum {
 
 #define ADAS_CHIME_1 (1)
 #define ADAS_CHIME_2 (2)
-
+#define CHIME_ACC_2  (2)
 static uint8 fl_IgnQuickSwitchCnt = ADAS_CHIME_DELAY_TIME_3000MS;
 //=====================================================================================================================
 //  CONSTANTS & TYPES
@@ -331,8 +331,10 @@ static void f_AdasChime_update(void)
 	uint8 fl_MRR_PCW_STATE_U8 = 0;
 	
 	uint8 IsEngineCfg_Adas_Chime = 0;
-	//Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_ADAS,&IsEngineCfg_Adas_Chime);
-
+	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_ADAS,&IsEngineCfg_Adas_Chime);
+	uint8 IsEngineCfg_Acc = 0;
+	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_Cruise,&IsEngineCfg_Acc);
+	
 	switch(IsEngineCfg_Adas_Chime)
 	{
 		case ADAS_CHIME_1:
@@ -343,7 +345,7 @@ static void f_AdasChime_update(void)
 			f_Chime_382_Bsd_LCA_Pro();
 			f_Chime_245_Ddd_Pro();
 			f_Chime_246_Pebs_Fcw_Pro();
-		break;
+			break;
 		case ADAS_CHIME_2:
 			f_Chime_245_HandsOnReq_Pro();
 			f_Chime_245_Ldw_Pro();
@@ -352,11 +354,14 @@ static void f_AdasChime_update(void)
 			f_Chime_382_Bsd_LCA_Pro();
 			f_Chime_245_Ddd_Pro();
 			f_Chime_246_Pebs_Fcw_Pro();
-			f_Chime_246_Acc_Pro();
-		break;
+			
+			if(CHIME_ACC_2 == IsEngineCfg_Acc)
+			{
+				f_Chime_246_Acc_Pro();
+			}
+			break;
 		default:
-			//
-		break;
+			break;
 	}
 
 	for (i = EM_CHIME_CTRL_FLG_FCW; i < EM_CHIME_CTRL_FLG_MAX; i++)

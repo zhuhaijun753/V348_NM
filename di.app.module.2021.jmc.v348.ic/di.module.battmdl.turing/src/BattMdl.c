@@ -49,17 +49,20 @@ typedef struct
 //=====================================================================================================================
 #define DEM_BATT_LOW_VOLTAGE  		900U  //9V
 #define DEM_BATT_HIGH_VOLTAGE 		1600U //16V
-#define CAN_LOST_DTC_BELOW_9V		(13)
-#define CAN_LOST_DTC_ABOVE_16V		(14)
+#define CAN_LOST_DTC_BELOW_8_5V		(11)
+#define CAN_LOST_DTC_ABOVE_16V		(12)
 #define RESULT_NORMAL             	(0x2)
 #define RESULT_FAILED            	(0x3)
-
+#define BATT_500MS_TIME						(uint16)500
+#define BATT_1000MS_TIME					(uint16)1000
+#define BATT_2000MS_TIME					(uint16)2000
+#define BATT_2500MS_TIME					(uint16)2400
 
 //=====================================================================================================================
 //  FORWARD DECLARATIONS
 //=====================================================================================================================
 static boolean l_dem_voltage_abnormal;
-boolean dem_batt_in_mormal_5s;
+boolean dem_batt_state;
 
 /// @brief NV Battery data 
 static Global_Data_Batt BatteryData;
@@ -73,7 +76,9 @@ static uint16 l_battmdl_ad_vbat_filter_buf[20];
 //=====================================================================================================================
 //  Local Function Declarations 
 //=====================================================================================================================
-static void battmdl_dem_process(TIOAppData volt);
+static void battmdl_abnormal_processing(void);
+static void battmdl_voltage_shake_processing(void);
+//static void battmdl_dem_process(TIOAppData volt);
 
 //---------------------------------------------------------------------------------------------------------------------
 /// @brief  Transitional initialization state
@@ -124,7 +129,7 @@ static Std_ReturnType CmpActivation( void )
     l_battmdl_ad_value_index = 0;
 
 	l_dem_voltage_abnormal = FALSE;
-	dem_batt_in_mormal_5s = FALSE;
+	dem_batt_state = FALSE;
     return E_OK;
 }
 
@@ -326,6 +331,7 @@ static Std_ReturnType CmpActive(void)  //30ms cycle
 		        break;
 	    }
 
+#if 0
 		if((l_BatteryState_U8 == eBatteryState_OverVoltage) || (l_BatteryState_U8 == eBatteryState_OverVoltagePhase1))		//OverVoltage
 		{	
 			//Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerNormalVoltage,&NormalVoltage_Started);
@@ -409,9 +415,16 @@ static Std_ReturnType CmpActive(void)  //30ms cycle
 				Rte_Write_ppBattState_IsHighVoltage(FALSE);
 			//}
 		}
-	}
+		
+#endif
 
-	battmdl_dem_process(Voltage);
+	battmdl_abnormal_processing();
+
+	battmdl_voltage_shake_processing();
+
+	}
+	//battmdl_dem_process(Voltage);
+
 
 	return E_OK;
 }
@@ -440,6 +453,7 @@ static Std_ReturnType CmpDiagReturn( void )
 
 }
 
+#if 0
 static void battmdl_dem_process(TIOAppData volt)
 {
 	boolean fl_timerStarted = FALSE;
@@ -452,7 +466,7 @@ static void battmdl_dem_process(TIOAppData volt)
   
 	if (l_dem_voltage_abnormal == FALSE)
 	{
-		if (dem_batt_in_mormal_5s == FALSE)
+		if (dem_batt_state == FALSE)
 		{
 			Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerBattMdlDemWait,&fl_timerStarted);
 			if (fl_timerStarted == FALSE)
@@ -463,21 +477,21 @@ static void battmdl_dem_process(TIOAppData volt)
 			Rte_Call_rptimer_TmExt_Timer_IsElapsed(eTimerBattMdlDemWait,1000,&fl_timerExp);
 			if (fl_timerExp == TRUE)
 			{
-				dem_batt_in_mormal_5s = TRUE;
+				dem_batt_state = TRUE;
 				Rte_Call_rptimer_TmExt_Timer_Stop(eTimerBattMdlDemWait);
 			}
 		}
 	}
 	else
 	{
-		dem_batt_in_mormal_5s = FALSE;
+		dem_batt_state = FALSE;
 		Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerBattMdlDemWait,&fl_timerStarted);/*batt shake in 1s*/
 		if (fl_timerStarted == TRUE)
 		{
 			Rte_Call_rptimer_TmExt_Timer_Stop(eTimerBattMdlDemWait);
 		}
 	}
-	Rte_Write_ppSR_BattState_Dem_state(dem_batt_in_mormal_5s);
+	Rte_Write_ppSR_BattState_Dem_state(dem_batt_state);
 	
 
 	Rte_Read_rpSR_IgnState_Dem_state(&fl_ignState_dem);
@@ -496,7 +510,7 @@ static void battmdl_dem_process(TIOAppData volt)
 				Rte_Call_rptimer_TmExt_Timer_IsElapsed(eTimerBattBelow9V,1000,&fl_battBelow9V_timerExp);
 				if (fl_battBelow9V_timerExp == TRUE)
 				{
-					(void)Dem_SetEventStatus(CAN_LOST_DTC_BELOW_9V,RESULT_FAILED);
+					(void)Dem_SetEventStatus(CAN_LOST_DTC_BELOW_8_5V,RESULT_FAILED);
 //					Rte_Call_rptimer_TmExt_Timer_Stop(eTimerBattBelow9V);
 				}
 			}
@@ -528,15 +542,178 @@ static void battmdl_dem_process(TIOAppData volt)
 					Rte_Call_rptimer_TmExt_Timer_Stop(eTimerBattOver16V);
 				}
 				
-				(void)Dem_SetEventStatus(CAN_LOST_DTC_BELOW_9V,RESULT_NORMAL);
+				(void)Dem_SetEventStatus(CAN_LOST_DTC_BELOW_8_5V,RESULT_NORMAL);
 				(void)Dem_SetEventStatus(CAN_LOST_DTC_ABOVE_16V,RESULT_NORMAL);
 			}
 		}
 		else
 		{
-			(void)Dem_SetEventStatus(CAN_LOST_DTC_BELOW_9V,RESULT_NORMAL);
+			(void)Dem_SetEventStatus(CAN_LOST_DTC_BELOW_8_5V,RESULT_NORMAL);
 			(void)Dem_SetEventStatus(CAN_LOST_DTC_ABOVE_16V,RESULT_NORMAL);
 		}
 	}
 }
+#endif
+
+
+/*============================================================================
+**
+** Function Name:      void battmdl_abnormal_processing(void)
+**
+**
+** Description:        battary process abnormal state
+**
+** Invocation:         Application code
+**
+** Inputs/Outputs:     
+**                     
+**                     
+** Critical Section:   None.
+**
+**==========================================================================*/
+static void battmdl_abnormal_processing(void)
+{
+	uint8 OverVoltage_Started = FALSE;
+	uint8 OverVoltage_Exp = FALSE;
+	uint8 UnderVoltage_Started = FALSE;
+	uint8 UnderVoltage_Exp = FALSE;
+	boolean fl_ignState_dem = FALSE;
+
+	Rte_Read_rpSR_IgnState_Dem_state(&fl_ignState_dem);
+
+	if(fl_ignState_dem == TRUE)
+	{
+		if(/*(l_BatteryState_U8 == eBatteryState_OverVoltage) || */(l_BatteryState_U8 == eBatteryState_OverVoltagePhase1))		//OverVoltage
+		{		
+			Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerOverVoltage,&OverVoltage_Started);
+			if (OverVoltage_Started == FALSE)
+			{
+				Rte_Call_rptimer_TmExt_Timer_Start(eTimerOverVoltage);
+			}
+		
+			Rte_Call_rptimer_TmExt_Timer_IsElapsed(eTimerOverVoltage,BATT_2000MS_TIME,&OverVoltage_Exp);
+			if (OverVoltage_Exp == TRUE)
+			{
+				Rte_Write_ppBattState_BatteryState(l_BatteryState_U8);					// keeps > 2s 
+				Rte_Write_ppBattState_IsHighVoltage(TRUE);								//OverVoltage interface
+				Dem_SetEventStatus(CAN_LOST_DTC_ABOVE_16V, RESULT_FAILED);
+				l_dem_voltage_abnormal = TRUE;			
+			}
+			else
+			{
+				Rte_Write_ppBattState_IsHighVoltage(FALSE); 
+				Dem_SetEventStatus(CAN_LOST_DTC_ABOVE_16V, RESULT_NORMAL);
+				l_dem_voltage_abnormal = FALSE;
+			}
+		}
+		else if(l_BatteryState_U8 == eBatteryState_UnderVoltagePhase1)		//UnderVoltage
+		{
+			Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerUnderVoltage,&UnderVoltage_Started);
+			if (UnderVoltage_Started == FALSE)
+			{
+				Rte_Call_rptimer_TmExt_Timer_Start(eTimerUnderVoltage);
+			}
+		
+			Rte_Call_rptimer_TmExt_Timer_IsElapsed(eTimerUnderVoltage,BATT_2000MS_TIME,&UnderVoltage_Exp);
+			if (UnderVoltage_Exp == TRUE)
+			{
+				Rte_Write_ppBattState_BatteryState(l_BatteryState_U8);						//UnderVoltage keeps > 2s 
+				Rte_Write_ppBattState_IsLowVoltage(TRUE);									//UnderVoltage interface
+				Dem_SetEventStatus(CAN_LOST_DTC_BELOW_8_5V, RESULT_FAILED);
+				l_dem_voltage_abnormal = TRUE;
+			}
+			else
+			{
+				Rte_Write_ppBattState_IsLowVoltage(FALSE);			
+				Dem_SetEventStatus(CAN_LOST_DTC_BELOW_8_5V, RESULT_NORMAL);
+				l_dem_voltage_abnormal = FALSE;
+			}
+		}
+		else
+		{
+			l_dem_voltage_abnormal = FALSE;
+			Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerOverVoltage,&OverVoltage_Started);
+			if(OverVoltage_Started == TRUE)
+			{
+				Rte_Call_rptimer_TmExt_Timer_Stop(eTimerOverVoltage);
+			}
+			
+			Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerUnderVoltage,&UnderVoltage_Started);
+			if(UnderVoltage_Started == TRUE)
+			{
+				Rte_Call_rptimer_TmExt_Timer_Stop(eTimerUnderVoltage);
+			}
+			
+			Rte_Write_ppBattState_BatteryState(l_BatteryState_U8);		 //Normal voltage
+			Rte_Write_ppBattState_IsLowVoltage(FALSE);
+			Rte_Write_ppBattState_IsHighVoltage(FALSE);
+			
+			Dem_SetEventStatus(CAN_LOST_DTC_ABOVE_16V, RESULT_NORMAL);
+			Dem_SetEventStatus(CAN_LOST_DTC_BELOW_8_5V, RESULT_NORMAL);
+		}
+	}
+}
+
+
+/*============================================================================
+**
+** Function Name:      void battmdl_voltage_shake_processing(void)
+**
+**
+** Description:        Battary process volatage shake
+**
+** Invocation:         Application code
+**
+** Inputs/Outputs:     
+**                     
+**                     
+** Critical Section:   None.
+**
+**==========================================================================*/
+static void battmdl_voltage_shake_processing(void)
+{
+	boolean fl_timerStarted = FALSE;
+	boolean fl_timerExp = FALSE;
+
+	if (l_dem_voltage_abnormal == FALSE)	//battary in normal state
+	{
+		if (dem_batt_state == FALSE)
+		{
+			Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerBattMdlDemWait,&fl_timerStarted);
+			if (fl_timerStarted == FALSE)
+			{
+				Rte_Call_rptimer_TmExt_Timer_Start(eTimerBattMdlDemWait);
+			}
+			
+			/*batt shake in 500ms from abnormal to normal*/
+			Rte_Call_rptimer_TmExt_Timer_IsElapsed(eTimerBattMdlDemWait,BATT_500MS_TIME,&fl_timerExp);	
+			if (fl_timerExp == TRUE)
+			{
+				dem_batt_state = TRUE;		//battary in normal state
+				Rte_Call_rptimer_TmExt_Timer_Stop(eTimerBattMdlDemWait);
+			}
+		}
+	}
+	else
+	{
+		dem_batt_state = FALSE;		//battary in abnormal state
+		Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerBattMdlDemWait,&fl_timerStarted);
+		if (fl_timerStarted == TRUE)
+		{
+			Rte_Call_rptimer_TmExt_Timer_Stop(eTimerBattMdlDemWait);
+		}
+	}
+	
+	Rte_Write_ppSR_BattState_Dem_state(dem_batt_state);
+}
+
+
+
+
+
+
+
+
+
+
 

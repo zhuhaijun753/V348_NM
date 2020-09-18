@@ -22,6 +22,7 @@
 #include "CmpLib.h"
 #include "ChimeLogical.h"
 
+static uint8 fl_Chime_17_long_status_u8 = FALSE;
 
 
 static UINT8 gs_u8Chime_QuietCount;
@@ -42,6 +43,7 @@ static uint8 OTAMODE = 0;
 ** M E M O R Y   A L L O C A T I O N
 **====================================================================================================================*/
 static void CChimeMdl_OTAMode_CloseAllChime(void);
+extern void CChimeMdl_UpdateStatus_Operation(UINT8 index, UINT8 warning_status);
 
 /*---------------------------------------------------------------------------------------------------------------------
 ** @brief  Transitional initialization state
@@ -56,6 +58,7 @@ static Std_ReturnType CmpInit( void )
     fl_flag = FALSE;
     gs_u8Chime_QuietCount = 0;
 	OTAMODE = 0;
+	fl_Chime_17_long_status_u8 = FALSE;
     return E_OK;
 }
 
@@ -72,6 +75,7 @@ static Std_ReturnType CmpDeInit( void )
     Chime_Mgr_ExitSW();
     fl_flag = FALSE;
 	OTAMODE = 0;
+	fl_Chime_17_long_status_u8 = FALSE;
     return E_OK;
 }
 
@@ -89,7 +93,7 @@ static Std_ReturnType CmpActivation( void )
     //Rte_Call_rpCS_TIIoHwAb_DOut_SetPin(eIOPinOutId_AMP_SHTD, TRUE);
     gs_u8Chime_QuietCount = 0;
 	OTAMODE = 0;
-
+	fl_Chime_17_long_status_u8 = FALSE;
     return E_OK;
 }
 
@@ -116,6 +120,8 @@ static Std_ReturnType CmpDeActivation( void )
         gs_u8Chime_QuietCount++;
         return  E_NOT_OK;
     }
+
+	fl_Chime_17_long_status_u8 = FALSE;
 }
 
 /*---------------------------------------------------------------------------------------------------------------------
@@ -137,7 +143,7 @@ static Std_ReturnType CmpActive( void )
 	
 	CChimeMdl_OTAMode_CloseAllChime();
 	
-    if(fl_diag_session == EOL_SESSION)
+    if(fl_diag_session == EXTENDED_SESSION)
     {
         if(fl_diag_session != flSession_pre)
 		{
@@ -145,14 +151,14 @@ static Std_ReturnType CmpActive( void )
             fl_IgnQuickSwitchCnt = 30;
 			for(ChimeID = 0; ChimeID < CHIME_REQ_TOTAL_NUM; ChimeID++)
 			{
-				CChimeMdl_UpdateStatus_Operation(ChimeID,FALSE);
+				CSndCdd_RequestToStop(ChimeID, (UINT8)CHIME_STOP_SU);
 			}
 		}
 		else
 		{
 		}
 
-        if((DID_Value.DID_IOC_Number == 0xFD05) && (DID_Value.DID_IOC_Parament == 0x03))
+        if((DID_Value.DID_IOC_Number == 0x5107) && (DID_Value.DID_IOC_Parament == 0x03))
         {
             if(DID_Value.DID_IOC_State[0] == 0x00)
             {
@@ -160,14 +166,16 @@ static Std_ReturnType CmpActive( void )
                 {
                     if(fl_IgnQuickSwitchCnt > 0)
                     {
-                        fl_IgnQuickSwitchCnt--;
+                        //fl_IgnQuickSwitchCnt--;
                         OnTask10ms_Chime_Routine();
-                        CChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,TRUE);
+                        Rte_Call_tiCS_TISndCdd_RequestToStart(eSnd_N331_Chime_17_long,0);
+
+						fl_Chime_17_long_status_u8 = TRUE;
                     }
                     else
                     {
-                        fl_flag = TRUE;
-                        CChimeMdl_UpdateStatus_Operation(CHIME_REQID_TPMS_WARN,FALSE);
+                        //fl_flag = TRUE;
+                        //CChimeMdl_UpdateStatus_Operation(CHIME_REQID_UPA_LONG,FALSE);
                     }
                 }
             }
@@ -177,8 +185,10 @@ static Std_ReturnType CmpActive( void )
                 fl_IgnQuickSwitchCnt = 30;
                 for(ChimeID = 0; ChimeID < CHIME_REQ_TOTAL_NUM; ChimeID++)
                 {
-                    CChimeMdl_UpdateStatus_Operation(ChimeID, FALSE);
+                    CSndCdd_RequestToStop(ChimeID, (UINT8)CHIME_STOP_SU);
                 }
+
+				fl_Chime_17_long_status_u8 = FALSE;
             }
         }
         else
@@ -201,6 +211,8 @@ static Std_ReturnType CmpActive( void )
 			{
 				CSndCdd_RequestToStop(ChimeID, (UINT8)CHIME_STOP_SU);
 			}
+
+			fl_Chime_17_long_status_u8 = FALSE;
 		}
 		else if ( OTAMODE ) //if OTAMODE is TRUE, turn off all chime.
 		{
@@ -213,12 +225,20 @@ static Std_ReturnType CmpActive( void )
 		else
 		{
 			OnTask10ms_Chime_Routine();
+
+			if(TRUE == fl_Chime_17_long_status_u8)
+			{
+				CSndCdd_RequestToStop(eSnd_N331_Chime_17_long, (UINT8)CHIME_STOP_SU);
+				
+				fl_Chime_17_long_status_u8 = FALSE;
+			}
 		}
 	}
 
     flSession_pre = fl_diag_session;
 
     CChimeMdl_Ignoff_Chime_State__();
+
     return E_OK;
 }
 

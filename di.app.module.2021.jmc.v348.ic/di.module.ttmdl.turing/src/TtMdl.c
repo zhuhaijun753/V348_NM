@@ -471,22 +471,39 @@ static void hmi_TT_Check_handler(void)
 		switch((DID_Value.DID_IOC_State[1]) & (BIT2 | BIT3 | BIT4))
 		{
 			case 0x04:
-			case 0x08:
-			case 0x0C:
-				if(TELLTALE_ACC_2 == IsEngineCfg_Acc)
+				if((TELLTALE_ACC_2 == IsEngineCfg_Acc) && (TELLTALE_ADAS_2 == IsEngineCfg_Adas))
 				{
-					if(TELLTALE_ADAS_2 == IsEngineCfg_Adas)
-					{
-						Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_GREEN,cTT_TURN_ON);
-						Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_WHITE,cTT_TURN_ON);
-						Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_RED,cTT_TURN_ON);
-					}
-					else
-					{
-						Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_GREEN,cTT_TURN_OFF);
-						Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_WHITE,cTT_TURN_OFF);
-						Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_RED,cTT_TURN_OFF);
-					}
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_GREEN,cTT_TURN_ON);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_WHITE,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_RED,cTT_TURN_OFF);
+				}
+				else
+				{
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_GREEN,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_WHITE,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_RED,cTT_TURN_OFF);
+				}
+				break;
+			case 0x08:
+				if((TELLTALE_ACC_2 == IsEngineCfg_Acc) && (TELLTALE_ADAS_2 == IsEngineCfg_Adas))
+				{
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_GREEN,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_WHITE,cTT_TURN_ON);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_RED,cTT_TURN_OFF);
+				}
+				else
+				{
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_GREEN,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_WHITE,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_RED,cTT_TURN_OFF);
+				}
+				break;
+			case 0x0C:
+				if((TELLTALE_ACC_2 == IsEngineCfg_Acc) && (TELLTALE_ADAS_2 == IsEngineCfg_Adas))
+				{
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_GREEN,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_WHITE,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTACC_RED,cTT_TURN_ON);
 				}
 				else
 				{
@@ -496,15 +513,24 @@ static void hmi_TT_Check_handler(void)
 				}
 				break;
 			case 0x10:
-			case 0x14:
 				if(TELLTALE_CRUISE_1 == IsEngineCfg_Acc)
 				{
 					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTCRUISE_CONTROL,cTT_TURN_ON);
-					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTCRUISE_RED,cTT_TURN_ON);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTCRUISE_RED,cTT_TURN_OFF);
 				}
 				else
 				{
 					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTCRUISE_CONTROL,cTT_TURN_OFF);
+				}
+				break;
+			case 0x14:
+				if(TELLTALE_CRUISE_1 == IsEngineCfg_Acc)
+				{
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTCRUISE_CONTROL,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTCRUISE_RED,cTT_TURN_ON);
+				}
+				else
+				{
 					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTCRUISE_RED,cTT_TURN_OFF);
 				}
 				break;
@@ -649,6 +675,7 @@ static void hmi_TT_Check_handler(void)
 				if(TELLTALE_BRAKE_TYPE_1 == IsEngineCfg_Brake_type)
 				{
 					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAVH,cTT_TURN_ON);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAPB,cTT_TURN_OFF);
 				}
 				else
 				{
@@ -658,6 +685,7 @@ static void hmi_TT_Check_handler(void)
 			case 0x02:
 				if((TELLTALE_BRAKE_TYPE_0 == IsEngineCfg_Brake_type) || (TELLTALE_BRAKE_TYPE_1 == IsEngineCfg_Brake_type))
 				{
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAVH,cTT_TURN_OFF);
 					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAPB,cTT_TURN_ON);
 				}
 				else
@@ -870,16 +898,12 @@ static void hmi_TT_Check_handler(void)
 		}
 		
 		//BYTE_5 /********************************/
-		if((TELLTALE_ADAS_1 == IsEngineCfg_Adas) || (TELLTALE_ADAS_2 == IsEngineCfg_Adas))
+		if(TELLTALE_ADAS_1 == IsEngineCfg_Adas)
 		{
 			switch((DID_Value.DID_IOC_State[5]) & (BIT0 | BIT1))
 			{
 				case 0x01:
-					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAEB_YELLOW,cTT_TURN_ON);
-					break;
 				case 0x02:
-					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAEB_RED,cTT_TURN_ON);
-					break;
 				default:
 					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAEB_YELLOW,cTT_TURN_OFF);
 					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAEB_RED,cTT_TURN_OFF);
@@ -889,8 +913,10 @@ static void hmi_TT_Check_handler(void)
 			{
 				case 0x04:
 					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTFCW_YELLOW,cTT_TURN_ON);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTFCW_RED,cTT_TURN_OFF);
 					break;
 				case 0x08:
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTFCW_YELLOW,cTT_TURN_OFF);
 					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTFCW_RED,cTT_TURN_ON);
 					break;
 				default:
@@ -902,8 +928,58 @@ static void hmi_TT_Check_handler(void)
 			{
 				case 0x10:
 					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTEPS_YLW,cTT_TURN_ON);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTEPS_RED,cTT_TURN_OFF);
 					break;
 				case 0x20:
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTEPS_YLW,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTEPS_RED,cTT_TURN_ON);
+					break;
+				default:
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTEPS_YLW,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTEPS_RED,cTT_TURN_OFF);
+					break;
+			}
+		}
+		else if (TELLTALE_ADAS_2 == IsEngineCfg_Adas)
+		{
+			switch((DID_Value.DID_IOC_State[5]) & (BIT0 | BIT1))
+			{
+				case 0x01:
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAEB_YELLOW,cTT_TURN_ON);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAEB_RED,cTT_TURN_OFF);
+					break;
+				case 0x02:
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAEB_YELLOW,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAEB_RED,cTT_TURN_ON);
+					break;
+				default:
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAEB_YELLOW,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTAEB_RED,cTT_TURN_OFF);
+					break;
+			}
+			switch((DID_Value.DID_IOC_State[5]) & (BIT2 | BIT3) )
+			{
+				case 0x04:
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTFCW_YELLOW,cTT_TURN_ON);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTFCW_RED,cTT_TURN_OFF);
+					break;
+				case 0x08:
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTFCW_YELLOW,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTFCW_RED,cTT_TURN_ON);
+					break;
+				default:
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTFCW_YELLOW,cTT_TURN_OFF);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTFCW_RED,cTT_TURN_OFF);
+					break;
+			}
+			switch((DID_Value.DID_IOC_State[5]) & (BIT4 | BIT5) )
+			{
+				case 0x10:
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTEPS_YLW,cTT_TURN_ON);
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTEPS_RED,cTT_TURN_OFF);
+					break;
+				case 0x20:
+					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTEPS_YLW,cTT_TURN_OFF);
 					Rte_Call_rpCS_TtMdl_TIMdlUpdateTtStatus_Operation(cTTEPS_RED,cTT_TURN_ON);
 					break;
 				default:
@@ -1041,7 +1117,7 @@ static Std_ReturnType CmpActive( void )
 		{
 		}
 
-		if(DID_Value.DID_IOC_Number == 0xFD8E)
+		if(DID_Value.DID_IOC_Number == 0x518E)
 		{
 			hmi_TT_Check_handler();
 		}
@@ -1277,39 +1353,36 @@ static void CTtMdl_f_tt_timedtask(void)
 						}
 
 						//ADAS
-						if(TELLTALE_ADAS_1 == IsEngineCfg_Adas)
+						switch(IsEngineCfg_Adas)
+						{
+							case TELLTALE_ADAS_2:
+								break;
+							case TELLTALE_ADAS_1:
+								if(index == cTTAEB_RED)
+								{
+									l_turn_on_off = cTT_TURN_OFF;
+								}
+								break;
+							default:
+								if((index == cTTLDW) || (index == cTTBSD_SODLCA) || (index == cTTAEB_RED)
+								|| (index == cTTFCW_RED))
+								{
+									l_turn_on_off = cTT_TURN_OFF;
+								}
+								break;
+						}
+						
+						//ACC
+						if((TELLTALE_ACC_2 != IsEngineCfg_Acc) || (TELLTALE_ADAS_2 != IsEngineCfg_Adas))
 						{
 							if(index == cTTACC_RED)
 							{
 								l_turn_on_off = cTT_TURN_OFF;
 							}
 						}
-						else if(TELLTALE_ADAS_2 == IsEngineCfg_Adas)
-						{
-							//ACC
-							if(TELLTALE_ACC_2 != IsEngineCfg_Acc)
-							{
-								if(index == cTTACC_RED)
-								{
-									l_turn_on_off = cTT_TURN_OFF;
-								}
-							}
-							else
-							{
-								//
-							}
-						}
-						else
-						{
-							if((index == cTTLDW) || (index == cTTBSD_SODLCA) || (index == cTTAEB_RED)
-							|| (index == cTTFCW_RED) || (index == cTTACC_RED))
-							{
-								l_turn_on_off = cTT_TURN_OFF;
-							}
-						}
 
 						//TPMS
-						if((TELLTALE_VEHICLE_TPMS_1 != IsEngineCfg_Tpms) || (TELLTALE_VEHICLE_TPMS_3 != IsEngineCfg_Tpms))
+						if((TELLTALE_VEHICLE_TPMS_1 != IsEngineCfg_Tpms) && (TELLTALE_VEHICLE_TPMS_3 != IsEngineCfg_Tpms))
 						{
 							if(index == cTTTPMS_FAILURE)
 							{

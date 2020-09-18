@@ -29,6 +29,9 @@ CMPLIB_INSTANCE(HmiAccMdl)
 #define HMIACC_LANE_ASSIT_OFF 	(0)
 #define HMIACC_LANE_ASSIT_FAULT	(5)
 
+#define EOL_ADAS_1		(0x01)
+#define EOL_ADAS_2		(0x02)
+
 typedef struct {
 	//GW_MRR_0x245(LDW & TSR)
 	uint8 LaneAssitStatus;
@@ -324,30 +327,41 @@ static void f_HmiAdas_Process(void)
 	uint8 	fl_IPM_SLAState_U8 = 0;
 
 	uint8 	fl_IPM_LaneAssitType_U8 = 0;
-
+	uint8   fl_eol_adas;
+	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_ADAS, &fl_eol_adas);
+	
 	Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_NR(&fl_CAN_nvr_status_U8);
 	Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_Tout(&fl_CAN_msg_status_U8);
-
-//	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_LDW, &fl_vehicle_cfg_ldw_flg);
-//	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_TSR, &fl_vehicle_cfg_tsr_flg);
-
-	if (TRUE == fl_vehicle_cfg_ldw_flg)
+	
+	if(EOL_ADAS_1 == fl_eol_adas)
 	{
 		Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_LaneAssit_Status(&fl_lane_status_U8);
 		Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_LaneAssit_LeftVisualization(&fl_left_lane_U8);
 		Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_LaneAssit_RightVisualization(&fl_right_lane_U8);
 //		Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_LaneAssit_HandsonReq(&fl_IPM_LaneAssit_HandsonReq_U8);
 
+		//Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_LaneAssitType(&fl_IPM_LaneAssitType_U8);
+	}
+	else if(EOL_ADAS_2 == fl_eol_adas)
+	{
+		Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_LaneAssit_Status(&fl_lane_status_U8);
+		Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_LaneAssit_LeftVisualization(&fl_left_lane_U8);
+		Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_LaneAssit_RightVisualization(&fl_right_lane_U8);
+		//Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_LaneAssit_HandsonReq(&fl_IPM_LaneAssit_HandsonReq_U8);
+
 		Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_LaneAssitType(&fl_IPM_LaneAssitType_U8);
 	}
-	#if 1
+	else
+	{
+	}
+	
 	if (TRUE == fl_vehicle_cfg_tsr_flg)
 	{
 		Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_SLASpdlimit(&fl_IPM_SLASpdlimit_U8);
 	//	Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_SLASpdlimitUnits(&fl_IPM_SLASpdlimitUnits_U8);
 		Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_SLAState(&fl_IPM_SLAState_U8);
 	}
-	#endif
+	
 	if(fl_CAN_nvr_status_U8 == RTE_E_NEVER_RECEIVED || fl_CAN_msg_status_U8 == RTE_E_TIMEOUT)
 	{
 		f_HmiAdas_Init();

@@ -42,7 +42,11 @@ CMPLIB_INSTANCE(SCRChimeMdl)
 * Definition of constant shall be followed by a comment that explains the    *
 * purpose of the constant.                                                   *
 ******************************************************************************/
-static uint8	l_IGN_statePre_U8 = eIGN_OFF;
+static uint8 l_IGN_statePre_U8 = eIGN_OFF;
+static uint8 fl_Status_2_U8 = TRUE;
+static uint8 fl_Status_3_U8 = TRUE;
+static uint8 fl_Status_4_U8 = TRUE;
+
 
 /*****************************************************************************
 *                                 Manifest Constants                         *
@@ -84,7 +88,10 @@ static uint8	l_IGN_statePre_U8 = eIGN_OFF;
 * purpose, critical section, unit, resolution, Valid Range and ValidityCheck *
 ******************************************************************************/
 static boolean  l_SCRChime_State_U8_2HZ_1 = FALSE;
-static UINT8    l_UreaWarn_Last_State_U8 = FALSE;
+
+static UINT8 l_UreaWarn_Last_State_U8 = 0;
+static UINT8 l_DieslPrtcWarn_D_Rq_Last_State_U8 = 0;
+
 static boolean  l_SCRProveOut_B = TRUE;
 static uint8    l_ProveoutCounter_U8 = 0;
 
@@ -108,7 +115,8 @@ static void f_SCRChime_initial(void);
 static void f_SCRChime_Process(void);
 // static uint8 f_SCRChime_input_verity(void);
 static void SCR_PowerOn_Self_Test_Action(void);
-
+static void f_DPFChime_Process(void);
+static void f_DPFChime_initial(void);
 //---------------------------------------------------------------------------------------------------------------------
 /// @brief	Transitional initialization state
 ///
@@ -203,7 +211,12 @@ static Std_ReturnType CmpActive( void )
 						if((boolean)FALSE == l_SCRProveOut_B)
 						{
 							f_SCRChime_Process();
+							f_DPFChime_Process();
 						}
+					}
+					else
+					{
+						f_DPFChime_initial();
 					}
 				}
 			}
@@ -324,6 +337,111 @@ static void f_SCRChime_Process(void)
 	}
 	
 }
+
+static void f_DPFChime_Process(void)
+{
+	uint8 fl_CAN_msg_0x368_status_U8 = 0;
+	uint8 fl_CAN_nvr_0x368_status_U8 = 0;
+	uint8 fl_EMS_DieslPrtcWarn_D_Rq_signal_U8  = 0;
+	
+	Rte_Read_rpSR_CANMSG_GW_EMS_0x368_ComIn_NR(&fl_CAN_msg_0x368_status_U8);
+	Rte_Read_rpSR_CANMSG_GW_EMS_0x368_ComIn_Tout(&fl_CAN_nvr_0x368_status_U8);
+	Rte_Read_rpSR_CANMSG_GW_EMS_0x368_ComIn_EMS_DieslPrtcWarn_D_Rq(&fl_EMS_DieslPrtcWarn_D_Rq_signal_U8);
+	
+	if(((uint8)RTE_E_NEVER_RECEIVED == fl_CAN_msg_0x368_status_U8 ) ||\
+	   ((uint8)RTE_E_TIMEOUT        == fl_CAN_nvr_0x368_status_U8)) 
+	{
+		Rte_Call_rpCS_SCRChimeMdl_UpdateStatus_Operation( CHIME_REQID_DPF_WARN , FALSE);
+		f_DPFChime_initial();
+	}
+	else
+	{
+		if(TURN_IN_STATE_2 == fl_EMS_DieslPrtcWarn_D_Rq_signal_U8)
+		{
+			if((FALSE == fl_Status_3_U8) || (FALSE == fl_Status_4_U8))
+			{
+				Rte_Call_rpCS_SCRChimeMdl_UpdateStatus_Operation( CHIME_REQID_DPF_WARN , FALSE);
+				fl_Status_3_U8 = TRUE;
+				fl_Status_4_U8 = TRUE;
+			}
+			else
+			{
+				if(l_DieslPrtcWarn_D_Rq_Last_State_U8 != fl_EMS_DieslPrtcWarn_D_Rq_signal_U8)
+				{
+					Rte_Call_rpCS_SCRChimeMdl_UpdateStatus_Operation( CHIME_REQID_DPF_WARN , TRUE);
+				}
+
+				l_DieslPrtcWarn_D_Rq_Last_State_U8 = fl_EMS_DieslPrtcWarn_D_Rq_signal_U8;
+			}
+			
+			fl_Status_2_U8 = FALSE;
+		}
+		else if(TURN_IN_STATE_3 == fl_EMS_DieslPrtcWarn_D_Rq_signal_U8)
+		{
+			if((FALSE == fl_Status_2_U8) || (FALSE == fl_Status_4_U8))
+			{
+				Rte_Call_rpCS_SCRChimeMdl_UpdateStatus_Operation( CHIME_REQID_DPF_WARN , FALSE);
+				fl_Status_2_U8 = TRUE;
+				fl_Status_4_U8 = TRUE;
+			}
+			else
+			{
+				if(l_DieslPrtcWarn_D_Rq_Last_State_U8 != fl_EMS_DieslPrtcWarn_D_Rq_signal_U8)
+				{
+					Rte_Call_rpCS_SCRChimeMdl_UpdateStatus_Operation( CHIME_REQID_DPF_WARN , TRUE);
+				}
+
+				l_DieslPrtcWarn_D_Rq_Last_State_U8 = fl_EMS_DieslPrtcWarn_D_Rq_signal_U8;
+			}
+			
+			fl_Status_3_U8 = FALSE;
+		}
+		else if(TURN_IN_STATE_4 == fl_EMS_DieslPrtcWarn_D_Rq_signal_U8)
+		{
+			if((FALSE == fl_Status_2_U8) || (FALSE == fl_Status_3_U8))
+			{
+				Rte_Call_rpCS_SCRChimeMdl_UpdateStatus_Operation( CHIME_REQID_DPF_WARN , FALSE);
+				fl_Status_2_U8 = TRUE;
+				fl_Status_3_U8 = TRUE;
+			}
+			else
+			{
+				if(l_DieslPrtcWarn_D_Rq_Last_State_U8 != fl_EMS_DieslPrtcWarn_D_Rq_signal_U8)
+				{
+					Rte_Call_rpCS_SCRChimeMdl_UpdateStatus_Operation( CHIME_REQID_DPF_WARN , TRUE);
+				}
+
+				l_DieslPrtcWarn_D_Rq_Last_State_U8 = fl_EMS_DieslPrtcWarn_D_Rq_signal_U8;
+			}
+			
+			fl_Status_4_U8 = FALSE;
+		}
+		else
+		{
+			f_DPFChime_initial();
+		}
+		
+	}
+
+	uint8 fl_CHIME_REQID_DPF_WARN_U8 = FALSE;	
+	Rte_Write_ppSR_TIChimeMdl_Recv_ChimeId_DPFChime(CHIME_REQID_DPF_WARN);
+	Rte_Read_rpSR_TIChimeMdl_Send_ToutValue_DPFChime(&fl_CHIME_REQID_DPF_WARN_U8);
+	
+	if ((uint8)TRUE == fl_CHIME_REQID_DPF_WARN_U8)
+	{
+		Rte_Call_rpCS_SCRChimeMdl_UpdateStatus_Operation(CHIME_REQID_DPF_WARN, FALSE);
+	}
+}
+
+static void f_DPFChime_initial(void) 
+{
+	Rte_Call_rpCS_SCRChimeMdl_UpdateStatus_Operation( CHIME_REQID_DPF_WARN , FALSE);
+
+	fl_Status_2_U8 = TRUE;
+	fl_Status_3_U8 = TRUE;
+	fl_Status_4_U8 = TRUE;
+}
+
 
 #if 0
 	UINT8 	fl_CAN_msg_0x368_status_U8 = 0;

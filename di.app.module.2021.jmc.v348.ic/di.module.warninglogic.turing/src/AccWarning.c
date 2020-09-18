@@ -29,6 +29,8 @@ CMPLIB_INSTANCE(AccWarning)
 //=====================================================================================================================
 //  CONSTANTS & TYPES
 //=====================================================================================================================
+static uint8 fl_OverVoltageTout = 0;
+
 #define ACC_WRN_LANE_ASSIT_FAULT				(5u)
 #define ACC_WRN_LANE_ASSIT_CAMERA_BLOCKED		(6u)
 #define ACC_WRN_LANE_ASSIT_CAMERA_UNCALIBRATED	(7u)
@@ -146,12 +148,10 @@ typedef enum
 } BSD_BACK_REMIND;
 
 static ST_ACC_WRN_CTRL_INFO stAccWrnCtrlInfoTbl[EM_ACC_WRN_MAX] = {0};
-static uint8 fl_OverVoltageTout = 0;
 static uint8 HoldTimer1 = 0;
 static uint8 HoldTimer2 = 0;
 static Boolean KDLevel1 = FALSE;
 static Boolean KDLevel2 = FALSE;
-//static fl_IPM_HandsonReq = 0;
 
 //=====================================================================================================================
 //  FORWARD DECLARATIONS
@@ -160,7 +160,7 @@ static Boolean KDLevel2 = FALSE;
 //=====================================================================================================================
 //  PRIVATE
 //=====================================================================================================================
-/*static void f_AccWrnMdl_init(void);
+static void f_AccWrnMdl_init(void);
 static void f_AccWrnMdl_proc(void);
 
 static void f_AccWrnMdl_time_ctrl_init(void);
@@ -172,7 +172,7 @@ static void f_AccWrnMdl_0x275_init(void);
 static void f_AccWrnMdl_0x245_proc(void);
 static void f_AccWrnMdl_0x246_proc(void);
 static void f_AccWrnMdl_0x275_proc(void);
-*/
+
 //---------------------------------------------------------------------------------------------------------------------
 /// @brief  Transitional initialization state
 ///
@@ -182,7 +182,7 @@ static void f_AccWrnMdl_0x275_proc(void);
 //---------------------------------------------------------------------------------------------------------------------
 static Std_ReturnType CmpInit(void)
 {
-    //f_AccWrnMdl_init();
+    f_AccWrnMdl_init();
     return E_OK;
 }
 
@@ -195,7 +195,7 @@ static Std_ReturnType CmpInit(void)
 //---------------------------------------------------------------------------------------------------------------------
 static Std_ReturnType CmpDeInit(void)
 {
-    //f_AccWrnMdl_init();
+    f_AccWrnMdl_init();
     return E_OK;
 }
 
@@ -208,7 +208,7 @@ static Std_ReturnType CmpDeInit(void)
 //---------------------------------------------------------------------------------------------------------------------
 static Std_ReturnType CmpActivation(void)
 {
-    //f_AccWrnMdl_init();
+    f_AccWrnMdl_init();
     return E_OK;
 }
 
@@ -221,7 +221,7 @@ static Std_ReturnType CmpActivation(void)
 //---------------------------------------------------------------------------------------------------------------------
 static Std_ReturnType CmpDeActivation(void)
 {
-    //f_AccWrnMdl_init();
+    f_AccWrnMdl_init();
     return E_OK;
 }
 
@@ -247,7 +247,7 @@ Critical Section    : None
 ******************************************************************************/
 static Std_ReturnType CmpActive(void)
 {
-#if 0 
+#if 01 
     uint8 fl_ign_state_U8 = eIGN_OFF;
     uint8 fl_batt_state_U8 = eBatteryState_Normal;
 
@@ -303,7 +303,7 @@ static Std_ReturnType CmpDiagReturn(void)
 {
     return E_OK;
 }
-#if 0
+#if 01
 /****************************************************************************
 Function Name        : f_AccWrnMdl_init
 Description          : None
@@ -334,9 +334,9 @@ Parameters           : None
 ******************************************************************************/
 static void f_AccWrnMdl_proc(void)
 {
-    f_AccWrnMdl_0x245_proc();
-    f_AccWrnMdl_0x246_proc();
-    f_AccWrnMdl_0x275_proc();
+    f_AccWrnMdl_0x245_proc(); // this is function for 7-ldw and 32-ddd
+    f_AccWrnMdl_0x246_proc(); // this is function for 5-acc and 6-pebs+fcw
+    f_AccWrnMdl_0x275_proc(); // this is function for 8-blis
 }
 
 /****************************************************************************
@@ -363,11 +363,15 @@ Parameters           : None
 ******************************************************************************/
 static void f_AccWrnMdl_0x245_init(void)
 {
+	/* LDW */
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_LDW_FAIL_ID, UI_WARNING_STATUS_OFF);
-    Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_HANDON_ID, UI_WARNING_STATUS_OFF);
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_CAM_BLOCK_ID, UI_WARNING_STATUS_OFF);
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_CAM_NOT_CAL_ID, UI_WARNING_STATUS_OFF);
+    Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_HANDON_ID, UI_WARNING_STATUS_OFF);
+
+	/* DDD */
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_DDD_ID, UI_WARNING_STATUS_OFF);
+	
     //memset(&stAccWrnCtrlInfoTbl[0], 0, sizeof(stAccWrnCtrlInfoTbl[0]));
     //memset(&stAccWrnCtrlInfoTbl[1], 0, sizeof(stAccWrnCtrlInfoTbl[1]));
     //memset(&stAccWrnCtrlInfoTbl[2], 0, sizeof(stAccWrnCtrlInfoTbl[2]));
@@ -394,7 +398,7 @@ static void f_AccWrnMdl_0x245_proc(void)
     uint8   fl_IPM_LaneAssit_HandsonReq_U8 = 0;
     uint8   fl_IPM_DDD_Warning_Level_U8    = 0;
     uint8   fl_IPM_DDD_IndexStatus_U8      = 0;
-
+	
     //EM_ACC_WRN_CTRL_IDX  WrnIndex = EM_ACC_WRN_HANDS_ON_REQ;
     //ST_ACC_WRN_CTRL_INFO WrnTempData[4];
 
@@ -406,9 +410,12 @@ static void f_AccWrnMdl_0x245_proc(void)
     //fl_vehicle_cfg_ldw_flg = (boolean)TRUE;
     //if ((boolean)FALSE != fl_vehicle_cfg_ldw_flg)
     {
+    	/* LDW*/
         Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_LaneAssit_Status(&fl_lane_status_U8);
         Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_LaneAssit_HandsonReq(&fl_IPM_LaneAssit_HandsonReq_U8);
-        Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_DDD_IndexStatus(&fl_IPM_DDD_IndexStatus_U8);
+
+		/* DDD*/
+		Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_DDD_IndexStatus(&fl_IPM_DDD_IndexStatus_U8);
         Rte_Read_rpSR_CANMSG_GW_IPM_0x245_ComIn_IPM_DDD_WarningLevel(&fl_IPM_DDD_Warning_Level_U8);
 
         if (((uint8)RTE_E_NEVER_RECEIVED == fl_CAN_nvr_status_U8) || ((uint8)RTE_E_TIMEOUT == fl_CAN_msg_status_U8))
@@ -456,7 +463,7 @@ static void f_AccWrnMdl_0x245_proc(void)
                 }
             }*/
 
-            // LDW
+            // LDW IPM_LaneAssit_Status  OFF Status
             if ((uint8)ACC_WRN_LANE_ASSIT_FAULT != fl_lane_status_U8 /*&&
                     TRUE == stAccWrnCtrlInfoTbl[EM_ACC_WRN_LDW_FAILURE].u8_timeOutFlg*/)
             {
@@ -478,10 +485,9 @@ static void f_AccWrnMdl_0x245_proc(void)
                 //stAccWrnCtrlInfoTbl[EM_ACC_WRN_CAM_NOT_CAL_ID].u8_timeOutFlg = FALSE;
             }
 
-            // HAND ON
+            // HAND ON IPM_LaneAssit_HandsonReq == 0x1
             if ((boolean)FALSE != fl_IPM_LaneAssit_HandsonReq_U8)
             {
-                //fl_IPM_HandsonReq = TRUE;
                 Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_HANDON_ID, UI_WARNING_STATUS_ON);
                 //stAccWrnCtrlInfoTbl[EM_ACC_WRN_HANDS_ON_REQ].u8_count = ACC_WRN_TIME_3SEC;
             }
@@ -489,13 +495,9 @@ static void f_AccWrnMdl_0x245_proc(void)
             if ((boolean)FALSE == fl_IPM_LaneAssit_HandsonReq_U8 /*&& TRUE ==
                 stAccWrnCtrlInfoTbl[EM_ACC_WRN_HANDS_ON_REQ].u8_timeOutFlg*/)
             {
-                //fl_IPM_HandsonReq = FALSE;
                 Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_HANDON_ID, UI_WARNING_STATUS_OFF);
                 //stAccWrnCtrlInfoTbl[EM_ACC_WRN_HANDS_ON_REQ].u8_timeOutFlg = FALSE;
             }
-
-            //Rte_Write_pp_AccWarning_GdtCtrl_Value_IPM_HandsonReq(fl_IPM_HandsonReq);
-
 
             //DDD
             if (((uint8)DDD_WRN_FIRST_ISSUED == fl_IPM_DDD_Warning_Level_U8) && \
@@ -525,10 +527,11 @@ static void f_AccWrnMdl_0x246_init(void)
     //HoldTimer2 = 0;
     //KDLevel1 = FALSE;
     //KDLevel2 = FALSE;
-    Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_AUTOMATIC_EMERGENCY_BRAKING_ID, UI_WARNING_STATUS_OFF);
-    Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_KEEP_DIS_LEVEL1_ID, UI_WARNING_STATUS_OFF);
-    Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_KEEP_DIS_LEVEL2_ID, UI_WARNING_STATUS_OFF);
+
+	//ACC
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_TAKEOVER_ID, UI_WARNING_STATUS_OFF);
+
+	/* this is Textinfo = 1-15 */
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_ON_ID, UI_WARNING_STATUS_OFF);
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_OFF_ID, UI_WARNING_STATUS_OFF);
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_CANCEL_ID, UI_WARNING_STATUS_OFF);
@@ -544,6 +547,13 @@ static void f_AccWrnMdl_0x246_init(void)
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_OVERRIDE_ID, UI_WARNING_STATUS_OFF);
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ESP_ERROR_ID, UI_WARNING_STATUS_OFF);
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_MRR_UNCALIBRATED_ID, UI_WARNING_STATUS_OFF);
+
+	//FCW or PCW or PEBS
+    Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_KEEP_DIS_LEVEL1_ID, UI_WARNING_STATUS_OFF);
+    Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_KEEP_DIS_LEVEL2_ID, UI_WARNING_STATUS_OFF);
+
+	//AEB
+    //Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_AUTOMATIC_EMERGENCY_BRAKING_ID, UI_WARNING_STATUS_OFF);
 }
 
 /****************************************************************************
@@ -569,6 +579,7 @@ static void f_AccWrnMdl_0x246_proc(void)
     uint8           fl_FCW_preWarning_U8 = 0;
     uint8           fl_MRR_ACCHMI_Mode_U8 = 0;
     uint8           fl_ACC_Textinfo = 0;
+
     EM_ACC_WRN_CTRL_IDX  AccIndex = EM_ACC_WRN_AEB;
     ST_ACC_WRN_CTRL_INFO AccTempData[5];
 
@@ -584,25 +595,25 @@ static void f_AccWrnMdl_0x246_proc(void)
 
     /*ACC*/
     //    if (TRUE == fl_vehicle_cfg_acc_flg)
-    {
+    //{
         Rte_Read_rpSR_CANMSG_GW_MRR_Chassis_0x246_ComIn_MRR_TakeOverReq(&fl_MRR_TakeOverReq_U8);
         Rte_Read_rpSR_CANMSG_GW_MRR_Chassis_0x246_ComIn_ACCHMI_Mode(&fl_MRR_ACCHMI_Mode_U8);
-    }
+		Rte_Read_rpSR_CANMSG_GW_MRR_Chassis_0x246_ComIn_Textinfo(&fl_ACC_Textinfo);
+    //}
 
     /*FCW + PCW*/
     //    if (TRUE == fl_vehicle_cfg_fcw_flg)
-    {
+    //{
         Rte_Read_rpSR_CANMSG_GW_MRR_Chassis_0x246_ComIn_FCW_preWarning(&fl_FCW_preWarning_U8);
         Rte_Read_rpSR_CANMSG_GW_MRR_Chassis_0x246_ComIn_MRR_PCW_preWarning(&fl_PCW_preWarning_U8);
-    }
+    //}
 
     /*AEB*/
     //    if (TRUE == fl_vehicle_cfg_aeb_flg)
-    {
-        Rte_Read_rpSR_CANMSG_GW_MRR_Chassis_0x246_ComIn_MRR_AEB_STATE(&fl_AEB_STATE);
-    }
+    //{
+        //Rte_Read_rpSR_CANMSG_GW_MRR_Chassis_0x246_ComIn_MRR_AEB_STATE(&fl_AEB_STATE);
+    //}
 
-    Rte_Read_rpSR_CANMSG_GW_MRR_Chassis_0x246_ComIn_Textinfo(&fl_ACC_Textinfo);
 
     if (((uint8)RTE_E_NEVER_RECEIVED == fl_CAN_nvr_status_U8) || ((uint8)RTE_E_TIMEOUT == fl_CAN_msg_status_U8))
     {
@@ -624,7 +635,7 @@ static void f_AccWrnMdl_0x246_proc(void)
             //stAccWrnCtrlInfoTbl[EM_ACC_WRN_HANDS_ON_REQ].u8_timeOutFlg = FALSE;
         }
 
-        /* FCW + PCW*/
+        /* FCW or PCW or PEBS*/
         if ((uint8)ACC_WRN_PCW_PRE_WARNING == fl_PCW_preWarning_U8)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_KEEP_DIS_LEVEL2_ID, UI_WARNING_STATUS_ON);
@@ -634,7 +645,7 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_KEEP_DIS_LEVEL2_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
         if ((uint8)ACC_WRN_FCW_PRE_WARNING == fl_FCW_preWarning_U8)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_KEEP_DIS_LEVEL1_ID, UI_WARNING_STATUS_ON);
@@ -643,7 +654,9 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_KEEP_DIS_LEVEL1_ID, UI_WARNING_STATUS_OFF);
         }
+		
 #if 0
+
         //KDLevel2 (keep safe distance warning in level 2)
         // priority Level1 < Level2 ,so leve2 process logic need stay before level1
         if (TRUE == KDLevel2)
@@ -719,6 +732,7 @@ static void f_AccWrnMdl_0x246_proc(void)
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_TAKEOVER_ID, UI_WARNING_STATUS_OFF);
         }
 
+		/* fl_ACC_Textinfo = 1*/
         if ((uint8)ACC_ON == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_ON_ID, UI_WARNING_STATUS_ON);
@@ -727,7 +741,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_ON_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 2*/
         if ((uint8)ACC_OFF == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_OFF_ID, UI_WARNING_STATUS_ON);
@@ -736,7 +751,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_OFF_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 3*/
         if ((uint8)ACC_CANCEL == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_CANCEL_ID, UI_WARNING_STATUS_ON);
@@ -745,7 +761,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_CANCEL_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 4*/
         if ((uint8)ACC_ACTIVE == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_ACTIVE_ID, UI_WARNING_STATUS_ON);
@@ -755,6 +772,7 @@ static void f_AccWrnMdl_0x246_proc(void)
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_ACTIVE_ID, UI_WARNING_STATUS_OFF);
         }
 
+		/* fl_ACC_Textinfo = 5*/
         if ((uint8)EPB_ACTIVATE == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_EPB_ACTIVATE_ID, UI_WARNING_STATUS_ON);
@@ -763,7 +781,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_EPB_ACTIVATE_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 6*/
         if ((uint8)NO_FORWARD_GEAR == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_NO_FORWARD_GEAR_ID, UI_WARNING_STATUS_ON);
@@ -772,7 +791,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_NO_FORWARD_GEAR_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 7*/
         if ((uint8)SEATBELT_UNBUCKLED == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_SEATBELT_UNBUCKLED_ID, UI_WARNING_STATUS_ON);
@@ -781,7 +801,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_SEATBELT_UNBUCKLED_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 8*/
         if ((uint8)ESP_OFF == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ESP_OFF_ID, UI_WARNING_STATUS_ON);
@@ -790,7 +811,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ESP_OFF_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 9*/
         if ((uint8)SPEED_OVER == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_SPEED_OVER_ID, UI_WARNING_STATUS_ON);
@@ -799,7 +821,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_SPEED_OVER_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 10*/
         if ((uint8)DOOR_OPEN == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_DOOR_OPEN_ID, UI_WARNING_STATUS_ON);
@@ -808,7 +831,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_DOOR_OPEN_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 11*/
         if ((uint8)OVER_RIDE == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_OVERRIDE_ID, UI_WARNING_STATUS_ON);
@@ -817,7 +841,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_OVERRIDE_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 12*/
         if ((uint8)MRR_BLINDNESS == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_MRR_BLINDNESS_ID, UI_WARNING_STATUS_ON);
@@ -826,7 +851,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_MRR_BLINDNESS_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 13*/
         if ((uint8)ACC_PEBS_ERROR == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_PEBS_ERROR_ID, UI_WARNING_STATUS_ON);
@@ -835,7 +861,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ACC_PEBS_ERROR_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 14*/
         if ((uint8)ESP_ERROR == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ESP_ERROR_ID, UI_WARNING_STATUS_ON);
@@ -844,7 +871,8 @@ static void f_AccWrnMdl_0x246_proc(void)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_ESP_ERROR_ID, UI_WARNING_STATUS_OFF);
         }
-
+		
+		/* fl_ACC_Textinfo = 15*/
         if ((uint8)MRR_UNCALIBRATED == fl_ACC_Textinfo)
         {
             Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_MRR_UNCALIBRATED_ID, UI_WARNING_STATUS_ON);
@@ -994,6 +1022,7 @@ static void f_AccWrnMdl_0x275_init(void)
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_BSD_BLOCK_ID, UI_WARNING_STATUS_OFF);
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_BSD_NOT_CAL_ID, UI_WARNING_STATUS_OFF);
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_BSD_OUT_ERR_ID, UI_WARNING_STATUS_OFF);
+	
     Rte_Call_rpCS_WarningCtrl_Set_Operation(WARN_ADAS_BACK_TO_REMIND_ID, UI_WARNING_STATUS_OFF);
 }
 
@@ -1020,11 +1049,11 @@ static void f_AccWrnMdl_0x275_proc(void)
     //Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_BSD, &fl_vehicle_cfg_bsd_flg);
 
     //if (TRUE == fl_vehicle_cfg_bsd_flg)
-    {
+    //{
         Rte_Read_rpSR_CANMSG_GW_IPM_0x275_ComIn_SOD_BLIS_display(&fl_SOD_BLIS_display);
         Rte_Read_rpSR_CANMSG_GW_IPM_0x275_ComIn_SOD_CTA_warningReqLeft(&fl_SOD_CTA_wrnReqLeft);
         Rte_Read_rpSR_CANMSG_GW_IPM_0x275_ComIn_SOD_CTA_warningReqRight(&fl_SOD_CTA_wrnReqRight);
-    }
+    //}
 
     if (((uint8)RTE_E_NEVER_RECEIVED == fl_CAN_nvr_status_U8) || ((uint8)RTE_E_TIMEOUT == fl_CAN_msg_status_U8))
     {

@@ -64,7 +64,6 @@ static CAN_UINT8 CanSm_CurrState[CANSM_NUMBER_OF_CHANNELS];
 static CAN_UINT8 CanSm_CommState[CANSM_NUMBER_OF_CHANNELS];
 
 static CAN_UINT8 CanSm_BusoffFlag[CANSM_NUMBER_OF_CHANNELS];		//Bus Off Flag
-
 /*
 #if ( CANSM_DCM_INDICATION == STD_ON )
 static CAN_UINT8 CanSm_DcmRequestActive[CANSM_NUMBER_OF_CHANNELS];
@@ -90,8 +89,6 @@ static void CanSM_TransitionNoComReached( NetworkHandleType * CanSM_NetworkHandl
 
 static void CanSM_NetworkStatemachine( uint8 CanSM_CanNetworkIdx );
 
-static void CanSM_Busoff_dem_process( uint8 CanSM_CanNetworkIdx );
-
 static CAN_UINT8 CanSM_GetControllerMode( uint8 CanSm_ControllerId, CanDisp_ControllerModeType * CtrlMode );
 
 static void CanSM_Bus_Off_DtcProcess( uint8 CanSm_ControllerId );
@@ -100,22 +97,21 @@ extern void VNM_CB_BusOff(void);
 
 //extern boolean CDcmExt_GetEnterConditionStatus(void);
 extern boolean dem_IGN_ON_5s;
-extern boolean dem_batt_in_mormal_5s;
+extern boolean dem_batt_state;
 extern boolean dem_all_block_read_finish_bool;
-
-boolean dem_Can_Busoff_bool;
+boolean dem_Can_Busoff_bool;             //Lost Communication DTC Record Must BUS Active
 static boolean Can_Busoff_Change_Flag=FALSE;
 static uint8 l_dem_busoff_count=0;
 extern boolean NM_BusOffState; 
 
 
 #define SM_UNUSED_VAR(X)  do { if(0 == (X)){} } while(0)
-#define COMVNIM_DTC_MONITOR_ISENABLE       ((dem_IGN_ON_5s == TRUE) && (dem_batt_in_mormal_5s == TRUE) && (dem_all_block_read_finish_bool == TRUE))      //(CDcmExt_GetEnterConditionStatus == TRUE)          
+#define COMVNIM_DTC_MONITOR_ISENABLE       ((dem_IGN_ON_5s == TRUE) && (dem_batt_state == TRUE) && (dem_all_block_read_finish_bool == TRUE))      //(CDcmExt_GetEnterConditionStatus == TRUE)          
 
-#define CAN_BUS_OFF_DTC      1
+#define CAN_BUS_OFF_DTC      13
 #define TEST_FAILED          3
 #define TEST_NORMAL          2
-  
+#define CAN_CHANEL_0     	 0  
 
 /* ===========================================================================
 
@@ -162,7 +158,7 @@ void CanSm_Init( void )
 		CanSm_BusoffRecoveryCntr[ChannelIndex] = 0;
 
 		CanSm_BusoffFlag[ChannelIndex] = FALSE;
-
+		
 		CanSm_BusoffDtcCntr[ChannelIndex] = 0;
 	}
 
@@ -968,6 +964,7 @@ void CanSm_MainFunction(NetworkHandleType Channel)
                 (void)CanIf_SetControllerMode( Channel, CANDISP_CS_STARTED );
 			}
 		}
+		
 		if( CanSm_BusoffRecoveryCntr[Channel] != 0 )
 		{
             CanSm_BusoffRecoveryCntr[Channel]--;
@@ -981,10 +978,13 @@ void CanSm_MainFunction(NetworkHandleType Channel)
 				CanSm_BusOffMode[Channel] = CANSM_BUSOFF_FAST_RECOVERY_MODE;
 				
 				CanSm_BusoffDtcCntr[Channel] = 0;
+
 			}
       	}
-		
-		CanSM_Bus_Off_DtcProcess( Channel );
+
+      	
+      	if(Channel == 0)
+			CanSM_Bus_Off_DtcProcess(Channel);
 	}
 }
 
@@ -1201,8 +1201,9 @@ void CanSM_ControllerBusOff( uint8 CanSm_ControllerId )
 			CanSm_BusoffDtcCntr[CanSm_ControllerId]++;
 		}
 		else
-		{}
-		
+		{
+		}
+
 		VNM_CB_BusOff();
 	}
 }
@@ -1211,19 +1212,39 @@ static void CanSM_Bus_Off_DtcProcess( uint8 CanSm_ControllerId )
 {
 	if(COMVNIM_DTC_MONITOR_ISENABLE)
 	{
-		if ( CanSm_BusOffModeCntr[CanSm_ControllerId] > 2 )  /*JMC 500K CAN specification:if bus off detected 3 times, store DTC*/
+		if(CanSm_BusoffDtcCntr[CanSm_ControllerId] > 0)
 		{
-			Dem_ReportErrorStatus(CAN_BUS_OFF_DTC,TEST_FAILED);
+			dem_Can_Busoff_bool = TRUE;
+			Can_Busoff_Change_Flag = TRUE;
+			
+			if(CanSm_BusoffDtcCntr[CanSm_ControllerId] > 2)   /*JMC 500K CAN specification:if bus off detected 3 times, store DTC*/
+			{
+				Dem_SetEventStatus(CAN_BUS_OFF_DTC,TEST_FAILED);
+			}
 		}
 		else 
 		{
-			Dem_ReportErrorStatus(CAN_BUS_OFF_DTC,TEST_NORMAL);
+			Dem_SetEventStatus(CAN_BUS_OFF_DTC,TEST_NORMAL);
+
+			if(Can_Busoff_Change_Flag == TRUE)
+			{
+				l_dem_busoff_count++;
+				if(l_dem_busoff_count == 150)
+				{
+					dem_Can_Busoff_bool = FALSE;
+					l_dem_busoff_count = 0;
+					Can_Busoff_Change_Flag = FALSE;
+				}
+			}
 		}
 	}
 	else 
 	{
-		Dem_ReportErrorStatus(CAN_BUS_OFF_DTC,TEST_NORMAL);
+		Dem_SetEventStatus(CAN_BUS_OFF_DTC,TEST_NORMAL);
+		
+		dem_Can_Busoff_bool = FALSE;
 	}
+
 }
 
 /***********************************************************************************************************************
@@ -1597,23 +1618,6 @@ static void CanSM_NetworkStatemachine( uint8 CanSM_CanNetworkIdx )
 
 }
 
-static void CanSM_Busoff_dem_process( uint8 CanSM_CanNetworkIdx )
-{
-	boolean fl_Busoff_status;
-
-	fl_Busoff_status = FALSE;
-
-	if(CanSm_CurrState[CanSM_CanNetworkIdx] == CANSM_BO_TX_OFFLINE)
-	{
-		fl_Busoff_status = TRUE;
-	}
-	else
-	{
-
-	}
-
-	dem_Can_Busoff_bool = fl_Busoff_status;
-}
 
 /**********************************************************************************************************************
  * NM Abstraction main function

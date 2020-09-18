@@ -51,8 +51,8 @@
 */
 //#define cPROD_SPEC_COUNTS_PER_KM gl_odo_prod_spec_count_per_km
 //#define cPROD_SPEC_COUNTS_PER_KM 43779 /* xgu9 Set it to 42599,according to CX756 requirements */
-#define   Vehicle_Tire_245		   46118
-#define   Vehicle_Tire_235		   43529
+#define   Vehicle_Tire_245		   44965
+#define   Vehicle_Tire_235		   42440
 
 /*
  define ENDIAN as required

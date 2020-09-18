@@ -24,7 +24,7 @@
 #include "FuelLevelMdl_cfg.h"
 #include "fuel03.h"
 #include "Mcu.h"
-
+#include "AfcMdl_cfg.h"
 
 /// @brief  Instance of life-cycle state-machine
 CMPLIB_INSTANCE(DTEMdl);
@@ -43,11 +43,12 @@ CMPLIB_INSTANCE(DTEMdl);
 #define DTE_INVALID_VALUE               (uint32)(0xFFFF)
 #define DTE_MAX_FUEL_REMAINING          (uint32)(8060)
 #define DTE_RAFC_MAX_VALUE              (uint32)(3000)
-#define DTE_RAFC_MIN_VALUE              (uint32)(650)
+#define DTE_RAFC_MIN_VALUE              (uint32)(0)
 #define DTE_CALC_CONST_VALUE        	(uint32)(131)
-#define DTE_CALC_FACTOR					(uint8)2
 #define DTE_CALC_MOVE_VALUE         	(uint16)16
-#define DTE_MAX_VALUE               	(uint32)800    
+#define DTE_MAX_VALUE               	(uint16)1999
+#define DTE_MIN_VALUE         		 	(uint16)50    
+#define DTE_MID_VALUE          			(uint16)60    
 #define DTE_ZREO                     	(uint8)0
 #define DTE_FUEL_E_VALUE             	(uint16)800
 #define DTE_ENG_SPD_RESOLUTION          (uint8)2
@@ -65,9 +66,11 @@ CMPLIB_INSTANCE(DTEMdl);
 #define DTE_RAFC_DIESEL					(uint16)720
 #define ABS_VehSpdLgt_INVALID			(uint16)0xFFF 
 #define EMS_EngSpeed_INVALID			(uint16)0x7FFF 
-#define DTE_TimeOut_90S					(uint16)90000
+#define DTE_TimeOut_90S					(uint32)90000
 #define DTE_TimeOut_120S				(uint32)120000
-
+#define DTE_CALC_FACTOR					(uint16)2
+#define DTE_DEFAULT_AFC					(uint16)810
+#define DTE_TimeOut_300S				(uint32)(300000)		//300s
 
 /*****************************************************************************
 *                                 Type Decleration                           *
@@ -78,27 +81,31 @@ CMPLIB_INSTANCE(DTEMdl);
 static void fdte_common_init(void);
 static void fdte_ignOn_service(void);
 static void fdte_calc_dte_value(void);
-static void fdte_set_display_value(void);
 static uint32 fdte_calc_10000_RAFC_value(uint64 fuel_consumption, uint64 distance_moved);
 static uint64 fdte_calc_Fuel_in_ml(uint64 history_fuel_consum_total, uint32 lastFuel, uint32 newFuel);
-static boolean fdte_vehicle_idle_state(void);
+static boolean fdte_vehicle_abnormal_state(void);
 static boolean fdte_fuelLevel_state(void);
-static void fdte_RAFC_init(void);
 static void fdte_check_first_Battary(void);
 static void fdte_ignoffon_odo(void);
-static void fdte_process_idletask(void);
-static void fdte_process_fuelComsumption(void);
-static boolean fdte_process_ABSWhlMil(void);
+static void fdte_check_idle_status(void);
+static void fdte_calc_fuelComsumption(void);
+static boolean fdte_get_ABSWhlMil_state(void);
 static void fdte_process_DteTask(void);
 static void fdte_check_refuel_state(void);
 static void fdte_check_EMS_EngSpeed_invalid(void);
 static void fdte_check_ABS_VehSpdLgt_invalid(void);
 static void fdte_display_value_processing(void);
-static void fdte_display_negtive_value_processing(void);
-static void fdte_display_postive_value_processing(void);
+static void fdte_display_negtive_value_processing(uint16	fl_vehicle_speed);
+static void fdte_display_postive_value_processing(uint16	fl_vehicle_speed);
 static void fdte_display_negtive_value_compare(uint32 fl_dte_delta_negtive);
 static void fdte_display_postive_value_compare(uint32 fl_dte_delta_postive);
-static void fdte_refuel_state_processing(void);
+static void fdte_get_fast_dte(void);
+static void fdte_lowdte_processing(void);
+static void fdte_canOut_display_processing(void);
+static void fdte_get_default_AFC(void);
+static uint16 fdte_get_vehicle_speed(void);
+static void fdte_process_DteValue(void);
+static void fdte_abnormal_processing(void);
 
 /*****************************************************************************
 * 							   Globally  accessed Variable Declarations    *
@@ -107,12 +114,10 @@ static void fdte_refuel_state_processing(void);
 * about the variable. 													   *
 * purpose, critical section, unit, and resolution 						   *
 ******************************************************************************/
-static uint32 l_dte_odo_value_U32;
 /*ODO(k-1)*/
-static uint32 l_pre_odo_value_U32;/*10s calculate*/
+static uint32 l_dte_pre_odo_value_U32;/*10s calculate*/
 /*ODO*/
-static uint32 l_pre_odo_300m_value_U32;/*300m update*/
-static uint32 l_current_odo_U32;
+static uint32 l_dte_current_odo_U32;
 /*fuel consumption*/
 static boolean l_fuelconsumption_abnormal;
 /*indicator of waitting fuel and odo from IGN OFF to IGN ON*/
@@ -122,68 +127,60 @@ static uint32   l_dte_fuel_consum_total;
 static uint32 	l_pre_Fuel_consum_value_U32;
 static uint16 	l_dte_calc_count_U16;
 /*count number used to count 1s timer in idle speed status*/
-static uint8 l_fuel_calc_idle_count;
+//static uint8 l_fuel_calc_idle_count;
 static boolean l_dte_idle_state;
 /*refuel state*/
-static boolean l_refuel_state;
-static boolean l_refuel_pre_state;
-static boolean Refuel_State;
-static uint8   l_refuel_count;
+//static boolean l_refuel_state;
+//static boolean l_refuel_pre_state;
+//static boolean Refuel_State;
 static boolean l_EMS_EngSpeed_invalid;
 static boolean l_ABS_VehSpdLgt_invalid;
 static uint8   l_EngSpeed_invalid_count;
 static uint8   l_VehSpdLgt_invalid_count;
 /*abnormal state*/
 static boolean l_dte_abnormal_state;
-static boolean l_dte_pre_abnormal_state;
+//static boolean l_dte_pre_abnormal_state;
 /*dte state*/
 static boolean l_dte_start_process;
 static boolean l_dte_negtive_state1;
 static boolean l_dte_negtive_state2;
 static boolean l_dte_negtive_state3;
 static boolean l_dte_negtive_state4;
-static boolean l_dte_negtive_state5;
 static boolean l_dte_postive_state1;
 static boolean l_dte_postive_state2;
 static boolean l_dte_postive_state3;
 static boolean l_dte_postive_state4;
-static boolean l_dte_postive_state5;
-
-
+static uint8   l_dte_pre_ign_status = eIGN_OFF;
 
 /*Buck RAM*/
 #pragma ghs section bss=".buram"
 /*DTE*/
 static uint32 l_dte_display_value_U32;
 static uint32 l_dte_calculate_value_U32;
-static uint32 l_dte_pre_display_value_U32;
+static uint32 l_dte_next_display_value_U32;
 /*RAFC(k-1)*/
 static uint32 l_pre_dte_RAFC_value_U32;
 /*RAFC(k)*/
 static uint32 l_cur_dte_RAFC_value_U32;
-static uint32 l_dte_RAFC;
 /*F(k-1)*/
 static uint32 l_pre_dte_F_value_U32;
 static boolean l_dte_battary_reset;
 static boolean l_dte_battary_reset_flag;
-static uint16  l_dte_num;
-/*previus IGN status*/
-static uint8   l_dte_pre_ign_status;
+static boolean  DTE_First_Battary;
+static uint32 l_dte_odo_value_U32;
+static boolean l_Lowdte_Status = FALSE;
 #pragma ghs section bss=default
 
 
-typedef enum eODO_UINT
-{
-   ODO_1000M = 0,
-   ODO_100M  = 1,
-   ODO_10M	 = 2,
-   ODO_1M	 = 3
-} tODO_UINT;
+#define TEST_DTE
 
+uint16  test_dte_display_value_U32;
+uint16  test_dte_calculate_value_U32;
+uint16  test_dte_afc;
+uint32  test_dte_fuel;
+uint32  test_dte_odo;
 
-extern uint32 OdoLogicalMdl_get_main(tODO_UINT uint);
-
-
+static void dte_test(void);
 
 /*---------------------------------------------------------------------------------------------------------------------
 ** @brief  Transitional initialization state
@@ -267,13 +264,12 @@ static Std_ReturnType CmpActive( void )
 		l_dte_pre_ign_status = fl_IGN_state;
 	}
 
-	Rte_Write_ppSR_DteMdl_DteVal_DteVal(l_dte_display_value_U32);
-	
-	if(l_dte_display_value_U32 == DTE_INVALID_VALUE)
-		Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_DTE(0xfff);
-	else
-		Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_DTE(l_dte_display_value_U32);
-	
+#ifdef TEST_DTE
+	dte_test();
+#endif
+
+	fdte_canOut_display_processing();
+
 	return E_OK;
 }
 
@@ -318,13 +314,10 @@ static void fdte_common_init(void)
 {
 	l_dte_calc_count_U16 = 0;
 	l_dte_wait_fuelsig_from_ign_on = TRUE;
-	l_dte_pre_ign_status = eIGN_OFF;
 	l_dte_fuel_consum_total = 0;
-	l_fuel_calc_idle_count = 0;
-	l_dte_calculate_value_U32 = 0;
-	l_dte_pre_display_value_U32 = 0;
-	l_refuel_state =FALSE;  
-	l_refuel_count = 0;
+	l_dte_pre_ign_status = eIGN_OFF;
+	//l_fuel_calc_idle_count = 0;
+	//l_refuel_state =FALSE;  
 }
 
 
@@ -344,15 +337,10 @@ Critical Section    : None
 static void fdte_ignOn_service(void)
 {
 	fdte_check_first_Battary();
-
-	//fdte_check_refuel_state();
-	fdte_refuel_state_processing();
-
-	fdte_process_idletask();
-
-	fdte_process_fuelComsumption();
-
+	
 	fdte_process_DteTask();
+
+	fdte_lowdte_processing();
 }
 
 /****************************************************************************
@@ -370,23 +358,20 @@ Critical Section    : None
 ******************************************************************************/
 static void fdte_check_first_Battary(void)
 {
-	l_dte_num++;
-	if(l_dte_num == 1)			//first battary
+	if(DTE_First_Battary == FALSE)			//first battary
 	{
-		//fdte_RAFC_init();
-		l_pre_dte_RAFC_value_U32 = DTE_RAFC_GAS;
-		l_pre_dte_F_value_U32 = DTE_RAFC_GAS * 100;
+		DTE_First_Battary = TRUE;
 		l_dte_display_value_U32 = DTE_INVALID_VALUE;
 		l_dte_battary_reset = TRUE;		
+		l_dte_battary_reset_flag = TRUE;
+		l_dte_odo_value_U32 = OdoLogicalMdl_get_main(ODO_1M);	
+		fdte_get_default_AFC();
 	}
-
-	if(l_dte_num == 100)
-		l_dte_num = 10;
 }
 
 
 /****************************************************************************
-Function Name       : fdte_process_idletask
+Function Name       : fdte_check_idle_status
 
 Description         : the Function is used to process idle task service
 
@@ -398,31 +383,62 @@ Return Value        : None
 
 Critical Section    : None
 ******************************************************************************/
-static void fdte_process_idletask(void)
+static void fdte_check_idle_status(void)
 {
-	boolean fl_vechile_state=0;
+	uint32	fl_ABS_VehSpdLgt_value=0;  
+	uint32  fl_EMS_EngSpeed_value = 0;
+	boolean  fl_timer_resDef_started_bool = FALSE;
+	boolean  fl_timer_resDef_isElapsed_bool = FALSE;
 
-	fl_vechile_state = fdte_vehicle_idle_state();	//for idle speed processing,if vehicle not moved for 1s, stop RAFC calcluate
-	if(fl_vechile_state != FALSE)					
+	Rte_Read_rpSR_TISpdMdl_value(&fl_ABS_VehSpdLgt_value);
+	Rte_Read_rpSR_TITachMdl_value(&fl_EMS_EngSpeed_value);
+
+	if(fl_EMS_EngSpeed_value < DTE_ENGSPEED_300RPM)		//Defect:tach=0,stop refresh afc
 	{
-		l_fuel_calc_idle_count++;
-		if(l_fuel_calc_idle_count >= DTE_IDLE_SPEED_30S_TIMER)		//“Vehicle speed<3km/h AND Engine speed>300rmp” >=300s
+		l_dte_idle_state = TRUE;						//stop calc fuel consumption
+		Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerDTEIDLEWait, &fl_timer_resDef_started_bool); 
+		if(fl_timer_resDef_started_bool == TRUE)	
 		{
-		  l_dte_idle_state = TRUE;
-		}
-		else
-		{
-			l_dte_idle_state = FALSE;
+			Rte_Call_rptimer_TmExt_Timer_Stop(eTimerDTEIDLEWait);
 		}
 	}
 	else
 	{
-	  	l_fuel_calc_idle_count = 0;
+		if(fl_ABS_VehSpdLgt_value < DTE_SPEED_3KMH)
+		{
+			Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerDTEIDLEWait, &fl_timer_resDef_started_bool); 
+			if(fl_timer_resDef_started_bool)
+			{
+				// abnormal >= 300s
+				Rte_Call_rptimer_TmExt_Timer_IsElapsed(eTimerDTEIDLEWait, DTE_TimeOut_300S, &fl_timer_resDef_isElapsed_bool);
+				if(fl_timer_resDef_isElapsed_bool)
+				{
+					l_dte_idle_state = TRUE;					//stop calc fuel consumption
+				}
+				else
+				{	
+					l_dte_idle_state = FALSE;
+				}
+			}
+			else
+			{
+				Rte_Call_rptimer_TmExt_Timer_Start(eTimerDTEIDLEWait);
+			}
+		}
+		else
+		{
+			l_dte_idle_state = FALSE;
+			Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerDTEIDLEWait, &fl_timer_resDef_started_bool); 
+			if(fl_timer_resDef_started_bool == TRUE)
+			{
+				Rte_Call_rptimer_TmExt_Timer_Stop(eTimerDTEIDLEWait);
+			}
+		}
 	}
 }
 
 /****************************************************************************
-Function Name       : fdte_process_fuelComsumption
+Function Name       : fdte_calc_fuelComsumption
 
 Description         : the Function is used to process fuel Comsumption service
 
@@ -434,7 +450,7 @@ Return Value        : None
 
 Critical Section    : None
 ******************************************************************************/
-static void fdte_process_fuelComsumption(void)
+static void fdte_calc_fuelComsumption(void)
 {
 	uint16  fl_fuel_consum_signal_value=0;  
 	uint8   fl_fuel_consum_signal_nr=0;
@@ -469,7 +485,6 @@ static void fdte_process_fuelComsumption(void)
 		else
 		{
 			 l_fuelconsumption_abnormal = FALSE;
-			 //if(l_fuel_calc_idle_count < DTE_IDLE_SPEED_LOOP_NUMBER)
 			 if(l_dte_idle_state == FALSE)		//SysRS_03_HMI_Display_30600
 			 {
 				  /*in none idle speed status,	add fuel consumption*/
@@ -495,6 +510,95 @@ static void fdte_process_fuelComsumption(void)
 	}
 }
 
+
+/****************************************************************************
+Function Name       : fdte_abnormal_processing
+
+Description         : the Function is used to process DTE abnormal state
+
+Invocation          : Internal
+
+Parameters          : None
+
+Return Value        : None
+
+Critical Section    : None
+******************************************************************************/
+static void fdte_abnormal_processing(void)
+{
+	if(l_dte_abnormal_state == TRUE)		//abnormal --> normal state
+	{
+		  if(l_dte_battary_reset == TRUE)		//first battary
+		  {
+			  l_dte_battary_reset = FALSE;
+			  fdte_calc_dte_value();
+			  l_dte_display_value_U32 = l_dte_calculate_value_U32;
+		  }
+		  else
+		  {
+			  l_dte_display_value_U32 = l_dte_next_display_value_U32;
+		  }
+		  l_dte_abnormal_state = FALSE;
+	}
+}
+
+
+/****************************************************************************
+Function Name       : fdte_process_DteValue
+
+Description         : the Function is used to process DTE value service
+
+Invocation          : Internal
+
+Parameters          : None
+
+Return Value        : None
+
+Critical Section    : None
+******************************************************************************/
+static void fdte_process_DteValue(void)
+{
+	uint32 fl_distance_moved_U32 = 0;
+	
+	l_dte_current_odo_U32 = OdoLogicalMdl_get_main(ODO_1M);
+
+	if(l_dte_calc_count_U16 == 0)
+	{
+		l_dte_pre_odo_value_U32 = OdoLogicalMdl_get_main(ODO_1M);
+		++l_dte_calc_count_U16;
+	}
+	else if(l_dte_calc_count_U16 >= DTE_LOOP_NUMBER)			//refresh cycle is 10s
+	{
+		if((l_dte_idle_state == TRUE) || (l_fuelconsumption_abnormal == TRUE))		//0x366 missing or idle state
+		{
+			/*fuel or odo is invalid, not calculate RAFC(k), use RAFC(k-1), stop */
+			l_dte_fuel_consum_total = 0;
+			l_pre_Fuel_consum_value_U32 = 0;
+		}
+		else
+		{
+			if(l_dte_current_odo_U32 >= l_dte_pre_odo_value_U32)
+			{
+				fl_distance_moved_U32 = l_dte_current_odo_U32 - l_dte_pre_odo_value_U32;
+			}
+			l_cur_dte_RAFC_value_U32 = fdte_calc_10000_RAFC_value(l_dte_fuel_consum_total, (uint32)fl_distance_moved_U32);
+		}
+		
+		fdte_calc_dte_value();
+
+		fdte_display_value_processing();
+		
+		l_dte_fuel_consum_total = 0;
+		
+		l_dte_calc_count_U16 = 0;
+	}
+	else
+	{
+		++l_dte_calc_count_U16;
+	}
+}
+
+
 /****************************************************************************
 Function Name       : fdte_process_DteTask
 
@@ -510,67 +614,50 @@ Critical Section    : None
 ******************************************************************************/
 static void fdte_process_DteTask(void)
 {
-	uint32 fl_distance_moved_U32 = 0;
 	boolean fl_fuel_abnormal = FALSE;
-	boolean fl_abs_abnormal = FALSE;
-
-	fl_abs_abnormal = fdte_process_ABSWhlMil();
+	boolean fl_ABS_WhlMil_abnormal = FALSE;
+	
+	fl_ABS_WhlMil_abnormal = fdte_get_ABSWhlMil_state();
+	
 	fl_fuel_abnormal = fdte_fuelLevel_state();	
-	l_current_odo_U32 = OdoLogicalMdl_get_main(ODO_1M);
+	
+	fdte_check_EMS_EngSpeed_invalid();
+	
+	fdte_check_ABS_VehSpdLgt_invalid();	
+		
 	if((fl_fuel_abnormal == TRUE) || (l_ABS_VehSpdLgt_invalid == TRUE) || (l_EMS_EngSpeed_invalid == TRUE))
 	{
 		/*
-		*  case1  Fuel sensor input abnormal		   		SysRS_03_HMI_Display_30196  
-		*  case2  Invalid signal received信号值无效		   		SysRS_03_HMI_Display_210
+		*  case1  Fuel sensor input abnormal		   		  
+		*  case2  Invalid signal received信号值无效		   		
 		*/
-		l_dte_display_value_U32 = DTE_INVALID_VALUE;	   //show "---km"
+		l_dte_display_value_U32 = DTE_INVALID_VALUE;	    //show "---km"
 		l_dte_abnormal_state = TRUE;
 	}
 	else
 	{
-		l_dte_abnormal_state = FALSE;
-		if(l_dte_pre_abnormal_state == TRUE)		//abnormal --> normal state
-			l_dte_display_value_U32 = l_dte_pre_display_value_U32;
+		fdte_get_fast_dte();
 		
-		if((fl_abs_abnormal == TRUE) || (l_fuelconsumption_abnormal == TRUE) || (l_current_odo_U32 == FODO_ODO_NVM_ERROR) )
+		fdte_abnormal_processing();
+		
+		if(fl_ABS_WhlMil_abnormal == TRUE)					//0x221 missing
 		{
-			  /*fuel or odo is invalid, not calculate RAFC(k), use RAFC(k-1)*/
-			  l_dte_fuel_consum_total = 0;
-			  fl_distance_moved_U32 = 0;
-			  l_cur_dte_RAFC_value_U32 = fdte_calc_10000_RAFC_value(l_dte_fuel_consum_total, (uint32)fl_distance_moved_U32);
-			  fdte_calc_dte_value();
+			/* stop calculate RAFC , stop calculate DTE*/
+			l_dte_calc_count_U16 = 0;
+			l_dte_fuel_consum_total = 0;
+			l_pre_Fuel_consum_value_U32 = 0;
 		}
 		else
 		{
-			if(l_dte_calc_count_U16 == 0)
-			{
-				l_pre_odo_value_U32 = OdoLogicalMdl_get_main(ODO_1M);
-				if(l_dte_battary_reset == TRUE /*&& l_pre_odo_value_U32 !=0*/)
-				{
-					//l_pre_odo_300m_value_U32 = l_pre_odo_value_U32;
-					l_dte_battary_reset = FALSE;
-					l_dte_battary_reset_flag = TRUE;
-				}
-				++l_dte_calc_count_U16;
-			}
-			else if(l_dte_calc_count_U16 >= DTE_LOOP_NUMBER)	//refresh cycle is 10s
-			{
-				fl_distance_moved_U32 = l_current_odo_U32 - l_pre_odo_value_U32;
-				l_cur_dte_RAFC_value_U32 = fdte_calc_10000_RAFC_value(l_dte_fuel_consum_total, (uint32)fl_distance_moved_U32);
-				fdte_calc_dte_value();
-				fdte_display_value_processing();
-				l_dte_fuel_consum_total = 0;
-				l_dte_calc_count_U16 = 0;
-			}
-			else
-			{
-				++l_dte_calc_count_U16;
-			}
+			fdte_check_idle_status();
+			
+			fdte_calc_fuelComsumption();
+			
+			fdte_process_DteValue();
 		}
 	}
-	l_dte_pre_abnormal_state = l_dte_abnormal_state;
-
 }
+
 
 /****************************************************************************
 Function Name       : fdte_calc_dte_value
@@ -601,7 +688,7 @@ static void fdte_calc_dte_value(void)
 	{   
 		if(fl_remain_fuel_level_U16 > 0)
 		{
-			l_dte_calculate_value_U32 = ((fl_remain_fuel_level_U16 - 300) * 100) / l_cur_dte_RAFC_value_U32;
+			l_dte_calculate_value_U32 = (fl_remain_fuel_level_U16 * 100) / l_cur_dte_RAFC_value_U32;
 		}
 	}
 	else
@@ -610,49 +697,6 @@ static void fdte_calc_dte_value(void)
 	}
 }
 
-/****************************************************************************
-Function Name       : fdte_set_display_value
-
-Description         : the Function is used to set DTE display value
-
-Invocation          : Internal
-
-Parameters          : None
-
-Return Value        : None
-
-Critical Section    : None
-******************************************************************************/
-static void fdte_set_display_value(void)
-{
-	/*
-	 *  case1  first battary on, ODO diff >= 300m				SysRS_03_HMI_Display_30193
-	 *  case2  fast fuel/ leakage condition is detected  		SysRS_03_HMI_Display_30183
-	 */
-    #if 0
-	if(l_dte_battary_reset_flag == TRUE || Refuel_State == TRUE)	
-	{
-		  if(l_dte_calculate_value_U32 != DTE_ZREO)
-		  {
-			  l_dte_battary_reset_flag = FALSE; 				  
-			  l_dte_display_value_U32 = l_dte_calculate_value_U32;
-			  l_dte_pre_display_value_U32 = l_dte_display_value_U32;
-			  #if 0
-			  l_refuel_count++;
-			  if(l_refuel_count > 5)
-			  {
-				l_refuel_count=0;			  	//delay 5s to get refuel dte
-				Refuel_State = FALSE;
-			  }				
-			  #endif
-		  }
-	}
-	else 
-	#endif
-	{
-		fdte_display_value_processing();
-	}
-}
 
 /****************************************************************************
 Function Name       : fdte_get_dte_value
@@ -715,7 +759,6 @@ static uint32 fdte_calc_10000_RAFC_value(uint64 fuel_consumption, uint64 distanc
 	fl_RAFC_vaule_U32 = (fl_F_value_U32/100);
 
 	/*
-	When R_AFC<=0.065L/km, R_AFC is adopted 0.065L/km;
 	When R_AFC>= 0.3L/km, R_AFC is adopted 0.3L/km.
 	*/
 	if(fl_RAFC_vaule_U32 > DTE_RAFC_MAX_VALUE)
@@ -723,11 +766,11 @@ static uint32 fdte_calc_10000_RAFC_value(uint64 fuel_consumption, uint64 distanc
 	  fl_RAFC_vaule_U32 = DTE_RAFC_MAX_VALUE;
 	  fl_F_value_U32 = DTE_RAFC_MAX_VALUE * 100;
 	}
-	else if(fl_RAFC_vaule_U32 < DTE_RAFC_MIN_VALUE)
+	else
 	{
-	  fl_RAFC_vaule_U32 = DTE_RAFC_MIN_VALUE;
-	  fl_F_value_U32 = DTE_RAFC_MIN_VALUE * 100;
+
 	}
+	
 	l_pre_dte_F_value_U32 = fl_F_value_U32;
 	l_pre_dte_RAFC_value_U32 = fl_RAFC_vaule_U32;
 
@@ -752,8 +795,7 @@ static uint64 fdte_calc_Fuel_in_ml(uint64 history_fuel_consum_total, uint32 last
 	uint64 new_fuel_consum_total;
 	if( newFuel < lastFuel )
 	{
-	  //new_fuel_consum_total = history_fuel_consum_total;
-	  new_fuel_consum_total = history_fuel_consum_total + ((uint64)(65535 + newFuel - lastFuel)*DTE_CALC_FACTOR) /1000;
+	   new_fuel_consum_total = history_fuel_consum_total + ((uint64)(65535 + newFuel - lastFuel)*DTE_CALC_FACTOR) /1000;
 	}
 	else
 	{
@@ -768,7 +810,7 @@ static uint64 fdte_calc_Fuel_in_ml(uint64 history_fuel_consum_total, uint32 last
 }
 
 /****************************************************************************
-Function Name		: fdte_vehicle_idle_state
+Function Name		: fdte_vehicle_abnormal_state
 
 Description 		: tcheck if vehicle speed is less than 3 km, in this case, not add fuel consumption to calculate DTE
 
@@ -780,45 +822,27 @@ Return Value		: None
 
 Critical Section	: None
 ******************************************************************************/
-static boolean fdte_vehicle_idle_state(void)
+static boolean fdte_vehicle_abnormal_state(void)
 {
-	boolean fl_speed_idle_state=FALSE;
+	boolean fl_speed_abnormal_state=FALSE;
 	uint8 	fl_ABS_VehSpdLgt_nr=0;
 	uint8   fl_ABS_VehSpdLgt_tout=0;
-	uint32	fl_ABS_VehSpdLgt_value=0;  
-	uint32  fl_EMS_EngSpeed_value = 0;
-	uint8 	fl_EMS_EngSpeed_nr=0;
-	uint8   fl_EMS_EngSpeed_tout=0;
 
-	Rte_Read_rpSR_TISpdMdl_value(&fl_ABS_VehSpdLgt_value);
 	Rte_Read_rpSR_CANMSG_GW_ABS_Sts_0x221_ComIn_NR(&fl_ABS_VehSpdLgt_nr);
 	Rte_Read_rpSR_CANMSG_GW_ABS_Sts_0x221_ComIn_Tout(&fl_ABS_VehSpdLgt_tout);
 
-	Rte_Read_rpSR_TITachMdl_value(&fl_EMS_EngSpeed_value);
-	Rte_Read_rpSR_CANMSG_GW_EMS_Power_0x10B_ComIn_NR(&fl_EMS_EngSpeed_nr);
-	Rte_Read_rpSR_CANMSG_GW_EMS_Power_0x10B_ComIn_Tout(&fl_EMS_EngSpeed_tout);
 
-	if(fl_ABS_VehSpdLgt_nr == RTE_E_NEVER_RECEIVED || fl_ABS_VehSpdLgt_tout == RTE_E_TIMEOUT ||\
-		fl_EMS_EngSpeed_nr == RTE_E_NEVER_RECEIVED || fl_EMS_EngSpeed_tout == RTE_E_TIMEOUT)
+	if(fl_ABS_VehSpdLgt_nr == RTE_E_NEVER_RECEIVED || fl_ABS_VehSpdLgt_tout == RTE_E_TIMEOUT)
 	{		
-		fl_speed_idle_state = TRUE;
+		fl_speed_abnormal_state = TRUE;
 	}
 	else
 	{
-		fdte_check_ABS_VehSpdLgt_invalid();
-		fdte_check_EMS_EngSpeed_invalid();
-	
-		if(fl_ABS_VehSpdLgt_value < DTE_SPEED_3KMH && fl_EMS_EngSpeed_value > DTE_ENGSPEED_300RPM)
-		{
-		  	fl_speed_idle_state = TRUE;
-		}
-		else
-		{
-			fl_speed_idle_state = FALSE;
-		}
+		fl_speed_abnormal_state = FALSE;
 	}
-	return fl_speed_idle_state;
+	return fl_speed_abnormal_state;
 }
+
 
 /****************************************************************************
 Function Name       : fdte_fuelLevel_state
@@ -835,17 +859,17 @@ Critical Section    : None
 ******************************************************************************/
 static boolean fdte_fuelLevel_state(void)
 {
-	uint16 fl_fuel_level_volume;
+	uint16 fl_fuel_state;
 
-	Rte_Read_rpSR_DteMdl_AbnormalState_AbnormalState(&fl_fuel_level_volume);
+	Rte_Read_rpSR_DteMdl_AbnormalState_AbnormalState(&fl_fuel_state);
 
-	if(fl_fuel_level_volume == InvalidFuelSignal)
+	if(fl_fuel_state == TRUE)
 	{
-		return TRUE;
+		return TRUE;				//abnormal
 	}
 	else
 	{
-		return FALSE;
+		return FALSE;				//normal
 	}
 }
 
@@ -864,36 +888,9 @@ Critical Section    : None
 ******************************************************************************/
 void fdte_clear_DteValue(void)
 {
-	//fdte_RAFC_init();
+	fdte_get_default_AFC();
 	l_dte_calc_count_U16 = 0;
-	l_pre_dte_RAFC_value_U32 = 0;
 	l_dte_fuel_consum_total = 0;
-	l_pre_dte_RAFC_value_U32 = DTE_RAFC_GAS;
-	l_pre_dte_F_value_U32 = DTE_RAFC_GAS * 100;
-	l_cur_dte_RAFC_value_U32 = l_pre_dte_RAFC_value_U32;
-}
-
-/****************************************************************************
-Function Name       : fdte_RAFC_init
-
-Description         : the Function is used to initialize RAFC value
-
-Invocation          : Internal
-
-Parameters          : None
-
-Return Value        : None
-
-Critical Section    : None
-******************************************************************************/
-static void fdte_RAFC_init(void)
-{
-	boolean IsEngineCfg;
-	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION_Engine, &IsEngineCfg);
-	if(IsEngineCfg)
-	   l_dte_RAFC = DTE_RAFC_GAS;			//Gasoline/7000RPM
-	else
-	   l_dte_RAFC = DTE_RAFC_DIESEL;		//Diesel/5000RPM
 }
 
 
@@ -915,13 +912,22 @@ static void fdte_ignoffon_odo(void)
 {	
 	//IGN OFF -> IGN ON Processing,
 	l_dte_wait_fuelsig_from_ign_on = TRUE;			// Reset first fuel consum signal value
-	l_pre_odo_value_U32 = OdoLogicalMdl_get_main(ODO_1M);	
-	l_dte_odo_value_U32 = l_pre_odo_value_U32;
+	
+	l_dte_pre_odo_value_U32 = OdoLogicalMdl_get_main(ODO_1M);	
+	
+	if((l_dte_display_value_U32 >= DTE_MIN_VALUE) && (l_dte_display_value_U32 <= DTE_MID_VALUE))		//SysRS_03_HMI_Display_031833
+	{
+		l_Lowdte_Status = FALSE;
+	}
+	else
+	{
+		l_Lowdte_Status = TRUE;
+	}
 }
 
 
 /****************************************************************************
-Function Name       : fdte_process_ABSWhlMil
+Function Name       : fdte_get_ABSWhlMil_state
 
 Description         : the Function is used to get ABSWhlMil state
 
@@ -931,24 +937,26 @@ Parameters          : None
 
 Return Value        : None
 
-Critical Section    : None
+Critical Section    : check if vehicle speed is less than 3 km, in this case, not add fuel consumption to calculate DTE
 ******************************************************************************/
-static boolean fdte_process_ABSWhlMil(void)
+static boolean fdte_get_ABSWhlMil_state(void)
 {
 	uint8 	fl_ABS_WhlMil_nr=0;
 	uint8 	fl_ABS_WhlMil_tout=0;
-	boolean fl_fuel_abnormal = FALSE;
+	boolean fl_ABS_WhlMil_abnormal = FALSE;
 	
 	Rte_Read_rpSR_CANMSG_GW_ABS_Sts_0x221_ComIn_NR(&fl_ABS_WhlMil_nr);
 	Rte_Read_rpSR_CANMSG_GW_ABS_Sts_0x221_ComIn_Tout(&fl_ABS_WhlMil_tout);
 
 	if((fl_ABS_WhlMil_nr == RTE_E_NEVER_RECEIVED) || (fl_ABS_WhlMil_tout == RTE_E_TIMEOUT))
 	{
-		fl_fuel_abnormal = TRUE;
+		fl_ABS_WhlMil_abnormal = TRUE;
 	}
-	return fl_fuel_abnormal;
+	
+	return fl_ABS_WhlMil_abnormal;
 }
 
+#if 0
 /****************************************************************************
 Function Name       : fdte_check_refuel_state
 
@@ -975,14 +983,8 @@ static void fdte_check_refuel_state(void)
 	{
 		l_refuel_state = FALSE;
 	}
-
-	//if(l_refuel_state == FALSE && l_refuel_pre_state == TRUE)		//refuel is over
-		//Refuel_State = TRUE;
-
-	l_refuel_pre_state = l_refuel_state;
-
 }
-
+#endif
 
 /****************************************************************************
 Function Name       : fdte_check_EMS_EngSpeed_invalid
@@ -1065,71 +1067,77 @@ Return Value        : None
 
 Critical Section    : None
 ******************************************************************************/
-static void fdte_display_negtive_value_processing(void)
+static void fdte_display_negtive_value_processing(uint16	fl_vehicle_speed)
 {
-	boolean fl_timer_resDef_started_bool;
-	boolean fl_timer_resDef_isElapsed_bool;
+	boolean fl_timer_resDef_started_bool=FALSE;
+	boolean fl_timer_resDef_isElapsed_bool=FALSE;
 	
-	if(l_dte_negtive_state1 == TRUE)
+	if(l_dte_negtive_state1 == TRUE)						//DTE display - calculate > 60km
 	{
-		if(l_current_odo_U32 - l_dte_odo_value_U32 > 9000)
+		if(l_dte_current_odo_U32 - l_dte_odo_value_U32 > 9000)	//ODO > 9KM
 		{
 			l_dte_display_value_U32++;
 			l_dte_start_process = FALSE;
 			l_dte_negtive_state1 = FALSE;
-			l_dte_odo_value_U32 = l_current_odo_U32;
-			l_dte_pre_display_value_U32 = l_dte_display_value_U32;
+			l_dte_odo_value_U32 = l_dte_current_odo_U32;
+			l_dte_next_display_value_U32 = l_dte_display_value_U32;
 		}
 	}
 	
-	if(l_dte_negtive_state2 == TRUE)
+	if(l_dte_negtive_state2 == TRUE)						//DTE display - calculate > 40km
 	{
-		if(l_current_odo_U32 - l_dte_odo_value_U32 > 6000)
+		if(l_dte_current_odo_U32 - l_dte_odo_value_U32 > 6000)	//ODO > 6KM
 		{
 			l_dte_display_value_U32--;
 			l_dte_start_process = FALSE;
 			l_dte_negtive_state2 = FALSE;
-			l_dte_odo_value_U32 = l_current_odo_U32;
-			l_dte_pre_display_value_U32 = l_dte_display_value_U32;
+			l_dte_odo_value_U32 = l_dte_current_odo_U32;
+			l_dte_next_display_value_U32 = l_dte_display_value_U32;
 		}
 	}
 	
-	if(l_dte_negtive_state3 == TRUE)
+	if(l_dte_negtive_state3 == TRUE)						//DTE display - calculate > 20km
 	{
-		if(l_current_odo_U32 - l_dte_odo_value_U32 > 3000)
+		if(l_dte_current_odo_U32 - l_dte_odo_value_U32 > 3000)	//ODO > 3KM
 		{
 			l_dte_display_value_U32--;
 			l_dte_start_process = FALSE;
 			l_dte_negtive_state3 = FALSE;
-			l_dte_odo_value_U32 = l_current_odo_U32;
-			l_dte_pre_display_value_U32 = l_dte_display_value_U32;
+			l_dte_odo_value_U32 = l_dte_current_odo_U32;
+			l_dte_next_display_value_U32 = l_dte_display_value_U32;
 		}
 	}
-
-	#if 0
-	if(l_dte_negtive_state4 == TRUE)
+	
+	if(l_dte_negtive_state4 == TRUE)						//DTE display - calculate < 20km
 	{
-		//start timer 120s
-		Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerDTEWait, &fl_timer_resDef_started_bool); 
-		if(fl_timer_resDef_started_bool)
+		if(fl_vehicle_speed >= DTE_SPEED_3KMH)
 		{
-			// abnormal >= 120s
-			Rte_Call_rptimer_TmExt_Timer_IsElapsed(eTimerDTEWait, DTE_TimeOut_120S, &fl_timer_resDef_isElapsed_bool);
-			if(fl_timer_resDef_isElapsed_bool)
+			//start timer 120s
+			Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerDTEWait, &fl_timer_resDef_started_bool); 
+			if(fl_timer_resDef_started_bool)
 			{
-				l_dte_display_value_U32--;
-				l_dte_start_process = FALSE;
-				l_dte_negtive_state4 = FALSE;
-				l_dte_odo_value_U32 = l_current_odo_U32;
-				l_dte_pre_display_value_U32 = l_dte_display_value_U32;
+				// abnormal >= 120s
+				Rte_Call_rptimer_TmExt_Timer_IsElapsed(eTimerDTEWait, DTE_TimeOut_120S, &fl_timer_resDef_isElapsed_bool);
+				if(fl_timer_resDef_isElapsed_bool)
+				{
+					l_dte_display_value_U32--;
+					l_dte_start_process = FALSE;
+					l_dte_negtive_state4 = FALSE;
+					l_dte_odo_value_U32 = l_dte_current_odo_U32;
+					l_dte_next_display_value_U32 = l_dte_display_value_U32;
+
+					Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerDTEWait, &fl_timer_resDef_started_bool); 
+					if(fl_timer_resDef_started_bool)
+						Rte_Call_rptimer_TmExt_Timer_Stop(eTimerDTEWait);
+				}
 			}
+			else
+			{
+				Rte_Call_rptimer_TmExt_Timer_Start(eTimerDTEWait);
+			}		
+
 		}
-		else
-		{
-			Rte_Call_rptimer_TmExt_Timer_Start(eTimerDTEWait);
-		}		
 	}
-	#endif
 }
 
 
@@ -1145,71 +1153,76 @@ Return Value        : None
 
 Critical Section    : None
 ******************************************************************************/
-static void fdte_display_postive_value_processing(void)
+static void fdte_display_postive_value_processing(uint16	fl_vehicle_speed)
 {
-	boolean fl_timer_resDef_started_bool;
-	boolean fl_timer_resDef_isElapsed_bool;
+	boolean fl_timer_resDef_started_bool=FALSE;
+	boolean fl_timer_resDef_isElapsed_bool=FALSE;
 	
-	if(l_dte_postive_state1 == TRUE)
+	if(l_dte_postive_state1 == TRUE)								//display - calculate > 60
 	{
-		if(l_current_odo_U32 - l_dte_odo_value_U32 > 1000)		//fl_dte_delta_postive > 60
+		if(l_dte_current_odo_U32 - l_dte_odo_value_U32 > 1000)			//ODO > 1KM
 		{
 			l_dte_display_value_U32 = l_dte_display_value_U32 - 3;
 			l_dte_start_process = FALSE;
 			l_dte_postive_state1 = FALSE;
-			l_dte_odo_value_U32 = l_current_odo_U32;
-			l_dte_pre_display_value_U32 = l_dte_display_value_U32;
+			l_dte_odo_value_U32 = l_dte_current_odo_U32;
+			l_dte_next_display_value_U32 = l_dte_display_value_U32;
 		}
 	}
 	
-	if(l_dte_postive_state2 == TRUE)							//fl_dte_delta_postive > 30
+	if(l_dte_postive_state2 == TRUE)								//DTE display - calculate > 30km
 	{
-		if(l_current_odo_U32 - l_dte_odo_value_U32 > 1000)
+		if(l_dte_current_odo_U32 - l_dte_odo_value_U32 > 1000)			//ODO > 1KM
 		{
 			l_dte_display_value_U32 = l_dte_display_value_U32 - 2;
 			l_dte_start_process = FALSE;
 			l_dte_postive_state2 = FALSE;
-			l_dte_odo_value_U32 = l_current_odo_U32;
-			l_dte_pre_display_value_U32 = l_dte_display_value_U32;
+			l_dte_odo_value_U32 = l_dte_current_odo_U32;
+			l_dte_next_display_value_U32 = l_dte_display_value_U32;
 		}
 	}
 	
-	if(l_dte_postive_state3 == TRUE)							//fl_dte_delta_postive > 10
+	if(l_dte_postive_state3 == TRUE)								//DTE display - calculate > 10km
 	{
-		if(l_current_odo_U32 - l_dte_odo_value_U32 > 1000)
+		if(l_dte_current_odo_U32 - l_dte_odo_value_U32 > 1000)			//ODO > 1KM
 		{
 			l_dte_display_value_U32 = l_dte_display_value_U32 - 1;
 			l_dte_start_process = FALSE;
 			l_dte_postive_state3 = FALSE;
-			l_dte_odo_value_U32 = l_current_odo_U32;
-			l_dte_pre_display_value_U32 = l_dte_display_value_U32;
+			l_dte_odo_value_U32 = l_dte_current_odo_U32;
+			l_dte_next_display_value_U32 = l_dte_display_value_U32;
 		}
 	}
-
-	#if 0
-	if(l_dte_postive_state4 == TRUE)							//fl_dte_delta_postive < 10
+	
+	if(l_dte_postive_state4 == TRUE)								//DTE display - calculate < 10km
 	{
-		//start timer 90s	
-		Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerDTEWait, &fl_timer_resDef_started_bool); 
-		if(fl_timer_resDef_started_bool)
+		if(fl_vehicle_speed >= DTE_SPEED_3KMH)
 		{
-			// abnormal >= 90s
-			Rte_Call_rptimer_TmExt_Timer_IsElapsed(eTimerDTEWait, DTE_TimeOut_90S, &fl_timer_resDef_isElapsed_bool);
-			if(fl_timer_resDef_isElapsed_bool)
+			//start timer 90s	
+			Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerDTEWait, &fl_timer_resDef_started_bool); 
+			if(fl_timer_resDef_started_bool)
 			{
-				l_dte_display_value_U32 = l_dte_display_value_U32 - 1;
-				l_dte_start_process = FALSE;
-				l_dte_postive_state4 = FALSE;
-				l_dte_odo_value_U32 = l_current_odo_U32;
-				l_dte_pre_display_value_U32 = l_dte_display_value_U32;
+				// abnormal >= 90s
+				Rte_Call_rptimer_TmExt_Timer_IsElapsed(eTimerDTEWait, DTE_TimeOut_90S, &fl_timer_resDef_isElapsed_bool);
+				if(fl_timer_resDef_isElapsed_bool)
+				{
+					l_dte_display_value_U32 = l_dte_display_value_U32 - 1;
+					l_dte_start_process = FALSE;
+					l_dte_postive_state4 = FALSE;
+					l_dte_odo_value_U32 = l_dte_current_odo_U32;
+					l_dte_next_display_value_U32 = l_dte_display_value_U32;
+					
+					Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerDTEWait, &fl_timer_resDef_started_bool); 
+					if(fl_timer_resDef_started_bool)
+						Rte_Call_rptimer_TmExt_Timer_Stop(eTimerDTEWait);
+				}
+			}
+			else
+			{
+				Rte_Call_rptimer_TmExt_Timer_Start(eTimerDTEWait);
 			}
 		}
-		else
-		{
-			Rte_Call_rptimer_TmExt_Timer_Start(eTimerDTEWait);
-		}		
 	}
-	#endif
 }
 
 
@@ -1230,8 +1243,8 @@ static void fdte_display_negtive_value_compare(uint32 fl_dte_delta_negtive)
 	if(fl_dte_delta_negtive > 250)
 	{
 		l_dte_display_value_U32 = l_dte_calculate_value_U32;
-		l_dte_odo_value_U32 = l_current_odo_U32;
-		l_dte_pre_display_value_U32 = l_dte_display_value_U32;
+		l_dte_odo_value_U32 = l_dte_current_odo_U32;
+		l_dte_next_display_value_U32 = l_dte_display_value_U32;
 	}
 	else if(fl_dte_delta_negtive > 60)
 	{
@@ -1274,8 +1287,8 @@ static void fdte_display_postive_value_compare(uint32 fl_dte_delta_postive)
 	if(fl_dte_delta_postive > 120)
 	{
 		l_dte_display_value_U32 = l_dte_calculate_value_U32;
-		l_dte_odo_value_U32 = l_current_odo_U32;
-		l_dte_pre_display_value_U32 = l_dte_display_value_U32;
+		l_dte_odo_value_U32 = l_dte_current_odo_U32;
+		l_dte_next_display_value_U32 = l_dte_display_value_U32;
 	}
 	else if(fl_dte_delta_postive > 60)
 	{
@@ -1317,37 +1330,33 @@ static void fdte_display_value_processing(void)
 {
 	uint32 fl_dte_delta_postive = 0;
 	uint32 fl_dte_delta_negtive = 0;
-	boolean fl_timer_resDef_started_bool;
+	uint16	fl_vehicle_speed=0;
 
 	if(l_dte_start_process == FALSE)
 	{
-		if(l_dte_calculate_value_U32 > l_dte_pre_display_value_U32)
+		if(l_dte_calculate_value_U32 > l_dte_next_display_value_U32)
 		{
-			fl_dte_delta_negtive = l_dte_calculate_value_U32 - l_dte_pre_display_value_U32;
+			fl_dte_delta_negtive = l_dte_calculate_value_U32 - l_dte_next_display_value_U32;
 			fdte_display_negtive_value_compare(fl_dte_delta_negtive);
 		}
-		else if(l_dte_calculate_value_U32 < l_dte_pre_display_value_U32)
+		else if(l_dte_calculate_value_U32 < l_dte_next_display_value_U32)
 		{
-			fl_dte_delta_postive = l_dte_pre_display_value_U32 - l_dte_calculate_value_U32;
+			fl_dte_delta_postive = l_dte_next_display_value_U32 - l_dte_calculate_value_U32;
 			fdte_display_postive_value_compare(fl_dte_delta_postive);
 		}
-		#if 0
-		Rte_Call_rptimer_TmExt_Timer_IsStarted(eTimerDTEWait, &fl_timer_resDef_started_bool); 
-		if(fl_timer_resDef_started_bool)
-			Rte_Call_rptimer_TmExt_Timer_Stop(eTimerDTEWait);
-		#endif
 	}
 
 	if(l_dte_start_process == TRUE)
 	{
-		fdte_display_negtive_value_processing();		
-		fdte_display_postive_value_processing();
+		fl_vehicle_speed = fdte_get_vehicle_speed();
+		fdte_display_negtive_value_processing(fl_vehicle_speed);		
+		fdte_display_postive_value_processing(fl_vehicle_speed);
 	}
 }
 
 
 /****************************************************************************
-Function Name       : fdte_refuel_state_processing
+Function Name       : fdte_get_fast_dte
 
 Description         : the Function is used to process refuel state
 Invocation          : Internal
@@ -1358,21 +1367,171 @@ Return Value        : None
 
 Critical Section    : None
 ******************************************************************************/
-static void fdte_refuel_state_processing(void)
+static void fdte_get_fast_dte(void)
 {
 	uint8 fl_refuel_state = FALSE;
 
 	Rte_Read_rpSR_TIFuel_RefuelState_TIFuel_RefuelState(&fl_refuel_state);
 
-	if(l_dte_battary_reset_flag == TRUE || fl_refuel_state == TRUE)	
+	if(l_dte_battary_reset_flag == TRUE || fl_refuel_state == TRUE)				//Fast fuel state or First Battary
 	{
 		fdte_calc_dte_value();
 		if(l_dte_calculate_value_U32 != DTE_ZREO)
 		{
-		  l_dte_battary_reset_flag = FALSE; 				  
-		  l_dte_display_value_U32 = l_dte_calculate_value_U32;
-		  l_dte_pre_display_value_U32 = l_dte_display_value_U32;
+			  l_dte_battary_reset_flag = FALSE; 				  
+			  if(l_dte_calculate_value_U32 > l_dte_next_display_value_U32)
+			  {
+				  if(l_dte_calculate_value_U32 - l_dte_next_display_value_U32 > 10)
+				  {
+					  l_dte_display_value_U32 = l_dte_calculate_value_U32;
+					  l_dte_next_display_value_U32 = l_dte_display_value_U32;
+				  }
+			  }
+			  else
+			  {
+				  if(l_dte_next_display_value_U32 - l_dte_calculate_value_U32 > 10)
+				  {
+					  l_dte_display_value_U32 = l_dte_calculate_value_U32;
+					  l_dte_next_display_value_U32 = l_dte_display_value_U32;
+				  }
+			  }
 		}
 	}
 }
+
+/****************************************************************************
+Function Name       : dte_test
+
+Description         : the Function is used to DTE TEST Page
+
+Parameters          : None
+
+Return Value        : None
+
+Critical Section    : None
+******************************************************************************/
+static void dte_test(void)
+{
+	test_dte_display_value_U32 = (uint16)l_dte_display_value_U32;
+	test_dte_calculate_value_U32 = (uint16)l_dte_calculate_value_U32;
+	test_dte_afc = (uint16)l_cur_dte_RAFC_value_U32;
+}
+
+
+/****************************************************************************
+Function Name       : fdte_lowdte_processing
+
+Description         : the Function is used to process low DTE Value
+
+Parameters          : None
+
+Return Value        : None
+
+Critical Section    : None
+******************************************************************************/
+static void fdte_lowdte_processing(void)
+{
+	if(l_dte_display_value_U32 < DTE_MIN_VALUE)
+	{
+		l_Lowdte_Status = TRUE;
+	}
+	else if(l_dte_display_value_U32 > DTE_MID_VALUE)
+	{
+		l_Lowdte_Status = FALSE;
+	}
+	else
+	{
+		/*between */
+	}
+}
+
+/****************************************************************************
+Function Name       : fdte_canOut_display_processing
+
+Description         : the Function is used to process DTE can output value 
+
+Parameters          : None
+
+Return Value        : None
+
+Critical Section    : None
+******************************************************************************/
+static void fdte_canOut_display_processing(void)
+{
+	if(l_dte_display_value_U32 == DTE_INVALID_VALUE)
+	{
+		Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_DTE(0xfff);
+		
+		Rte_Write_ppSR_DteMdl_DteVal_DteVal(DTE_INVALID_VALUE);
+	}
+	else
+	{
+		if(l_dte_display_value_U32 >= DTE_MAX_VALUE)
+		{
+			Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_DTE(DTE_MAX_VALUE);
+
+			Rte_Write_ppSR_DteMdl_DteVal_DteVal(DTE_MAX_VALUE);
+		}
+		else
+		{
+			if(l_Lowdte_Status == TRUE)
+			{
+				Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_DTE(0xfff);
+
+				Rte_Write_ppSR_DteMdl_DteVal_DteVal(DTE_INVALID_VALUE);
+			}
+			else
+			{
+				Rte_Write_ppSR_CANMSG_IC_0x525_ComOut_IC_DTE(l_dte_display_value_U32);
+				
+				Rte_Write_ppSR_DteMdl_DteVal_DteVal(l_dte_display_value_U32);
+			}
+		}
+	}
+}
+
+
+/****************************************************************************
+Function Name       : fdte_get_default_AFC
+
+Description         : the Function is used to get default AFC Value
+
+Parameters          : None
+
+Return Value        : None
+
+Critical Section    : None
+******************************************************************************/
+static void fdte_get_default_AFC(void)
+{
+	//uint8 IsEngineCfg=0;
+	//uint16 fl_Default_AFC_Value=0;
+
+	#if 0
+	Rte_Call_GetVehicleCfg_Operation(VEHICLE_CONFIGURATION, &IsEngineCfg);
+
+	if(IsEngineCfg <=8)
+	{
+		fl_Default_AFC_Value = NVM_AFC_AFE_VALUE[IsEngineCfg];
+	}
+	else
+	{
+		fl_Default_AFC_Value = DTE_DEFAULT_AFC;
+	}
+	#endif
+
+	l_pre_dte_RAFC_value_U32 = DTE_DEFAULT_AFC;
+	l_pre_dte_F_value_U32 = DTE_DEFAULT_AFC * 100;
+	l_cur_dte_RAFC_value_U32 = l_pre_dte_RAFC_value_U32;
+}
+
+static uint16 fdte_get_vehicle_speed(void)
+{
+	uint32 fl_ABS_VehSpdLgt_value=0;
+	
+	Rte_Read_rpSR_TISpdMdl_value(&fl_ABS_VehSpdLgt_value);
+
+	return fl_ABS_VehSpdLgt_value;
+}
+
 
